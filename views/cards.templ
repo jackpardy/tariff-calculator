@@ -20,6 +20,23 @@ type EntryCard struct {
 	Problems             []string
 	Signoff              SignoffView
 	Unchecked            bool // tumbling or DMT: a level only
+	// Heading is its exercises' heading level: 2 (the default, 0) under the
+	// page's heading, 4 under a discipline's row on a member's page.
+	Heading int
+}
+
+// heading is the card's exercises' heading level.
+func (c EntryCard) heading() int {
+	if c.Heading == 0 {
+		return 2
+	}
+	return c.Heading
+}
+
+// cardUnder is the card with its exercises' headings at level.
+func cardUnder(c EntryCard, level int) EntryCard {
+	c.Heading = level
+	return c
 }
 
 // ExerciseCard is one exercise of an entry, checked.
@@ -55,8 +72,9 @@ templ entryCardChecks(c EntryCard) {
 			@StateChip(Done, "No problems found")
 		</p>
 	} else {
-		<div class="notification is-danger is-light" id="problems">
-			<p><strong>{ Count(len(c.Problems), "problem", "problems") }</strong></p>
+		// An amber chip and the list, as the entries page shows problems.
+		<div class="comp-problems" id="problems">
+			@StateChip(Attention, Count(len(c.Problems), "problem", "problems"))
 			<ul>
 				for _, p := range c.Problems {
 					<li>{ p }</li>
@@ -71,7 +89,7 @@ templ entryCardChecks(c EntryCard) {
 			for _, ex := range c.Exercises {
 				if !ex.Skip {
 					<div class="column">
-						@exerciseCard(ex)
+						@exerciseCard(ex, c.heading())
 					</div>
 				}
 			}
@@ -89,9 +107,18 @@ func cardName(s skills.TrampolineSkill) string {
 	return skills.NameOf(s)
 }
 
-templ exerciseCard(ex ExerciseCard) {
+// exerciseCard is one exercise, checked, its title a heading at level (2 to
+// 4), under whatever heads it on the page.
+templ exerciseCard(ex ExerciseCard, level int) {
 	<div class="box comp-exercise">
-		<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		switch level {
+			case 3:
+				<h3 class="title is-6 mb-1">{ ex.Title }</h3>
+			case 4:
+				<h4 class="title is-6 mb-1">{ ex.Title }</h4>
+			default:
+				<h2 class="title is-6 mb-1">{ ex.Title }</h2>
+		}
 		<p class="is-size-7 has-text-grey mb-2">
 			{ ex.Requirements }
 			if ex.SetRoutine {
@@ -116,7 +143,7 @@ templ exerciseCard(ex ExerciseCard) {
 								}
 								if ex.Validation.Messages[i] != "" {
 									<br/>
-									<span class="is-size-7 has-text-danger">{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
+									<span class={ "is-size-7", templ.KV("has-text-danger", !onlyCountsOnce(ex.Validation.Messages[i])), templ.KV("has-text-grey", onlyCountsOnce(ex.Validation.Messages[i])) }>{ skills.ElementNote(i, ex.Validation.Messages[i]) }</span>
 								}
 							</td>
 							<td class="has-text-grey comp-nowrap">{ sv.FIGNotation }</td>
@@ -177,6 +204,7 @@ func elementNumbers(ns []int) string {
 // or, for more than fit on a phone's page, the levels to print one at a time.
 type CardsPage struct {
 	Title      string
+	Of         string // the competition's name
 	Back       string
 	Cards      []PrintedCard
 	Levels     []CardsLevel // the selection's levels with cards
@@ -205,8 +233,41 @@ type PrintedCard struct {
 	Details    SheetDetails
 }
 
-// CompetitionCards prints competition cards, one per page.
+// CompetitionCards prints competition cards, one per page; or, for more
+// than fit on a phone's page, lists the levels to print one at a time, as
+// one of the app's pages.
 templ CompetitionCards(p CardsPage) {
+	if p.Choose {
+		@cardLevels(p)
+	} else {
+		@printedCardsPage(p)
+	}
+}
+
+// cardLevels lists the selection's levels to print a level at a time, or
+// all of them for a computer: a row each, the level's name opening its cards.
+templ cardLevels(p CardsPage) {
+	@competitionLayout(p.Title) {
+		@backLink(p.Back, "Entries")
+		@pageHead("Print cards", p.Of)
+		<p class="mb-3">{ Count(p.Total, "card", "cards") }: too many for a phone to print at once. Print them a level at a time.</p>
+		<ul class="comp-card-levels">
+			for _, l := range p.Levels {
+				<li>
+					<a href={ templ.SafeURL(l.Href) }>{ l.Name }</a>
+					<span class="has-text-grey">{ Count(l.Cards, "card", "cards") }</span>
+				</li>
+			}
+		</ul>
+		<p>
+			<a class="button is-small" href={ templ.SafeURL(p.AllHref) }>Every level on one page</a>
+			<span class="has-text-grey is-size-7 ml-2">{ Count(p.Total, "card", "cards") }, slow on a phone</span>
+		</p>
+	}
+}
+
+// printedCardsPage is the cards to print, with a toolbar on screen.
+templ printedCardsPage(p CardsPage) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -219,36 +280,19 @@ templ CompetitionCards(p CardsPage) {
 			<link rel="stylesheet" href={ static.URL("css/sheet.css") }/>
 		</head>
 		<body>
-			if p.Choose {
-				<div class="toolbar screen-only">
-					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
-					<span>{ Count(p.Total, "card", "cards") }</span>
-				</div>
-				// Too many for one page on a phone: a level at a time, each
-				// printed on its own, or all of them for a computer.
-				<div class="hint">
-					<p>Print the cards a level at a time:</p>
-					<ul class="card-levels">
-						for _, l := range p.Levels {
-							<li><a href={ templ.SafeURL(l.Href) }>{ l.Name }</a> · { Count(l.Cards, "card", "cards") }</li>
-						}
-					</ul>
-					<p><a href={ templ.SafeURL(p.AllHref) }>Every level on one page</a> · { Count(p.Total, "card", "cards") }, slow on a phone</p>
-				</div>
-			} else {
-				<div class="toolbar screen-only">
-					<a href={ templ.SafeURL(p.Back) }>← Entries</a>
-					if p.LevelsHref != "" {
-						<a href={ templ.SafeURL(p.LevelsHref) }>Other levels</a>
-					}
-					<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
-					<span>{ Count(len(p.Cards), "card", "cards") }</span>
-					if p.Next != nil {
-						<a href={ templ.SafeURL(p.Next.Href) }>Next: { p.Next.Name } →</a>
-					}
-				</div>
-				@printedCards(p)
-			}
+			@sandboxBanner()
+			<div class="toolbar screen-only">
+				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
+				if p.LevelsHref != "" {
+					<a href={ templ.SafeURL(p.LevelsHref) }>Other levels</a>
+				}
+				<button type="button" class="print" onclick="window.print()">Print / Save as PDF</button>
+				<span>{ Count(len(p.Cards), "card", "cards") }</span>
+				if p.Next != nil {
+					<a href={ templ.SafeURL(p.Next.Href) }>Next: { p.Next.Name } →</a>
+				}
+			</div>
+			@printedCards(p)
 		</body>
 	</html>
 }
@@ -298,4 +342,10 @@ templ videoBox(v VideoView) {
 			}
 		</div>
 	}
+}
+
+// onlyCountsOnce says an element's only note is that it's the first of a
+// repeat: its difficulty counts, so it's a note, not a problem.
+func onlyCountsOnce(message string) bool {
+	return message == "Duplicate (Counts Once)"
 }

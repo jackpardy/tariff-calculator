@@ -135,11 +135,20 @@ with the 15 seconds for requests a stop can take 35 seconds: give the
 Compose file (Docker's default of 10 seconds kills it before the database is
 closed cleanly).
 
-`FEEDBACK_EMAIL`, if set, is where each piece of
-[feedback about the app](../features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)
-is emailed as it's sent (for the maintainer, during the dry run); it needs
-the email settings above too. Without it, feedback is only on each
-competition's Feedback page.
+[Feedback about the app](../features/competition-entries.md#feedback-about-the-app)
+goes to the maintainer's own page. Make its link on the server, once and
+whenever it needs replacing (the last one stops working), and keep it to
+yourself:
+
+```sh
+docker compose exec tariff /app/tariffCalculator maintainer-link
+```
+
+It prints the link, from `PUBLIC_URL` (the path alone without it). Run
+locally, `DATA_DIR=./data go run . maintainer-link` does the same for a
+local copy. `FEEDBACK_EMAIL`, if set, is where each piece is emailed as it's
+sent too; it needs the email settings above. Without it, feedback is only on
+the maintainer's page.
 
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them
@@ -200,6 +209,46 @@ people in the live database, deleted 120 days after the competition's date
 like any other): `docker compose exec tariff /app/tariffCalculator demo` from
 the server's compose directory, then open the printed paths on
 `https://tariff.pardy.ie`.
+
+# Sandbox: sandbox.tariff.pardy.ie
+
+The [sandbox](../features/sandbox.md) ([ADR 0016](../../docs/adr/0016-sandbox.md))
+is the same image run a second time, never the live site. **Live at
+<https://sandbox.tariff.pardy.ie/sandbox> since 2026-10-22**: the
+`tariff-sandbox` service (server repo PR #3), deployed with `tariff` (the
+server's `deploy.sh tariff` rebuilds and restarts both), a CNAME in
+Cloudflare (DNS only), first reset the same night (19 seconds). How it was
+set up:
+
+1. **A second service** in the server's Compose file, beside `tariff`: the
+   same image and build, with `SANDBOX=1`, its own data directory (e.g.
+   `/srv/data/tariff-sandbox` mounted at `/data`, owned by uid 1000, mode
+   700, with `DATA_DIR=/data`), `PUBLIC_URL=https://sandbox.tariff.pardy.ie`,
+   the same `stop_grace_period`, and **no** `SMTP_*`, `MAIL_FROM` or
+   `FEEDBACK_EMAIL` (nothing would be sent anyway: sandbox mode drops it).
+   The nightly backup needn't include it: nothing in it is kept.
+2. **DNS**: a record for `sandbox.tariff.pardy.ie` pointing at the server
+   (e.g. a CNAME to `tariff.pardy.ie`), unless a wildcard `*.pardy.ie`
+   already covers it.
+3. **Caddy**: a site block for `sandbox.tariff.pardy.ie` passing to the
+   sandbox service's port, as the `tariff` block does. Caddy gets its HTTPS
+   certificate by itself once the DNS points at the server.
+4. **Its maintainer's link**, in the sandbox service, kept to yourself:
+   `docker compose exec tariff-sandbox /app/tariffCalculator maintainer-link`
+   (the service's name as you called it). Feedback from the sandbox is on
+   that page only.
+5. **The first reset**: open that link and press **Reset the sandbox** (about
+   half a minute), or `docker compose exec tariff-sandbox
+   /app/tariffCalculator sandbox-reset`. Until then the start page,
+   `https://sandbox.tariff.pardy.ie/sandbox`, says it's being set up.
+
+After that, reset it from the maintainer's page whenever it wants a fresh
+copy; the old one works until the new one is ready. Don't run
+`sandbox-reset` while a reset from the page is under way: the two don't
+know of each other. The competition on the day restarts its day by itself
+every fourth day (checked at start and hourly), or at once with **Restart
+the day**. Locally: `SANDBOX=1 DATA_DIR=$(mktemp -d) PORT=8081 go run .`,
+then `maintainer-link` and a reset against the same `DATA_DIR`.
 
 # Load test
 

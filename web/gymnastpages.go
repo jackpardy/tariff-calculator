@@ -165,7 +165,7 @@ func (p *competitionPages) gymnastEntered(w http.ResponseWriter, r *http.Request
 		failed(w, r, err)
 		return c, nil, false
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	return c, mine, true
 }
 
@@ -204,12 +204,13 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 		failed(w, r, err)
 		return
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	page := p.gymnastPageOf(r, token, ind, gymnastCompetitions)
 	first := entryPath(token, mine[0])
 	gc := views.GymnastCompetition{Competition: summary(c, p.now()), Status: views.Count(len(mine), "entry", "entries"), Day: first + "/day",
 		Saved: r.URL.Query().Get("saved") == "1"}
-	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()}})
+	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()},
+		tell: individualTeller(mine[0]), back: "gymnast"})
 	// Another discipline: the first not entered yet, if there's one.
 	if left := notEntered(c.Competition, mine); gc.Competition.Open && c.Individuals && len(left) > 0 {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter?discipline=" + url.QueryEscape(left[0])
@@ -227,7 +228,7 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 		}
 		gc.Pairs = append(gc.Pairs, ev.Pairs...)
 		waiting := p.waitingOf(r.Context(), c.ID, e.ID)
-		word, state := brief(individualState(e, waiting.Waiting), len(ev.Card.Problems), waiting.Waiting, "Entered")
+		word, state := brief(individualState(e, waiting.Waiting), len(ev.Card.Problems), waiting.Waiting)
 		gc.Events = append(gc.Events, views.GymnastEvent{
 			Row:   views.MemberEvent{Discipline: e.Entry.Discipline, Name: competitions.DisciplineName(e.Entry.Discipline), Level: ev.Card.Level, Brief: word, BriefState: state},
 			Open:  e.ID == open || len(mine) == 1 || len(problems) > 0,

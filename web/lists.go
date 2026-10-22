@@ -75,7 +75,7 @@ func canDo(o competitions.Offer) []string {
 		out = append(out, canJudge)
 	}
 	for _, j := range o.Judge {
-		if j.Chair {
+		if j.Takes(competitions.RoleChair) {
 			out = append(out, canChair)
 			break
 		}
@@ -105,8 +105,10 @@ func judgesFilter(c competitions.Competition) views.ListFilter {
 }
 
 // judges is what an offer judges, as judgesFilter's values: each discipline
-// with the place of the hardest level they judge, easiest first. Up to no
-// level, or one the competition no longer has, is every level.
+// with the place of the hardest level they judge execution, difficulty or
+// chair at, easiest first. Up to no level, or one the competition no longer
+// has, is every level; HD or synchronisation only is none (0), which "any
+// level" still finds.
 func judges(c competitions.Competition, o competitions.Offer) []string {
 	var out []string
 	for _, d := range c.Disciplines() {
@@ -115,9 +117,13 @@ func judges(c competitions.Competition, o competitions.Offer) []string {
 			continue
 		}
 		levels := c.LevelNames(d)
-		top := len(levels)
-		if i := slices.Index(levels, j.UpTo); i >= 0 {
-			top = i + 1
+		top := 0
+		for _, upTo := range j.UpTo {
+			at := len(levels)
+			if i := slices.Index(levels, upTo); i >= 0 {
+				at = i + 1
+			}
+			top = max(top, at)
 		}
 		out = append(out, offerKey(d)+":"+strconv.Itoa(top))
 	}
@@ -127,7 +133,7 @@ func judges(c competitions.Competition, o competitions.Offer) []string {
 // qualifiedFilter is a filter by whether the organiser has marked someone
 // qualified.
 func qualifiedFilter() views.ListFilter {
-	return views.ListFilter{Key: "qualified", Label: "Qualified", Any: "Qualified or not", Options: []views.ListOption{
+	return views.ListFilter{Key: "qualified", Label: "Qualified", Any: "Qualified or not", Plain: true, Options: []views.ListOption{
 		{Value: "yes", Label: "Qualified"}, {Value: "no", Label: "Not qualified"},
 	}}
 }
@@ -195,9 +201,9 @@ func memberCoachValue(coachID string) string {
 
 // hasFilter is a filter by whether a row has something (entries,
 // qualifications): has is the label of the rows that do, none of those that
-// don't.
+// don't, each saying so on its own ("No entries").
 func hasFilter(key, label, any, has, none string) views.ListFilter {
-	return views.ListFilter{Key: key, Label: label, Any: any, Options: []views.ListOption{
+	return views.ListFilter{Key: key, Label: label, Any: any, Plain: true, Options: []views.ListOption{
 		{Value: "yes", Label: has}, {Value: "no", Label: none},
 	}}
 }

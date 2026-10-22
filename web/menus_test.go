@@ -69,16 +69,16 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := labels(menu); got != "Entries, Timetable, On the day, Settings" {
 		t.Errorf("the organiser's sections: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "Entries, People, Late changes, Coaches, Fees" {
+	if got := items(menu, "Entries"); got != "All entries, People, Late changes, Coaches, Fees" {
 		t.Errorf("entries: %s", got)
 	}
-	if got := items(menu, "Timetable"); got != "Timetable, Setup, Officials, Panel timeline, Simulate, What if there's a delay, What if an official leaves" {
+	if got := items(menu, "Timetable"); got != "Flights, Setup, Officials, Panel timeline, Simulate, What if there's a delay, What if an official leaves" {
 		t.Errorf("timetable: %s", got)
 	}
-	if got := items(menu, "On the day"); got != "On the day, Desk messages, Venue screen" {
+	if got := items(menu, "On the day"); got != "Areas, Desk messages, Venue screen" {
 		t.Errorf("on the day: %s", got)
 	}
-	if got := items(menu, "Settings"); got != "Settings, History" {
+	if got := items(menu, "Settings"); got != "Competition, History" {
 		t.Errorf("settings: %s", got)
 	}
 	if !menu[0].Current || menu[0].Items[2].Badge != "2 to decide" || menu[0].Items[3].Badge != "3 waiting" {
@@ -97,10 +97,10 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := labels(menu); got != "Entries, Timetable, Settings" {
 		t.Errorf("before the timetable is published: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "Entries, People, Late changes, Fees" {
+	if got := items(menu, "Entries"); got != "All entries, People, Late changes, Fees" {
 		t.Errorf("entries without coach approval: %s", got)
 	}
-	if got := items(menu, "Timetable"); got != "Timetable, Setup, Officials, Simulate" {
+	if got := items(menu, "Timetable"); got != "Flights, Setup, Officials, Simulate" {
 		t.Errorf("timetable not planned: %s", got)
 	}
 	if menu[1].Badge != "" || menu[0].Badge != "" {
@@ -153,7 +153,7 @@ func TestSettingsPage(t *testing.T) {
 			t.Errorf("the settings page has %q", want)
 		}
 	}
-	if section, item := menuCurrent(page); section != "Settings" || item != "Settings" {
+	if section, item := menuCurrent(page); section != "Settings" || item != "Competition" {
 		t.Errorf("the menu shows the settings: %q, %q", section, item)
 	}
 
@@ -168,7 +168,7 @@ func TestSettingsPage(t *testing.T) {
 			t.Errorf("the entries page no longer has %q", gone)
 		}
 	}
-	if section, item := menuCurrent(dash); section != "Entries" || item != "Entries" {
+	if section, item := menuCurrent(dash); section != "Entries" || item != "All entries" {
 		t.Errorf("the menu shows the entries: %q, %q", section, item)
 	}
 	if got := strings.Join(menuLabels(dash), ", "); got != "Entries, Timetable, Settings" {
@@ -211,7 +211,7 @@ func TestSettingsLimitedLinks(t *testing.T) {
 				t.Errorf("%s is offered the settings", link)
 			}
 		}
-		// The history says what was paid and what feedback was sent: not theirs to read.
+		// The history says what was paid: not theirs to read.
 		if strings.Contains(strings.Join(menuLabels(page), ","), "History") {
 			t.Errorf("%s isn't offered the history: %v", link, menuLabels(page))
 		}
@@ -286,7 +286,7 @@ func TestSettingsFormsReturnToSettings(t *testing.T) {
 	}
 
 	// Replacing the admin link shows the new one on the settings.
-	loc = redirected(t, h, admin+"/replace-link", url.Values{})
+	loc = redirected(t, h, admin+"/replace-link", url.Values{"anyway": {"1"}})
 	if !strings.HasSuffix(loc, "/settings?new=replaced") {
 		t.Errorf("replacing the link: %s", loc)
 	}
@@ -303,17 +303,17 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	for _, tc := range []struct {
 		path, section, item string
 	}{
-		{"", "Entries", "Entries"},
-		{strings.TrimPrefix(entry, admin), "Entries", "Entries"},
+		{"", "Entries", "All entries"},
+		{strings.TrimPrefix(entry, admin), "Entries", "All entries"},
 		{"/late", "Entries", "Late changes"},
 		{"/fees", "Entries", "Fees"},
-		{"/timetable", "Timetable", "Timetable"},
+		{"/timetable", "Timetable", "Flights"},
 		{"/officials", "Timetable", "Officials"},
 		{"/timetable/simulate", "Timetable", "Simulate"},
 		{"/timetable/delay", "Timetable", "What if there's a delay"},
 		{"/timetable/leave", "Timetable", "What if an official leaves"},
 		{"/desk", "On the day", "Desk messages"},
-		{"/settings", "Settings", "Settings"},
+		{"/settings", "Settings", "Competition"},
 		{"/history", "Settings", "History"},
 	} {
 		rec := do(t, h, http.MethodGet, admin+tc.path, nil)
@@ -337,9 +337,9 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 		t.Errorf("coaches: %q, %q", section, item)
 	}
 	redirected(t, h, admin+"/timetable/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"18:00"}})
-	redirected(t, h, admin+"/timetable/plan", url.Values{})
+	redirected(t, h, admin+"/timetable/plan", url.Values{"anyway": {"1"}})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"on": {"1"}})
-	if section, item := menuCurrent(dayAll(t, h, admin+"/day")); section != "On the day" || item != "On the day" {
+	if section, item := menuCurrent(dayAll(t, h, admin+"/day")); section != "On the day" || item != "Areas" {
 		t.Errorf("the day: %q, %q", section, item)
 	}
 	if got := strings.Join(menuLabels(do(t, h, http.MethodGet, admin, nil).Body.String()), ", "); got != "Entries, Timetable, On the day, Settings" {

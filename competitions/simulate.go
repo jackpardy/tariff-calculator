@@ -298,8 +298,11 @@ func (c Competition) standIns(sc Scenario, setup Setup) ([]SchedEntry, []RotaPer
 	judgeAt := func(o *RotaPerson, d string, chair bool) {
 		for _, ev := range events {
 			if of[ev] == d {
-				o.Judge[ev] = true
-				o.Chair[ev] = o.Chair[ev] || chair
+				o.Allow(RoleExecution, ev)
+				o.Allow(RoleDifficulty, ev)
+				if chair {
+					o.Allow(RoleChair, ev)
+				}
 			}
 		}
 	}

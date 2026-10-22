@@ -35,6 +35,7 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body class="tool-page">
+			@sandboxBanner()
 			@toolBanner("/", true)
 			<main class="section tool-section">
 				<div class="container">
@@ -46,6 +47,7 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 					@calculator(groups)
 				</div>
 			</main>
+			@feedbackButton(FeedbackFormOf(ctx))
 		</body>
 	</html>
 }

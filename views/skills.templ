@@ -175,7 +175,7 @@ templ skillMarks(p SkillsPart) {
 	for _, g := range p.Marked {
 		<h3 class="title is-6 mt-4 mb-2">{ g.Title } <span class="has-text-grey">({ strconv.Itoa(len(g.Skills)) })</span></h3>
 		if len(g.Skills) == 0 {
-			<p class="has-text-grey is-size-7">None yet.</p>
+			@emptyLine("None yet.")
 		}
 		for _, m := range g.Skills {
 			@skillRow(p.Action, "marked", m)
@@ -196,7 +196,7 @@ templ skillsAdd(p SkillsPart) {
 		</form>
 		if p.Query != "" {
 			if len(p.Results) == 0 {
-				<p class="has-text-grey is-size-7 mb-3">No skill found for that.</p>
+				@emptyLine("No skill found for that.")
 			}
 			for _, m := range p.Results {
 				@skillRow(p.Action, "found", m)
@@ -266,7 +266,7 @@ type SkillsViewPage struct {
 templ CoachGymnastSkills(f CoachFrame, p SkillsViewPage) {
 	@competitionLayout(p.Name + " · " + f.Coach) {
 		@coachFrame(f)
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
 		@levelsSection(p.Skills)
@@ -277,7 +277,7 @@ templ CoachGymnastSkills(f CoachFrame, p SkillsViewPage) {
 // ClubMemberSkills is the comp sec's view of a member's skills.
 templ ClubMemberSkills(c ClubPage, p SkillsViewPage) {
 	@clubFrame(c) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
 		@levelsSection(p.Skills)
@@ -287,7 +287,7 @@ templ ClubMemberSkills(c ClubPage, p SkillsViewPage) {
 // OtherMemberSkills is another member's skills, where the club shares them.
 templ OtherMemberSkills(m MemberPage, p SkillsViewPage) {
 	@memberFrame(m) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h2 class="title is-5">{ p.Name }</h2>
 		@skillMarks(p.Skills)
 		@levelsSection(p.Skills)
@@ -331,7 +331,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 			Skills of your club's own, for every coach and member to mark: your club's name for a skill (it shows in place of the skill's own name on your club's pages), or something else to track, like a drill.
 		</p>
 		if len(p.Skills) == 0 {
-			<p class="has-text-grey mb-4">No club skills yet.</p>
+			@emptyLine("No club skills yet.")
 		}
 		for _, c := range p.Skills {
 			<div class="skill-mark">
@@ -344,8 +344,8 @@ templ CoachClubSkills(p ClubSkillsPage) {
 					Added by{ " " }
 					@WhoChip(RoleCoach, c.By)
 				</p>
-				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1" onsubmit={ confirmRemoveClubSkill(c.Name) }>
-					<button class="button is-small is-text" type="submit">Remove</button>
+				<form method="post" action={ templ.SafeURL(c.Remove) } class="mt-1">
+					<button class="button is-small is-text has-text-danger" type="submit">Remove</button>
 				</form>
 			</div>
 		}
@@ -358,7 +358,7 @@ templ CoachClubSkills(p ClubSkillsPage) {
 				<div class="control"><button class="button" type="submit">Find</button></div>
 			</form>
 			if p.Query != "" && len(p.Results) == 0 {
-				<p class="has-text-grey is-size-7">No skill found for that.</p>
+				@emptyLine("No skill found for that.")
 			}
 			for _, c := range p.Results {
 				<form method="post" action={ templ.SafeURL(p.Action) } class="skill-mark">
@@ -383,15 +383,10 @@ templ CoachClubSkills(p ClubSkillsPage) {
 				<label class="label is-small" for="club-skill-note">Note (optional)</label>
 				<input class="input" id="club-skill-note" name="note" maxlength="300" placeholder="What it is, or how it's done"/>
 			</div>
-			<button class="button is-primary is-small" type="submit">Add</button>
+			<button class="button is-small is-primary" type="submit">Add</button>
 			<p class="help mt-2">{ "Up to " + strconv.Itoa(p.Max) + " club skills. Members and coaches mark it like any skill; it's not for routines." }</p>
 		</form>
 	}
-}
-
-// confirmRemoveClubSkill asks before a club skill goes, with its marks.
-script confirmRemoveClubSkill(name string) {
-	if (!confirm('Remove ' + name + '? Marks on something to track go with it; a name for a skill only stops showing.')) { event.preventDefault(); }
 }
 
 // levelsSection is how far a gymnast is through each of the club's levels:
@@ -464,7 +459,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 			Your club's levels to track gymnasts against, in order: each a list of skills or kinds of skill, several of a kind, links of skills one after another, or a set routine. Each gymnast's Skills page shows how far through each level they are.
 		</p>
 		<div class="buttons mb-4">
-			<a class="button is-primary is-small" href={ templ.SafeURL(p.New) }>New level</a>
+			<a class="button is-small is-primary" href={ templ.SafeURL(p.New) }>New level</a>
 			// Or a level that starts with a competition's set routine (step 3 of the requirements workflow).
 			if len(p.Sets) > 0 {
 				<details class="comp-popup comp-popup-left" data-menu>
@@ -481,7 +476,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 			}
 		</div>
 		if len(p.Levels) == 0 {
-			<p class="has-text-grey mb-4">No levels yet.</p>
+			@emptyLine("No levels yet.")
 		}
 		for _, l := range p.Levels {
 			<div class="box">
@@ -503,7 +498,7 @@ templ CoachClubLevels(p ClubLevelsPage) {
 				// the rest; Remove in red, last.
 				<div class="buttons are-small mb-1">
 					if l.Edit != "" {
-						<a class="button is-link is-light" href={ templ.SafeURL(l.Edit) }>Change</a>
+						<a class="button" href={ templ.SafeURL(l.Edit) }>Change</a>
 						<a class="button" href={ templ.SafeURL(l.Copy) }>Copy as a new level</a>
 					}
 					if l.Open != "" {
@@ -517,8 +512,8 @@ templ CoachClubLevels(p ClubLevelsPage) {
 						<input type="hidden" name="by" value="1"/>
 						<button class="button" type="submit" disabled?={ l.Last } title="Move it down the list">↓ Later</button>
 					</form>
-					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline" onsubmit={ confirmRemoveLevel(l.Name) }>
-						<button class="button is-danger is-light" type="submit">Remove</button>
+					<form method="post" action={ templ.SafeURL(l.Remove) } class="is-inline">
+						<button class="button is-text has-text-danger" type="submit">Remove</button>
 					</form>
 				</div>
 				if l.Share != "" {
@@ -530,11 +525,6 @@ templ CoachClubLevels(p ClubLevelsPage) {
 		}
 		<p class="help">{ "Up to " + strconv.Itoa(p.Max) + " levels." }</p>
 	}
-}
-
-// confirmRemoveLevel asks before a level goes.
-script confirmRemoveLevel(name string) {
-	if (!confirm('Remove ' + name + '? Gymnasts\' marks stay.')) { event.preventDefault(); }
 }
 
 // FormValue is a named value: a form field to post on, or a choice.
@@ -565,7 +555,7 @@ templ ChooseCoach(p ChooseCoachPage) {
 					<input type="hidden" name={ k.Name } value={ k.Value }/>
 				}
 				<input type="hidden" name="role" value={ c.Value }/>
-				<button class="button is-fullwidth" type="submit">{ c.Name }</button>
+				<button class="button" type="submit">{ c.Name }</button>
 			</form>
 		}
 	}

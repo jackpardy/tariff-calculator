@@ -179,7 +179,7 @@ templ withdrawForm(action, discipline string) {
 				<input type="checkbox" name="confirm" value="1" required/>
 				Withdraw this entry
 			</label>
-			<button class="button is-small is-danger is-outlined ml-2" type="submit">Withdraw</button>
+			<button class="button is-small is-text has-text-danger ml-2" type="submit">Withdraw</button>
 		</form>
 	}
 }
@@ -203,7 +203,7 @@ templ entryForm(f EntryForm) {
 			</div>
 			<div class="field">
 				<label class="label" for="enter-as">Your page's link, if you have one</label>
-				<input class="input" id="enter-as" name="as" value={ f.As.Link } placeholder="Leave it blank the first time" autocomplete="off"/>
+				<input class="input" id="enter-as" name="as" value={ f.As.Link } placeholder="Leave it blank the first time" autocomplete="off" data-private/>
 				<p class="help">Entered a competition on your own before, or a club member? Give that page's link and this entry joins it, under the same link. Leave it blank to start a page of your own.</p>
 			</div>
 		}
@@ -363,7 +363,7 @@ templ CompetitionEntryPage(p EntryPage) {
 			</div>
 		}
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@dayLink(p.Day)
 		@deskMessages(p.Desk)
@@ -372,6 +372,7 @@ templ CompetitionEntryPage(p EntryPage) {
 		<h2 class="title is-5 mt-4">{ p.Card.Gymnast }</h2>
 		@entryBody(p)
 		@pairEntries(p.Pairs)
+		@tellOrganiser(p.Tell)
 		if p.Competition.ChangesOpen {
 			@privacyNote(p.Competition)
 		}
@@ -382,6 +383,12 @@ templ CompetitionEntryPage(p EntryPage) {
 // order it's looked at: where it stands, where they compete, its card, then
 // changing or withdrawing it, their coach, what they owe and what they
 // offer. A row of their competition's page opens to it.
+// entryUnder is the entry with its card's exercise headings at level.
+func entryUnder(p EntryPage, level int) EntryPage {
+	p.Card = cardUnder(p.Card, level)
+	return p
+}
+
 templ entryBody(p EntryPage) {
 	if p.Partner != nil {
 		// A pair: who, as the row names only the discipline.
@@ -391,14 +398,14 @@ templ entryBody(p EntryPage) {
 		if p.Checked {
 			@StateChip(Done, "Checked by the organiser")
 		}
-		<span class="has-text-grey is-size-7">Entered { p.Sent }.</span>
+		<span class="has-text-grey is-size-7">Sent { p.Sent }.</span>
 	</p>
 	if p.Removal != "" {
 		<div class="notification is-warning is-light">
 			{ p.Removal }
 			if p.Restore != "" {
 				<form method="post" action={ templ.SafeURL(p.Restore) } class="mt-2">
-					<button class="button is-small is-link" type="submit">Put it back</button>
+					<button class="button is-small is-primary" type="submit">Put it back</button>
 				</form>
 			}
 		</div>

@@ -4,11 +4,13 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,6 +32,7 @@ func main() {
 	// say storage isn't available; /healthz then fails, so a store that
 	// didn't open (a migration that failed on deploy, say) is noticed.
 	dir := os.Getenv("DATA_DIR")
+	sandbox := os.Getenv("SANDBOX") == "1"
 	var st *store.Store
 	if dir != "" {
 		var err error
@@ -64,7 +67,42 @@ func main() {
 		}
 		return
 	}
+	// "maintainer-link" makes the link to the maintainer's page of feedback
+	// about the app, prints it and stops; a link made before stops working.
+	if len(os.Args) > 1 && os.Args[1] == "maintainer-link" {
+		if st == nil {
+			log.Fatal("The maintainer's link needs competition storage: set DATA_DIR.")
+		}
+		token, err := st.NewMaintainerLink(context.Background())
+		st.Close()
+		if err != nil {
+			log.Fatalf("Maintainer link: %v", err)
+		}
+		fmt.Println(strings.TrimSuffix(os.Getenv("PUBLIC_URL"), "/") + "/site/" + token)
+		return
+	}
+	// "sandbox-reset" resets the sandbox (ADR 0016) as its maintainer's
+	// button does, then stops.
+	if len(os.Args) > 1 && os.Args[1] == "sandbox-reset" {
+		if st == nil {
+			log.Fatal("The sandbox needs competition storage: set DATA_DIR.")
+		}
+		took, err := web.ResetSandbox(st)
+		st.Close()
+		if err != nil {
+			log.Fatalf("Resetting the sandbox: %v", err)
+		}
+		fmt.Printf("Reset the sandbox in %s.\n", took.Round(time.Second))
+		return
+	}
 	app := web.New(st)
+	// SANDBOX=1 makes this the sandbox, a second instance with its own
+	// DATA_DIR and address (ADR 0016): nothing is emailed or pushed, and
+	// every page says so.
+	if sandbox {
+		app.Sandbox()
+		log.Print("This is the sandbox: nothing is emailed or pushed")
+	}
 	app.Notify()
 	mux := http.NewServeMux()
 	mux.Handle("/", app.Handler())

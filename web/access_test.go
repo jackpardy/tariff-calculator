@@ -71,7 +71,8 @@ func TestAdminLinks(t *testing.T) {
 		{co, "POST", "/replace-link", 403},
 		{co, "POST", "/delete", 403},
 	} {
-		form := url.Values{"checked": {"1"}, "close": {"1"}}
+		// anyway=1: a change that asks first (planning again) is made.
+		form := url.Values{"checked": {"1"}, "close": {"1"}, "anyway": {"1"}}
 		if tc.method == "GET" {
 			form = nil
 		}
@@ -108,11 +109,11 @@ func TestAdminLinks(t *testing.T) {
 	// The history says who did what.
 	history := do(t, h, http.MethodGet, admin+"/history", nil).Body.String()
 	for _, want := range []string{
-		"<td>Difficulty judges</td><td>Marked a card checked: Ann Ryan · BUCS L3</td>",
-		"<td>Organiser</td><td>Made a link for Difficulty judges (checking cards)</td>",
-		"<td>Chairs</td><td>Flagged a concern: Ann Ryan · BUCS L3</td>",
-		"<td>Timetable team</td><td>Planned the timetable</td>",
-		"<td>Mary</td><td>Closed entries</td>",
+		"<td data-label=\"Who\">Difficulty judges</td><td data-label=\"What\">Marked a card checked: Ann Ryan · BUCS L3</td>",
+		"<td data-label=\"Who\">Organiser</td><td data-label=\"What\">Made a link for Difficulty judges (checking cards)</td>",
+		"<td data-label=\"Who\">Chairs</td><td data-label=\"What\">Flagged a concern: Ann Ryan · BUCS L3</td>",
+		"<td data-label=\"Who\">Timetable team</td><td data-label=\"What\">Planned the timetable</td>",
+		"<td data-label=\"Who\">Mary</td><td data-label=\"What\">Closed entries</td>",
 	} {
 		if !strings.Contains(history, want) {
 			t.Errorf("the history has %q", want)
@@ -124,7 +125,12 @@ func TestAdminLinks(t *testing.T) {
 
 	// Removed, a link stops working.
 	linkID := regexp.MustCompile(`/links/([^/"]+)/remove`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/settings", nil).Body.String())[1]
-	redirected(t, h, admin+"/links/"+linkID+"/remove", nil)
+	// Asked first, on Settings: the link works until the organiser says yes.
+	if page := do(t, h, http.MethodPost, admin+"/links/"+linkID+"/remove", url.Values{}).Body.String(); !strings.Contains(page, "Remove the link for Difficulty judges?") ||
+		!strings.Contains(page, `name="anyway" value="1"`) || code("GET", cards, nil) != http.StatusOK {
+		t.Errorf("removing a link asks first: %s", page)
+	}
+	redirected(t, h, admin+"/links/"+linkID+"/remove", url.Values{"anyway": {"1"}})
 	if got := code("GET", cards, nil); got != http.StatusNotFound {
 		t.Errorf("a removed link: %d", got)
 	}

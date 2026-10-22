@@ -101,7 +101,10 @@ func TestMemberKeepsRoutines(t *testing.T) {
 	if !strings.Contains(do(t, h, http.MethodGet, member+"/routines", nil).Body.String(), "Regionals") {
 		t.Error("renamed")
 	}
-	redirected(t, h, rename+"/delete", nil)
+	if page := do(t, h, http.MethodPost, rename+"/delete", nil).Body.String(); !strings.Contains(page, "Delete Regionals from your page?") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("deleting a routine asks first: %s", page)
+	}
+	redirected(t, h, rename+"/delete", url.Values{"anyway": {"1"}})
 	if strings.Contains(do(t, h, http.MethodGet, member+"/routines", nil).Body.String(), "Regionals") {
 		t.Error("deleted")
 	}
@@ -171,7 +174,7 @@ func TestCoachSeesRoutines(t *testing.T) {
 
 	// Once A. Murphy chooses Ann, Bob doesn't see them.
 	details := do(t, h, http.MethodGet, member+"/details", nil).Body.String()
-	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(details)[1]
+	annID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Ann</option>`).FindStringSubmatch(details)[1]
 	redirected(t, h, member+"/coach", url.Values{"coach": {annID}})
 	gymnast := strings.TrimPrefix(open[1], ann)
 	if rec := do(t, h, http.MethodGet, bob+gymnast, nil); rec.Code != http.StatusNotFound {
@@ -321,7 +324,7 @@ func TestCoachRoutineTools(t *testing.T) {
 
 	// A coach who doesn't see the gymnast can't add to their page.
 	details := do(t, h, http.MethodGet, member+"/details", nil).Body.String()
-	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(details)[1]
+	annID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Ann</option>`).FindStringSubmatch(details)[1]
 	redirected(t, h, member+"/coach", url.Values{"coach": {annID}})
 	if rec := do(t, h, http.MethodPost, bob+strings.TrimPrefix(open, ann)+"/routines", keep(t, aRoutine("d1", "Bob's"))); rec.Code != http.StatusNotFound {
 		t.Errorf("another coach adding: %d", rec.Code)

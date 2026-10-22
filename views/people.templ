@@ -26,18 +26,18 @@ templ People(p PeoplePage) {
 		<p class="mb-3">Everyone at this competition, once: gymnasts, officials and coaches. Open a name to see everything they're doing.</p>
 		@listSection("Everyone", len(p.People)) {
 			if len(p.People) == 0 {
-				<p class="has-text-grey">Nobody yet. Gymnasts, officials and coaches show here once entries are sent.</p>
+				@emptyLine("Nobody yet. Gymnasts, officials and coaches show here once entries are sent.")
 			} else {
 				@listTools(p.Tools)
 				<div class="table-container">
-					<table class="table is-fullwidth is-narrow" id={ p.Tools.ID }>
+					<table class="table is-fullwidth is-narrow comp-stack" id={ p.Tools.ID }>
 						<thead><tr><th>Name</th><th>Club</th><th>What they do</th></tr></thead>
 						<tbody>
 							for _, r := range p.People {
 								<tr { r.List.Attrs()... }>
 									<td><a href={ templ.SafeURL(r.Href) }>{ r.Name }</a></td>
-									<td>{ r.Club }</td>
-									<td>{ r.Does }</td>
+									<td data-label="Club">{ r.Club }</td>
+									<td data-label="What they do">{ r.Does }</td>
 								</tr>
 							}
 						</tbody>

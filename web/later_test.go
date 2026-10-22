@@ -8,17 +8,18 @@ import (
 	"tariffCalculator/views"
 )
 
-// Feedback is under Settings, the tab saying how much is new; a link that
-// reads feedback without the settings has a Feedback tab, not "History".
-func TestFeedbackInTheMenu(t *testing.T) {
-	m := menuState{FeedbackNew: 2}
-	settings := orgMenu("/x", views.Access{Settings: true, Feedback: true}, m, menuEntries)
-	if last := settings[len(settings)-1]; last.Label != "Settings" || last.Badge != "2 new feedback" {
-		t.Errorf("Settings, its badge naming feedback: %+v", last)
+// Settings is the organiser's last section, the competition's settings and
+// its history; feedback about the app isn't there, it goes to the
+// maintainer (feedback.go).
+func TestSettingsInTheMenu(t *testing.T) {
+	settings := orgMenu("/x", views.Access{Settings: true}, menuState{}, menuEntries)
+	if last := settings[len(settings)-1]; last.Label != "Settings" || len(last.Items) != 2 || last.Badge != "" {
+		t.Errorf("Settings: %+v", last)
 	}
-	helper := orgMenu("/x", views.Access{Feedback: true}, m, menuEntries)
-	if last := helper[len(helper)-1]; last.Label != "Feedback" || len(last.Items) != 1 {
-		t.Errorf("a Feedback tab: %+v", last)
+	for _, s := range orgMenu("/x", views.Access{}, menuState{}, menuEntries) {
+		if s.Label == "Settings" || s.Label == "Feedback" {
+			t.Errorf("a link without the settings has no %s", s.Label)
+		}
 	}
 }
 

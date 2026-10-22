@@ -100,6 +100,24 @@ func URL(path string) string {
 	return Prefix + path + "?v=" + a.hash
 }
 
+// Current is URL for a path that may not be an asset (a page saved before
+// a deploy, say): false for one that isn't.
+func Current(path string) (string, bool) {
+	if _, ok := assets[path]; !ok {
+		return "", false
+	}
+	return URL(path), true
+}
+
+// Content is an asset's content, false for a path that isn't one.
+func Content(path string) ([]byte, bool) {
+	a, ok := assets[path]
+	if !ok {
+		return nil, false
+	}
+	return a.data, true
+}
+
 // Handler serves the assets under Prefix. A request for the current version
 // (?v=hash) may be cached forever; anything else must be revalidated, which the
 // ETag makes a cheap 304.

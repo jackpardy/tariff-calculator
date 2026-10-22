@@ -52,7 +52,7 @@ func TestCoachSignoff(t *testing.T) {
 	if !strings.Contains(page, "Your coach") || !strings.Contains(page, ">Ann</option>") {
 		t.Error("a member can choose their coach")
 	}
-	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(page)[1]
+	bobID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Bob</option>`).FindStringSubmatch(page)[1]
 	redirected(t, h, x+"/coach", url.Values{"coach": {bobID}})
 	if page := do(t, h, http.MethodGet, x+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
 		t.Error("X's coach is Bob")
@@ -99,7 +99,7 @@ func TestCoachSignoff(t *testing.T) {
 		t.Error("the member sees who signed it off")
 	}
 	clubPage := clubEntriesPage(t, h, club)
-	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off Coach · Bob Coach's note: Ready") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
+	if x, y := rowOf(t, clubPage, "X"), rowOf(t, clubPage, "Y"); !strings.HasSuffix(x[3], "Signed off by Bob Coach's note: Ready") || !strings.HasSuffix(y[3], "Waiting for sign-off") {
 		t.Errorf("the comp sec sees each entry's sign-off: %q, %q", x, y)
 	}
 	// The comp sec and the coaches count an entry's problems as the
@@ -117,13 +117,13 @@ func TestCoachSignoff(t *testing.T) {
 	if y, x := problems(clubPage, "Y"), problems(clubPage, "X"); y != "3 problems" || x != "2 problems" {
 		t.Errorf("the comp sec's problems: Y %s, X %s", y, x)
 	}
-	// Each chip opens what it's about: the problems the entry, Bob his row on
-	// the club's Coaches page.
+	// Each opens what it's about: the problems chip the entry, Bob's name his
+	// row on the club's Coaches page.
 	if !regexp.MustCompile(`<a href="` + regexp.QuoteMeta(club) + `/members/[^"]+/competitions/[^"]+" title="See the problems">`).MatchString(clubPage) {
 		t.Error("the problems chip opens the entry")
 	}
-	if m := regexp.MustCompile(`chip-link" href="(` + regexp.QuoteMeta(club) + `/coaches)#(coach-[^"]+)"><span class="chip-role">Coach</span> <span class="chip-name">· <span class="chip-name-text">Bob`).FindStringSubmatch(clubPage); m == nil {
-		t.Error("Bob's chip opens his row on the Coaches page")
+	if m := regexp.MustCompile(`<a href="(` + regexp.QuoteMeta(club) + `/coaches)#(coach-[^"]+)">Bob</a>`).FindStringSubmatch(clubPage); m == nil {
+		t.Error("Bob's name opens his row on the Coaches page")
 	} else if !strings.Contains(do(t, h, http.MethodGet, m[1], nil).Body.String(), `id="`+m[2]+`"`) {
 		t.Error("and the Coaches page has it")
 	}
@@ -132,7 +132,7 @@ func TestCoachSignoff(t *testing.T) {
 	}
 	redirected(t, h, formAction(t, clubPage, club+"/competitions/"), url.Values{"which": {"all"}})
 	dash = do(t, h, http.MethodGet, admin, nil).Body.String()
-	if !strings.Contains(dash, "<th>Coach</th>") || !slices.Contains(rowOf(t, dash, "X"), "Signed off Coach · Bob") || !slices.Contains(rowOf(t, dash, "Y"), "Waiting for sign-off") {
+	if !strings.Contains(dash, ">Coach</th>") || !slices.Contains(rowOf(t, dash, "X"), "Bob Signed off") || !slices.Contains(rowOf(t, dash, "Y"), "Waiting") {
 		t.Error("the organiser sees who signed off, and the entry without one flagged")
 	}
 	yEntry := regexp.MustCompile(`href="(` + regexp.QuoteMeta(admin) + `/entries/[^"]+)">Y</a>`).FindStringSubmatch(dash)[1]
@@ -150,7 +150,7 @@ func TestCoachSignoff(t *testing.T) {
 	if len(assign) != 2 {
 		t.Fatalf("each member has a coach choice on the club page: %d", len(assign))
 	}
-	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(clubPage)[1]
+	annID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Ann</option>`).FindStringSubmatch(clubPage)[1]
 	redirected(t, h, assign[1][1], url.Values{"coach": {annID}}) // members are by name: X, then Y
 	if page := do(t, h, http.MethodGet, y+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+annID+`" selected>Ann</option>`) {
 		t.Error("Y's page shows the coach the comp sec assigned")
@@ -176,7 +176,11 @@ func TestCoachSignoff(t *testing.T) {
 	// Removing a coach ends their link.
 	page = do(t, h, http.MethodGet, club+"/coaches", nil).Body.String()
 	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(club) + `/coaches/[^"]+/remove)"`).FindStringSubmatch(page)[1]
-	redirected(t, h, remove, url.Values{})
+	if page := do(t, h, http.MethodPost, remove, url.Values{}).Body.String(); !strings.Contains(page, "as a coach?") || !strings.Contains(page, `name="anyway" value="1"`) ||
+		do(t, h, http.MethodGet, ann, nil).Code != http.StatusOK {
+		t.Errorf("removing a coach asks first, on Coaches: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if do(t, h, http.MethodGet, ann, nil).Code != http.StatusNotFound {
 		t.Error("the removed coach's link stops working")
 	}
@@ -207,7 +211,7 @@ func TestIndividualSignoff(t *testing.T) {
 	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !signedOffBy(t, page, "Coach C") {
 		t.Error("the individual sees it signed off")
 	}
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !strings.Contains(dash, `· <span class="chip-name-text">Coach C`) {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); !strings.Contains(dash, chip(t, views.Done, "Signed off")) || !regexp.MustCompile(`<span class="comp-signoff"><a href="[^"]+">Coach C</a>`).MatchString(dash) {
 		t.Error("the organiser sees it signed off")
 	}
 	if cards := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String(); !strings.Contains(cards, `aria-label="Coach" value="Coach C"`) {
@@ -222,7 +226,7 @@ func TestIndividualSignoff(t *testing.T) {
 	changed := bucsEntry("I")
 	changed.Set("ex2Skills", strings.Replace(voluntary, `"shape":"Tuck"`, `"shape":"Pike"`, 1))
 	redirected(t, h, own, changed)
-	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(dash, chip(t, views.Attention, "Needs changes")) || !strings.Contains(dash, chip(t, views.InProgress, "Waiting for sign-off")) {
+	if dash := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(dash, chip(t, views.Attention, "Needs changes")) || !strings.Contains(dash, chip(t, views.InProgress, "Waiting")) {
 		t.Error("changed since: waiting for sign-off again")
 	}
 

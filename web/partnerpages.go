@@ -33,7 +33,7 @@ func (p *competitionPages) invite(w http.ResponseWriter, r *http.Request) (store
 		failed(w, r, err)
 		return inv, c, false
 	}
-	feedbackOn(r, c)
+	feedbackAbout(r, c)
 	return inv, c, true
 }
 

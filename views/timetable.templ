@@ -50,9 +50,9 @@ type RotaView struct {
 type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
+	Need                     string // what the seat needs, for its people who can take it to be listed first (web.seatNeed)
 	Here                     bool   // checked in for the panel on the day
 	Missing                  bool   // marked missing for it
-	Who                      Role   // who fills it: a gymnast, a club's judge or the organiser's own
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -156,6 +156,7 @@ type TimetableGymnast struct {
 type FlightOption struct {
 	Value, Label string
 	Group        string // a flight's discipline, for a move to offer only its own
+	Can          string // a person's seats they can take, for a seat to list them first (web.seatCan)
 }
 
 // CompetitionTimetable is the organiser's timetable page.
@@ -171,7 +172,7 @@ templ CompetitionTimetable(p TimetablePage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to where the change is.
-			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		if !p.Planned {
 			<div class="box">
@@ -230,7 +231,7 @@ templ TimetableSetup(p TimetablePage) {
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
 			// Stays in sight as the page goes to where the change is.
-			<div class="notification is-info is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
 		if p.Stale && !p.Begun {
 			<div class="notification is-warning is-light">The setup has changed since the timetable was planned. Plan again to use it.</div>
@@ -245,7 +246,7 @@ templ TimetableSetup(p TimetablePage) {
 			</div>
 		} else {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/plan") } class="my-4">
-			<button class="button is-primary" type="submit" onclick={ confirmReplan(p.Planned) }>
+			<button class="button is-primary" type="submit">
 				if p.Planned {
 					Plan again
 				} else {
@@ -286,13 +287,13 @@ templ timetableStatus(p TimetablePage) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/timetable/publish") } class="comp-tt-publish-form">
 					@versionField(p.Version)
 					if !p.Published {
-						<button class="button is-small is-success" type="submit" name="action" value="publish">Publish</button>
+						<button class="button is-small is-primary" type="submit" name="action" value="publish">Publish</button>
 					} else {
 						if p.Changes {
-							<button class="button is-small is-success" type="submit" name="action" value="publish">Publish changes</button>
-							<button class="button is-small" type="submit" name="action" value="discard" onclick="return confirm('Go back to the published timetable, losing your changes since?')">Discard changes</button>
+							<button class="button is-small is-primary" type="submit" name="action" value="publish">Publish changes</button>
+							<button class="button is-small" type="submit" name="action" value="discard">Discard changes</button>
 						}
-						<button class="button is-small is-text" type="submit" name="action" value="unpublish" onclick="return confirm('Take the timetable down? Clubs, gymnasts and officials stop seeing their flights and duties until you publish again.')">Unpublish</button>
+						<button class="button is-small is-text" type="submit" name="action" value="unpublish">Unpublish</button>
 					}
 				</form>
 				@printMenu(p.Base, p.Changes)
@@ -352,7 +353,7 @@ templ timetableAreas(p TimetablePage, day DayView) {
 			<div class="comp-tt-area" id={ area.ID } data-list-group>
 				<h3 class="title is-6">{ area.Name }</h3>
 				if len(area.Items) == 0 {
-					<p class="has-text-grey is-size-7">Nothing</p>
+					@emptyLine("Nothing")
 				}
 				for _, it := range area.Items {
 					if it.Flight {
@@ -425,10 +426,6 @@ func timetableNames(p TimetablePage) int {
 		}
 	}
 	return n
-}
-
-script confirmReplan(planned bool) {
-	if (planned && !confirm("Plan again from scratch? Your changes to the flights are lost.")) { event.preventDefault(); }
 }
 
 // setupSections are the setup's forms, each collapsed.
@@ -709,7 +706,7 @@ templ rotaReport(p TimetablePage) {
 			</p>
 			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/officials") }>
 				@versionField(p.Version)
-				<button class="button is-small" type="submit" name="action" value="rota" onclick={ confirmRota() }>Assign officials again</button>
+				<button class="button is-small" type="submit" name="action" value="rota">Assign officials again</button>
 			</form>
 		</div>
 		if p.Rota.People == 0 {
@@ -721,10 +718,6 @@ templ rotaReport(p TimetablePage) {
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
 		@problemsList("Busiest officials", p.Rota.Busiest)
 	</div>
-}
-
-script confirmRota() {
-	if (!confirm("Assign every panel again? Your changes to the officials are lost.")) { event.preventDefault(); }
 }
 
 templ reportView(r ReportView) {
@@ -788,7 +781,7 @@ templ reportView(r ReportView) {
 templ newBreaks(items []string) {
 	if len(items) > 0 {
 		<div class="notification is-warning is-light comp-new-breaks">
-			<p class="mb-1"><strong>This would break { Count(len(items), "thing", "things") } that hold now:</strong></p>
+			<p class="mb-1"><strong>This would break { Count(len(items), "thing that holds", "things that hold") } now:</strong></p>
 			<ul>
 				for _, it := range items[:min(len(items), 6)] {
 					<li>{ it }</li>
@@ -871,9 +864,9 @@ templ flightBox(p TimetablePage, f ItemView) {
 				@versionField(p.Version)
 				<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
 				<div class="buttons mb-2">
-					<button class="button is-small is-light" type="submit" name="action" value="redraw">Redraw order</button>
+					<button class="button is-small" type="submit" name="action" value="redraw">Redraw order</button>
 					if f.Earlier {
-						<button class="button is-small is-light" type="submit" name="action" value="earlier">Earlier</button>
+						<button class="button is-small" type="submit" name="action" value="earlier">Earlier</button>
 					}
 				</div>
 				<div class="comp-flight-actions">
@@ -920,8 +913,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 					if s.Person == "" {
 						@StateChip(Attention, "No one")
 					} else {
-						{ s.Name } <span class="has-text-grey">{ s.Club }</span>
-						@WhoChip(s.Who, "")
+						// Their page says who they are and what they do; a chip
+						// on every seat crowded the panel.
+						<a href={ templ.SafeURL(p.Base + "/people/" + url.PathEscape(s.Person)) }>{ s.Name }</a> <span class="has-text-grey">{ s.Club }</span>
 					}
 				</li>
 			}
@@ -933,7 +927,7 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 			<div class="select is-small">
 				<select name="seat" aria-label={ "Seat on " + it.Name }>
 					for i, s := range it.Seats {
-						<option value={ strconv.Itoa(i) }>{ s.Label }</option>
+						<option value={ strconv.Itoa(i) } data-need={ s.Need }>{ s.Label }</option>
 					}
 				</select>
 			</div>
@@ -961,6 +955,8 @@ templ fillOptions(id string, options []FlightOption) {
 		for _, o := range options {
 			if id == "move-options" {
 				<option value={ o.Value } data-group={ o.Group }>{ o.Label }</option>
+			} else if o.Can != "" || id == "seat-options" {
+				<option value={ o.Value } data-can={ o.Can }>{ o.Label }</option>
 			} else {
 				<option value={ o.Value }>{ o.Label }</option>
 			}
@@ -1065,6 +1061,9 @@ func gymnastCount(n int) string {
 // Placement is where an attendee competes, on a published timetable.
 type Placement struct {
 	Flight, Panel, Time string
+	// Part is which of its event's flights it is ("Flight 2 of 4"), "" for
+	// an event of one, for a line beside the level, which needn't repeat it.
+	Part string
 }
 
 // placementLine says where a gymnast competes, once the timetable is published.
@@ -1170,7 +1169,7 @@ templ ChangeCheck(p ChangeCheckPage) {
 							for _, v := range f.Fields {
 								<input type="hidden" name={ v.Name } value={ v.Value }/>
 							}
-							<button class="button is-small is-link is-light" type="submit">{ f.Label }</button>
+							<button class="button is-small" type="submit">{ f.Label }</button>
 						</form>
 					}
 				</div>
@@ -1182,7 +1181,7 @@ templ ChangeCheck(p ChangeCheckPage) {
 					<input type="hidden" name={ v.Name } value={ v.Value }/>
 				}
 				<input type="hidden" name="anyway" value="1"/>
-				<button class="button is-small is-warning" type="submit">
+				<button class="button is-small is-text" type="submit">
 					if p.Anyway != "" {
 						{ p.Anyway }
 					} else {

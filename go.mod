@@ -2,7 +2,7 @@ module tariffCalculator
 
 go 1.25.0
 
-toolchain go1.26.9
+toolchain go1.26.10
 
 tool github.com/a-h/templ/cmd/templ
 

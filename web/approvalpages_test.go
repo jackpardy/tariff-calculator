@@ -62,7 +62,7 @@ func TestCoachApprovalPages(t *testing.T) {
 		t.Fatal("the club's coaches to send: Ann ticked, Bob not offered")
 	}
 	redirected(t, h, club+"/competitions/"+comp[1]+"/coaches", url.Values{"coach": {annID}})
-	if page := clubCompetitionTab(t, h, club, "/coaches"); !strings.Contains(page, "Waiting for the organiser") {
+	if page := clubCompetitionTab(t, h, club, "/coaches"); !strings.Contains(page, "Waiting for approval") {
 		t.Error("the club sees Ann waiting")
 	}
 
@@ -111,9 +111,10 @@ func TestCoachApprovalPages(t *testing.T) {
 	if p := problems(); !strings.Contains(p, "Signed off by Ann, who isn&#39;t an approved coach") && !strings.Contains(p, "Signed off by Ann, who isn't an approved coach") {
 		t.Error("an unapproved coach's sign-off is a problem")
 	}
-	// Her chip opens her page, though she isn't approved now: she's someone at the competition.
-	if link := regexp.MustCompile(`<a class="chip chip-who chip-who-coach chip-link" href="([^"]+)">`).FindStringSubmatch(problems()); link == nil {
-		t.Error("the coach's chip links to their page")
+	// Her name opens her page, though she isn't approved now: she's someone
+	// at the competition. Its asterisk says she isn't approved.
+	if link := regexp.MustCompile(`<a href="([^"]+)">Ann</a>\s*<abbr class="comp-unapproved" title="Not approved to sign off here">\*</abbr>`).FindStringSubmatch(problems()); link == nil {
+		t.Error("the coach's name links to their page, with an asterisk")
 	} else if page := do(t, h, http.MethodGet, link[1], nil); page.Code != http.StatusOK || !strings.Contains(page.Body.String(), "Ann") {
 		t.Errorf("their page opens: %d", page.Code)
 	}
@@ -133,8 +134,17 @@ func TestCoachApprovalPages(t *testing.T) {
 	// sign-offs, it still counts.
 	redirected(t, h, open, url.Values{"signed": {"1"}})
 	redirected(t, h, send, url.Values{"which": {"all"}})
-	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"withdraw"}})
-	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
+	// Withdrawing isn't asked about: it's put back with Undo, in its notice.
+	to := redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"withdraw"}})
+	if !strings.HasSuffix(to, "&undo=coach-"+annID+"#coach-"+annID) {
+		t.Errorf("a withdrawal comes back offering Undo: %s", to)
+	}
+	page = do(t, h, http.MethodGet, strings.Split(to, "#")[0], nil).Body.String()
+	undo := regexp.MustCompile(`comp-sticky-notice" role="status">.*?<form method="post" action="([^"]+)" class="is-inline ml-1"><input type="hidden" name="action" value="approve">\s*<input type="hidden" name="anyway" value="1">\s*<button class="button is-small" type="submit">Undo</button>`).FindStringSubmatch(page)
+	if undo == nil || undo[1] != admin+"/coaches/"+annID {
+		t.Fatalf("the notice has Undo, approving her again: %s", page)
+	}
+	redirected(t, h, undo[1], url.Values{"action": {"approve"}, "anyway": {"1"}})
 	if p := problems(); strings.Contains(p, "approved coach") || strings.Contains(p, "Not signed off") {
 		t.Error("approved again with her sign-offs")
 	}
@@ -144,10 +154,19 @@ func TestCoachApprovalPages(t *testing.T) {
 	do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Cy"}})
 	cy := regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindAllStringSubmatch(do(t, h, http.MethodGet, club+"/coaches", nil).Body.String(), -1)[2][1]
 	redirected(t, h, club+"/competitions/"+comp[1]+"/coaches", url.Values{"coach": {annID, cy}})
-	if page := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String(); !strings.Contains(page, "sent any qualifications.") {
-		t.Errorf("Approve asks first for Cy: %s", page)
+	if page := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String(); !strings.Contains(page, "No qualifications sent.") || !strings.Contains(page, `asked first">Approve`) {
+		t.Errorf("Approve says it asks first for Cy: %s", page)
 	}
-	if to := redirected(t, h, admin+"/coaches/"+cy, url.Values{"action": {"approve"}}); noticeOf(t, to) != "Approved Cy, though their club hasn't sent any qualifications." || !strings.HasSuffix(to, "#coach-"+cy) {
+	// Asked on the page, with the note typed; nothing changes until yes.
+	rec := do(t, h, http.MethodPost, admin+"/coaches/"+cy, url.Values{"action": {"approve"}, "note": {"Trusted"}})
+	if page := rec.Body.String(); rec.Code != http.StatusOK || !strings.Contains(page, "Approve Cy?") || !strings.Contains(page, "hasn&#39;t sent any qualifications") ||
+		!strings.Contains(page, `<input type="hidden" name="note" value="Trusted">`) || !strings.Contains(page, `name="anyway" value="1"`) || strings.Contains(page, "confirm(") {
+		t.Fatalf("approving Cy asks first, on the page: %s", page)
+	}
+	if page := do(t, h, http.MethodGet, admin+"/coaches", nil).Body.String(); strings.Count(page, "Withdraw approval</button>") != 1 {
+		t.Error("asking approves no one: only Ann can be withdrawn")
+	}
+	if to := redirected(t, h, admin+"/coaches/"+cy, url.Values{"action": {"approve"}, "anyway": {"1"}}); noticeOf(t, to) != "Approved Cy, though their club hasn't sent any qualifications." || !strings.HasSuffix(to, "#coach-"+cy) {
 		t.Errorf("approving Cy says so: %s", to)
 	}
 }
@@ -180,7 +199,7 @@ func TestIndividualCoachPages(t *testing.T) {
 	if location := rec.Header().Get("Location"); !strings.Contains(location, "Sent+Ann+to+the+organiser") {
 		t.Fatalf("named: %d %s", rec.Code, location)
 	}
-	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Gymnastics Ireland Level 2 Trampoline Coach") || !strings.Contains(page, "Waiting for the organiser") {
+	if page := do(t, h, http.MethodGet, own, nil).Body.String(); !strings.Contains(page, "Gymnastics Ireland Level 2 Trampoline Coach") || !strings.Contains(page, "Waiting for approval") {
 		t.Error("Mary sees Ann waiting")
 	}
 	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Waiting for the organiser to approve Ann") {

@@ -43,7 +43,7 @@ func TestNewLinkAsksFirst(t *testing.T) {
 	if !strings.Contains(members, `id="member-`+id+`" class="comp-target"`) {
 		t.Error("each member's row has its own place on the page")
 	}
-	coachID := regexp.MustCompile(`<option value="([^"]+)">Declan</option>`).FindStringSubmatch(members)[1]
+	coachID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Declan</option>`).FindStringSubmatch(members)[1]
 	got := redirected(t, h, club+"/members/"+id+"/coach", url.Values{"coach": {coachID}})
 	if got != club+"/members?notice="+url.QueryEscape("Ciarán Ó Briain's coach is now Declan.")+"&at="+id+"#member-"+id {
 		t.Errorf("back to the member's row with a notice: %s", got)
@@ -90,7 +90,7 @@ func TestWhoSignsOff(t *testing.T) {
 	declanID := regexp.MustCompile(`/coaches/([^/"]+)/new-link"`).FindStringSubmatch(coaches[strings.Index(coaches, ">Declan"):])[1]
 	redirected(t, h, club+"/coaches/"+declanID+"/signs-off", url.Values{"on": {"0"}})
 	page := do(t, h, http.MethodGet, member+"/details", nil).Body.String()
-	redirected(t, h, member+"/coach", url.Values{"coach": {regexp.MustCompile(`<option value="([^"]+)">Declan</option>`).FindStringSubmatch(page)[1]}})
+	redirected(t, h, member+"/coach", url.Values{"coach": {regexp.MustCompile(`<option value="([^"]+)"[^>]*>Declan</option>`).FindStringSubmatch(page)[1]}})
 	if page := memberCompetitionPage(t, h, member); !strings.Contains(page, "Your coach, Declan, doesn&#39;t sign off routines") {
 		t.Errorf("their coach doesn't sign off: %s", page)
 	}

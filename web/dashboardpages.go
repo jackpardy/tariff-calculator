@@ -186,6 +186,30 @@ func (j judged) matches(q url.Values) bool {
 	return true
 }
 
+// filterValues are an entry's values for each of the dashboard's filters, as
+// matches reads them: choosing a filter's value shows the entries that have
+// it. The page counts what each choice would leave by them (views.ListTools.All).
+func (j judged) filterValues() map[string][]string {
+	yesNo := func(is bool) []string {
+		if is {
+			return []string{"yes"}
+		}
+		return []string{"no"}
+	}
+	coach := cmp.Or(j.CoachName(), "none")
+	v := map[string][]string{"club": {j.club}, "coach": {coach}, "checked": yesNo(j.Checked()), "signedoff": yesNo(j.SignedOff())}
+	if len(j.problems) > 0 && !j.Withdrawn {
+		v["problems"] = []string{"1"}
+	}
+	if j.video != "" {
+		v["video"] = []string{j.video}
+	}
+	if cat := j.Entry.Entry.Category; cat != "" {
+		v["category"] = []string{cat}
+	}
+	return v
+}
+
 // filterKeys are the dashboard's filters, as matches reads them.
 var filterKeys = []string{"club", "problems", "q", "coach", "checked", "signedoff", "video", "category"}
 
@@ -326,10 +350,15 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		if !j.Checked() && !j.Withdrawn {
 			d.Unchecked++
 		}
+		if !j.Withdrawn { // listed, but not counted: nor are what each filter choice would leave
+			d.All = append(d.All, views.ListRow{Name: j.Entry.Entry.Gymnasts(), Values: j.filterValues()})
+		}
 		if !j.matches(filter) {
 			continue
 		}
-		d.Shown++
+		if !j.Withdrawn {
+			d.Shown++
+		}
 		sentAt[j.ID] = j.SentAt
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),
@@ -404,7 +433,7 @@ func (p *competitionPages) cards(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	page := views.CardsPage{Title: "Cards · " + c.Name, Back: adminPath(r.PathValue("token"))}
+	page := views.CardsPage{Title: "Cards · " + c.Name, Of: c.Name, Back: adminPath(r.PathValue("token"))}
 	q := r.URL.Query()
 	all, err := p.judgedOf(r.Context(), c.ID, false)
 	if err != nil {

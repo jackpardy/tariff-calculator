@@ -4,7 +4,9 @@ package views
 // status", 2026-10-16): every page shows what state something is in, and who
 // did it, with these two chips and nothing else, so a colour means the same
 // thing everywhere. A chip always carries words, so it reads without colour:
-// a state chip a mark and a label, a role chip the role's name. The colours
+// a state chip its label, a role chip the role's name. A state chip has no
+// mark before its words (the owner's call, 2026-10-19: "! 1 problem" read
+// as shouting); the words and the colour say it. The colours
 // are tokens in static/css/styles.css (--state-*, --role-*), checked for
 // contrast by static/contrast_test.go; how to choose a state is in
 // knowledge/architecture/rendering.md.
@@ -20,21 +22,6 @@ const (
 	Attention  State = "attention"   // someone should look: Has problems, Changed since sent, Waiting for you
 	Stopped    State = "stopped"     // out, ended or refused: Withdrawn, Removed, Scratched, Missing, Not approved
 )
-
-// mark is a state's shape, so states differ without colour too.
-func (s State) mark() string {
-	switch s {
-	case InProgress:
-		return "◐"
-	case Done:
-		return "✓"
-	case Attention:
-		return "!"
-	case Stopped:
-		return "✕"
-	}
-	return "○"
-}
 
 // Role is who did something, or whose something is, for a role chip.
 type Role string
@@ -61,9 +48,9 @@ func (r Role) word() string {
 }
 
 // StateChip shows what state something is in: a filled chip in the state's
-// colour, with its mark and a short label ("Checked", "Changed since sent").
+// colour, with a short label ("Checked", "Changed since sent").
 templ StateChip(s State, label string) {
-	<span class={ "chip", "chip-state-" + string(s) }><span class="chip-mark" aria-hidden="true">{ s.mark() }</span>{ label }</span>
+	<span class={ "chip", "chip-state-" + string(s) }>{ label }</span>
 }
 
 // WhoChip shows who did something, or whose it is: an outlined chip in the
@@ -92,9 +79,4 @@ templ whoChipText(r Role, name string) {
 	if name != "" {
 		<span class="chip-name">· <span class="chip-name-text">{ name }</span></span>
 	}
-}
-
-// confirmFirst asks before a form does something hard to take back.
-script confirmFirst(question string) {
-	if (!confirm(question)) { event.preventDefault(); }
 }

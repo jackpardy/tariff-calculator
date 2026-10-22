@@ -154,6 +154,11 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	p.renderFees(w, r, c, nil)
+}
+
+// renderFees shows the Fees page, asking before a change (ask).
+func (p *competitionPages) renderFees(w http.ResponseWriter, r *http.Request, c store.Competition, ask *views.Ask) {
 	accounts, err := p.accounts(r.Context(), c)
 	if err != nil {
 		failed(w, r, err)
@@ -161,7 +166,7 @@ func (p *competitionPages) fees(w http.ResponseWriter, r *http.Request) {
 	}
 	base := adminPath(r.PathValue("token"))
 	f := c.Fees
-	page := views.FeesPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), On: f.On(),
+	page := views.FeesPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), Ask: ask, On: f.On(),
 		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions}
 	var charged []string // what's charged, for the line saying so
 	for _, d := range c.Disciplines() {
@@ -304,11 +309,45 @@ func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	if err := p.st.RemovePayment(r.Context(), c.ID, r.PathValue("id")); err != nil && !errors.Is(err, store.ErrNotFound) {
+	accounts, err := p.accounts(r.Context(), c)
+	if err != nil {
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"/fees", "Payment removed.")
+	back := adminPath(r.PathValue("token")) + "/fees"
+	for _, a := range accounts {
+		for _, pay := range a.payments {
+			if pay.ID != r.PathValue("id") {
+				continue
+			}
+			// Asked first: a payment removed is typed again to put it back.
+			if !asked(r) {
+				what := c.Fees.Money(pay.Amount) + " from " + a.name
+				if pay.Amount < 0 {
+					what = c.Fees.Money(-pay.Amount) + " refunded to " + a.name
+				}
+				recorded := "Recorded " + pay.At.In(local).Format("2 January")
+				if pay.Who != "" {
+					recorded += " by " + pay.Who
+				}
+				noteAsked(w)
+				p.renderFees(w, r, c, inPlace(r, views.Ask{
+					Remove: true, // takes something away: red
+					Title:  "Remove the payment of " + what + "?",
+					Text:   recorded + ". It comes off what they've paid; to put it back, record it again.",
+					Button: "Remove the payment", Back: back + "#" + payerAnchor(a.key),
+				}))
+				return
+			}
+			if err := p.st.RemovePayment(r.Context(), c.ID, pay.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+				failed(w, r, err)
+				return
+			}
+			seeOther(w, r, back+"#"+payerAnchor(a.key), "Payment removed.")
+			return
+		}
+	}
+	seeOther(w, r, back, "That payment was removed already.")
 }
 
 // adminInvoice is a payer's invoice, for the organiser.
@@ -317,7 +356,7 @@ func (p *competitionPages) adminInvoice(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, r.URL.Query().Get("payer"), adminPath(r.PathValue("token"))+"/fees")
+	p.invoice(w, r, c, r.URL.Query().Get("payer"), adminPath(r.PathValue("token"))+"/fees", "Fees")
 }
 
 // clubInvoice is the club's invoice, for its comp sec.
@@ -330,7 +369,7 @@ func (p *competitionPages) clubInvoice(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, clubPayer(club.ID), clubCompetitionPath(r.PathValue("token"), c.ID)+"/fees")
+	p.invoice(w, r, c, clubPayer(club.ID), clubCompetitionPath(r.PathValue("token"), c.ID)+"/fees", "Fees")
 }
 
 // individualInvoice is an individual's invoice for their entry.
@@ -339,11 +378,12 @@ func (p *competitionPages) individualInvoice(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	p.invoice(w, r, c, entryPayer(e.ID), "/competitions/entry/"+r.PathValue("token"))
+	p.invoice(w, r, c, entryPayer(e.ID), "/competitions/entry/"+r.PathValue("token"), c.Name)
 }
 
-// invoice shows a payer's invoice, to print.
-func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c store.Competition, key, back string) {
+// invoice shows a payer's invoice, to print, with the way back to back
+// (backTo names it).
+func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c store.Competition, key, back, backTo string) {
 	page, ok, err := p.invoicePage(r.Context(), c, key, back)
 	if err != nil {
 		failed(w, r, err)
@@ -353,6 +393,7 @@ func (p *competitionPages) invoice(w http.ResponseWriter, r *http.Request, c sto
 		message(w, r, http.StatusNotFound, "No invoice", "There's nothing to pay for this competition yet.")
 		return
 	}
+	page.BackTo = backTo
 	render(w, r, views.Invoice(*page))
 }
 

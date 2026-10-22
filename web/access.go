@@ -47,8 +47,8 @@ func allowed(kind, pattern string) bool {
 	if post && (path == "/concerns" || path == "/feedback") {
 		return true // anyone can flag a concern, or send feedback about the app
 	}
-	// The history isn't among them: it says what was paid and sent about the
-	// app, which these links can't see (only the organiser's and everything links).
+	// The history isn't among them: it says what was paid, which these
+	// links can't see (only the organiser's and everything links).
 	viewing := get && (path == "" || path == "/entries/{id}" || path == "/cards" || path == "/entries.csv" || path == "/people" || path == "/people/{key}")
 	switch kind {
 	case store.LinkCards:
@@ -82,7 +82,6 @@ func access(r *http.Request) views.Access {
 		Coaches:   can(r, "GET", "/coaches"),
 		NotifyNow: can(r, "POST", "/notify-now"),
 		Resolve:   can(r, "POST", "/concerns/{id}/resolve"),
-		Feedback:  can(r, "GET", "/feedback"),
 		Day:       can(r, "GET", "/day"),
 		Desk:      can(r, "GET", "/desk"),
 		Screen:    can(r, "GET", "/screen"),
@@ -123,7 +122,7 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), linkKey{}, link))
-		feedbackOn(r, c)
+		feedbackAbout(r, c)
 		if r.Method != http.MethodPost {
 			h(w, r)
 			return
@@ -217,19 +216,16 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		}
 		return "Flagged a concern"
 	case "/concerns/{id}/resolve":
+		if strings.TrimSpace(f("reply")) != "" {
+			return "Replied to a message and resolved it"
+		}
 		return "Resolved a concern"
+	case "/concerns/{id}/received":
+		return "Said a message was received"
+	case "/concerns/{id}/reply":
+		return "Replied to a message"
 	case "/feedback":
 		return "Sent feedback about the app"
-	case "/feedback/{id}/done":
-		if f("done") == "1" {
-			return "Marked feedback dealt with"
-		}
-		return "Marked feedback not dealt with"
-	case "/feedback-button":
-		if f("on") == "1" {
-			return "Turned the Feedback button on"
-		}
-		return "Turned the Feedback button off"
 	case "/late/settings":
 		return "Changed the late changes allowed"
 	case "/late/{id}/accept":
@@ -331,6 +327,7 @@ var settingWords = map[string]string{
 	"/events":          "Changed the synchro, tumbling and DMT levels",
 	"/individuals":     "Changed whether gymnasts can enter on their own",
 	"/levels/move":     "Changed the order of the levels",
+	"/messages":        "Changed whether people can send you messages",
 	"/no-wait":         "Changed the wait before telling people of changes",
 	"/signoff":         "Changed coaches' sign-off",
 	"/split":           "Changed whether men and women are ranked separately",
@@ -410,6 +407,24 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	links, err := p.st.Links(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	i := slices.IndexFunc(links, func(l store.Link) bool { return l.ID == r.PathValue("id") })
+	if i < 0 {
+		backToSettings(w, r, "That link was removed already.")
+		return
+	}
+	if p.askSettings(w, r, c, views.Ask{
+		Remove: true, // takes something away: red
+		Title:  "Remove the link for " + links[i].Name + "?",
+		Text:   "It stops working at once, for everyone who has it. To let them in again, make a new link and send it to them.",
+		Button: "Remove the link", Back: settingsPath(r.PathValue("token")) + "#links",
+	}) {
+		return
+	}
 	if err := p.st.RemoveLink(r.Context(), c.ID, r.PathValue("id")); err != nil {
 		failed(w, r, err)
 		return
@@ -486,28 +501,43 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 	seeOther(w, r, back, "Flagged for the organiser.")
 }
 
-// resolveConcern marks a concern dealt with (note optional).
+// resolveConcern marks a concern dealt with: note, optional, is the
+// organiser's own; reply, optional, goes to a message's sender first.
 func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
 		return
+	}
+	reply := limitMessage(r.FormValue("reply"))
+	if reply != "" {
+		if k, err := p.st.Concern(r.Context(), c.ID, r.PathValue("id")); err != nil || !k.Open() {
+			seeOther(w, r, concernsBack(r), "That was resolved already; nothing was changed.")
+			return
+		}
+		if _, ok := p.reply(w, r, c, reply); !ok {
+			return
+		}
 	}
 	err := p.st.ResolveConcern(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name, limitNote(strings.TrimSpace(r.FormValue("note"))))
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		// Resolved already (from another page or link), or not there: say so,
 		// so the history doesn't record it again.
-		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That concern was resolved already; nothing was changed.")
+		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That was resolved already; nothing was changed.")
 		return
 	case err != nil:
 		failed(w, r, err)
 		return
 	}
-	seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "Concern resolved.")
+	notice := "Marked resolved."
+	if k, err := p.st.Concern(r.Context(), c.ID, r.PathValue("id")); err == nil && k.Message() {
+		notice += " " + p.notify.tellSender(r.Context(), c, k, senderResolved, reply)
+	}
+	seeOther(w, r, concernsBack(r), notice)
 }
 
-// concernViews are a competition's concerns, for the dashboard, with the
-// entries they're about.
+// concernViews are a competition's concerns and messages, for the
+// dashboard, with the entries they're about.
 func (p *competitionPages) concernViews(ctx context.Context, c store.Competition, base string) ([]views.ConcernView, int, error) {
 	concerns, err := p.st.Concerns(ctx, c.ID)
 	if err != nil {
@@ -515,16 +545,46 @@ func (p *competitionPages) concernViews(ctx context.Context, c store.Competition
 	}
 	var out []views.ConcernView
 	open := 0
+	var labels map[string]string
 	for _, k := range concerns {
-		v := views.ConcernView{ID: k.ID, Who: k.Who, Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
-			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution}
+		v := views.ConcernView{ID: k.ID, Who: senderName(store.Sender{Role: k.Role, Name: k.Who, Club: k.Club}), Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
+			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution, Message: k.Message(), Waiting: k.Waiting()}
 		if k.Open() {
 			open++
 		}
+		if !k.AckAt.IsZero() {
+			v.Received = k.AckBy + ", " + k.AckAt.In(local).Format("Mon 2 Jan, 15:04")
+		}
+		for _, ev := range k.Events {
+			v.About = append(v.About, views.AboutLink{Label: "all of " + k.Club + "'s " + ev})
+		}
+		ids := k.Entries
 		if k.EntryID != "" {
-			if e, err := p.st.CompetitionEntry(ctx, c.ID, k.EntryID); err == nil {
-				v.About, v.AboutLink = e.Entry.Gymnasts()+" · "+e.Entry.Event(), base+"/entries/"+k.EntryID
+			ids = append([]string{k.EntryID}, ids...)
+		}
+		if len(ids) > 0 && labels == nil {
+			labels = map[string]string{}
+			if entries, err := p.entriesOf(ctx, c.ID); err == nil {
+				for _, e := range entries {
+					labels[e.ID] = entryLabel(e)
+				}
 			}
+		}
+		for _, id := range ids {
+			if l, ok := labels[id]; ok {
+				v.About = append(v.About, views.AboutLink{Label: l, Link: base + "/entries/" + id})
+			}
+		}
+		for _, post := range k.Thread {
+			tp := views.ThreadPost{Who: post.Who, Text: post.Text, At: post.At.In(local).Format("Mon 2 Jan, 15:04"), Organiser: !post.BySender}
+			switch {
+			case post.BySender && k.Role == store.RoleClub:
+				// Any of the club's links adds to it (ADR 0015): who of the club.
+				tp.Who = senderName(store.Sender{Role: k.Role, Name: post.Who, Club: k.Club})
+			case post.BySender:
+				tp.Who = "" // the sender: "They added"
+			}
+			v.Thread = append(v.Thread, tp)
 		}
 		out = append(out, v)
 	}

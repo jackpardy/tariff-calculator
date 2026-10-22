@@ -203,8 +203,9 @@ func TestCardsByLevel(t *testing.T) {
 	redirected(t, h, enter, url.Values{"gymnast": {"Cal"}, "category": {"Men"}, "level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}})
 
 	page := do(t, h, http.MethodGet, admin+"/cards", nil).Body.String()
-	for _, want := range []string{`<a href="?level=BUCS+L3&amp;part=Men">BUCS L3 · Men</a> · 2 cards`, `<a href="?level=BUCS+L3&amp;part=Women">BUCS L3 · Women</a> · 2 cards`,
-		`<a href="?level=BUCS+L4">BUCS L4</a> · 2 cards`, `<a href="?all=1">Every level on one page</a> · 6 cards`} {
+	for _, want := range []string{`<a href="?level=BUCS+L3&amp;part=Men">BUCS L3 · Men</a> <span class="has-text-grey">2 cards</span>`,
+		`<a href="?level=BUCS+L3&amp;part=Women">BUCS L3 · Women</a> <span class="has-text-grey">2 cards</span>`,
+		`<a href="?level=BUCS+L4">BUCS L4</a> <span class="has-text-grey">2 cards</span>`, `<a class="button is-small" href="?all=1">Every level on one page</a>`, "6 cards, slow on a phone"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the levels to print have %q: %s", want, page)
 		}

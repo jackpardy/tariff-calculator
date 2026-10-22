@@ -69,7 +69,10 @@ func TestPayments(t *testing.T) {
 	if len(removes) != 2 {
 		t.Fatalf("each payment can be removed: %d", len(removes))
 	}
-	if notice := noticeOf(t, redirected(t, h, removes[1][1], nil)); notice != "Payment removed." {
+	if page := do(t, h, http.MethodPost, removes[1][1], nil).Body.String(); !strings.Contains(page, "Remove the payment of") || !strings.Contains(page, "to put it back, record it again") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("removing a payment asks first: %s", page)
+	}
+	if notice := noticeOf(t, redirected(t, h, removes[1][1], url.Values{"anyway": {"1"}})); notice != "Payment removed." {
 		t.Errorf("removed: %q", notice)
 	}
 	ucd = feeAccounts(t, do(t, h, http.MethodGet, fees, nil).Body.String())["UCD"]
@@ -81,7 +84,7 @@ func TestPayments(t *testing.T) {
 	}
 	// Removed already, or never there: nothing changes, nothing breaks.
 	for _, path := range []string{removes[1][1], fees + "/payments/nonsense/remove"} {
-		if notice := noticeOf(t, redirected(t, h, path, nil)); notice != "Payment removed." {
+		if notice := noticeOf(t, redirected(t, h, path, url.Values{"anyway": {"1"}})); notice != "That payment was removed already." {
 			t.Errorf("%s: %q", path, notice)
 		}
 	}
@@ -144,7 +147,7 @@ func TestNotifyClubOfJudge(t *testing.T) {
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Ann"]), ucd.members["Ann"]+"/competitions/"), bucsEntry(""))
 	redirected(t, h, formAction(t, memberCompetitionPage(t, h, ucd.members["Jude"]), ucd.members["Jude"]+"/competitions/")+"/offer", url.Values{"judge-trampoline": {"1"}})
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, ucd.page), ucd.page+"/competitions/"), url.Values{"which": {"all"}})
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, admin+"/timetable/plan", url.Values{})
 	redirected(t, h, admin+"/timetable/publish", url.Values{"action": {"publish"}})
 

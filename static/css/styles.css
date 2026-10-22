@@ -55,7 +55,7 @@
 
 /* Specific warning colors */
 .has-text-danger {
-    color: #ff3860 !important; /* Red for transitions */
+    color: #cc0f35 !important; /* Red for transitions; 5.7:1 on white */
 }
 
 /* Icon margin for warnings */
@@ -97,7 +97,7 @@
   .is-levels .level-tabs .tabs li.is-beside a { background: none; color: inherit; }
 }
 
-.has-text-danger { color: #ff3860 !important; }
+.has-text-danger { color: #cc0f35 !important; }
 
 
 /* --- Drag to reorder (SortableJS) --- */
@@ -355,6 +355,7 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 /* A group of related skills takes a whole row, its options in a grid. */
 .picker-group { grid-column: 1 / -1; border: 1px solid #dbdbdb; border-radius: 8px; background: #fafafa; padding: 0.5rem; }
 .picker-group-title { font-size: 0.8rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0.25rem 0.4rem; }
+.picker-group-note { color: #777; font-size: 0.85rem; margin: -0.25rem 0.25rem 0.4rem; }
 .picker-group-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; }
 @media screen and (min-width: 769px) { .picker-group-options { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .picker-option { display: flex; justify-content: space-between; align-items: center; gap: 0.35rem; min-height: 2.5rem; padding: 0.35rem 0.6rem; border: 1px solid #e3e3e3; border-radius: 6px; background: #fff; font: inherit; text-align: left; cursor: pointer; }
@@ -403,7 +404,8 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 .skill-card-actions #add-btn { flex: 1 1 6.5rem; min-width: 0; width: auto; height: auto; min-height: 2.5rem; padding: 0.3rem 0.5rem; white-space: normal; line-height: 1.15; }
 .skill-card-actions .segment { padding: 0.35rem 0.6rem; }
 /* On wider screens the card is laid out as it was before it went compact:
-   shapes under the name, then the label, then Add to and a full-width Add.
+   shapes under the name, then the label, then Add to and Add (as wide as its
+   words, as every button is on a laptop).
    Phones keep the compact card (shapes and Add on one row). */
 @media screen and (min-width: 769px) {
     .skill-card { display: flex; flex-direction: column; padding: 0.75rem 1rem; }
@@ -586,7 +588,6 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .judging-ref { display: inline-block; margin-left: 0.3rem; font-size: 0.72rem; color: #888; white-space: nowrap; }
 
 /* --- Competition pages (views/competitions.templ) --- */
-.comp-page .container { max-width: 60rem; }
 .comp-page [hidden] { display: none !important; }
 .comp-deadline { display: flex; gap: 0.5rem; }
 .comp-level-group { margin-bottom: 0.4rem; }
@@ -613,10 +614,11 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-opens-button { justify-self: end; }
 .comp-opens-action { border: 0; margin-bottom: 1rem; }
 .comp-opens-action > summary { display: block; padding: 0; }
-.comp-opens-button::after { content: ""; display: inline-block; width: 0.4em; height: 0.4em; margin-left: 0.5em; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-0.15em) rotate(45deg); transition: transform 0.15s; }
-.comp-opens[open] .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after, .routine-menu[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
+.comp-opens-button::after { content: ""; display: inline-block; width: 0.55em; height: 0.55em; margin-left: 0.5em; background: currentColor; clip-path: polygon(0 15%, 100% 15%, 50% 100%); transition: transform 0.15s; }
+.comp-opens[open] > summary .comp-opens-button::after, .comp-popup[open] > .comp-opens-button::after, .routine-menu[open] > .comp-opens-button::after,
+details[open] > summary.comp-opens-button::after { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .comp-opens-button::after { transition: none; } }
-.comp-opens[open] .comp-opens-label, .comp-opens:not([open]) .comp-opens-close { display: none; }
+.comp-opens[open] > summary .comp-opens-label, .comp-opens:not([open]) > summary .comp-opens-close { display: none; }
 .comp-opens-form { margin: 0 0 0.9rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid #dbdbdb; }
 /* A small pop-up menu from a button (details[data-menu], static/js/menus.js
    closes it on a tap outside): the timetable's Print. */
@@ -704,7 +706,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .comp-tariff { width: 4.5rem; margin: 0 0.3rem; }
 .comp-video-box { border-top: 1px solid #eee; padding-top: 0.5rem; }
 .comp-table tr.is-withdrawn td { color: #999; }
-.comp-table tr.is-withdrawn td a { color: #7a7a7a; text-decoration: line-through; }
+.comp-table tr.is-withdrawn td a { color: #6b6b6b; text-decoration: line-through; }
 
 /* --- Timetable (views/timetable.templ) --- */
 .comp-flight { padding: 0.9rem 1rem; }
@@ -754,7 +756,6 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 
 /* The panel timeline (views/timetable.templ): sheets side by side, each a
    grid with a row for every minute. */
-.comp-page .container:has(.comp-timeline) { max-width: none; }
 .comp-timeline { --tl-min: 4px; --tl-time: 3.2rem; --tl-event: 9rem; --tl-seat: 5.5rem; }
 .comp-tl-sheets { display: flex; gap: 0.75rem; overflow-x: auto; align-items: flex-start; padding-bottom: 0.5rem; }
 .comp-tl-sheet { display: grid; flex: none; font-size: 0.72rem; line-height: 1.2; border: 1px solid #ddd; background: #fff; }
@@ -787,15 +788,17 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 }
 
 /* --- Officials (views/officials.templ) --- */
-/* Judging and helping: the discipline, its level and "can chair" line up
-   down the rows (a grid), and stay on one line at phone width. */
-.comp-offer-row { display: grid; grid-template-columns: 11.5rem auto auto; justify-content: start; align-items: center; gap: 0.4rem 0.8rem; }
-.comp-offer-row > .select { justify-self: start; }
-.comp-offer .checkbox input { margin-right: 0.3rem; }
+/* Judging and helping: each discipline's tick and what it measures on a
+   line, then its execution, difficulty and chair levels under it, side by
+   side as they fit (one under another at phone width). */
+.comp-offer-row { border: 0; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.6rem; }
+.comp-offer-roles { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; width: 100%; padding-left: 1.5rem; }
+.comp-offer-role { display: inline-flex; align-items: center; gap: 0.35rem; }
+.comp-offer-role select { max-width: 13rem; }
 @media screen and (max-width: 480px) {
-  .comp-offer-row { grid-template-columns: auto auto; }
-  .comp-offer-row > .checkbox:first-child { grid-column: 1 / -1; }
+  .comp-offer-role-name { min-width: 4.8rem; }
 }
+.comp-offer .checkbox input { margin-right: 0.3rem; }
 .comp-num { width: 4.5rem; }
 .comp-offers td { vertical-align: middle; }
 /* A coach's qualification: its name and Remove on one line, centred; the
@@ -850,16 +853,13 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
    its line of text rather than dropping below it. An invoice's amounts never wrap. */
 .comp-pay-cell .comp-opens { margin: 0.25rem 0 0; }
 .comp-pay-cell .comp-opens-form { margin-bottom: 0.25rem; }
-.comp-inline-button { height: auto; vertical-align: baseline; }
+.comp-inline-button { height: auto; vertical-align: baseline; padding-left: 0.3em; padding-right: 0.3em; }
 .comp-nowrap { white-space: nowrap; }
 /* Check-in and scratches on the day (views/day.templ, the printed sheets). */
-.comp-scratched { text-decoration: line-through; color: #7a7a7a; }
+.comp-scratched { text-decoration: line-through; color: #6b6b6b; }
 /* The day page's notice stays in view, as the page no longer jumps to the top to show it. */
 .comp-day-notice { position: sticky; top: 0; z-index: 20; }
 .comp-checkin-row { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid #eee; }
-/* On the day uses the screen's width, three areas at most side by side, so a
-   gymnast's name and their Here and Scratched share a line on a laptop. */
-.comp-page .container:has(#day-areas), .comp-page .container:has(.comp-tt-areas) { max-width: none; }
 .comp-checkin-row .comp-checkin-name { flex: 1 1 7rem; }
 .comp-checkin-row form { display: flex; gap: 0.3rem; margin: 0; }
 .comp-checkin-row .comp-panel-name { flex: 1 1 8rem; }
@@ -877,7 +877,7 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 .comp-correct-times .input { min-height: 2.5rem; width: 8rem; }
 /* A tap kept on the phone until the signal is back (static/js/taps.js). */
 .comp-tap-note { flex-basis: 100%; margin-top: 0; }
-.comp-notify > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; margin: 0.5rem 0 0.25rem; border: 1px solid #dbdbdb; border-radius: 4px; }
+.comp-notify > summary { min-height: 2.5rem; margin: 0.5rem 0 0.25rem; }
 .comp-notify .input { min-height: 2.5rem; }
 .comp-notify .checkbox { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.5rem; }
 /* The venue screen (views/screen.templ), for a TV across a hall: black on white, each
@@ -974,9 +974,12 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 .comp-menu .comp-submenu { margin-top: 0.5rem; }
 .comp-menu .comp-submenu ul { border-bottom: none; }
 /* A section's pages scroll sideways on a phone, as the sections do, the one
-   open in view and a line at the edge with more (static/js/tables.js),
-   rather than wrapping into ragged rows (the timetable has seven). */
+   open in view and the edge with more faded (static/js/tables.js), rather
+   than wrapping into ragged rows (the timetable has seven). */
 .comp-menu .comp-submenu ul { justify-content: flex-start; }
+/* A section's pages are a plain row: no line under them but the current one's, whatever
+   their badges do to the row's height. */
+.comp-menu .comp-submenu a { border-bottom-color: transparent; }
 .comp-menu .comp-submenu li.is-active a { border-bottom-color: #485fc7; color: #485fc7; font-weight: 600; }
 /* A member's pages (views/clubs.templ): the competitions as rows to open, and
    each discipline's entry as a one-line row that opens to its card. */
@@ -998,12 +1001,6 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 /* The Feedback button at the foot of a competition's pages (views/feedback.templ): small
    and out of the way, but a full 40px to tap. Without JavaScript the page comes back at
    #feedback-sent, which shows the thanks. */
-.comp-feedback { margin-top: 3rem; padding-top: 0.75rem; border-top: 1px solid #ededed; }
-.comp-feedback > details > summary { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #dbdbdb; border-radius: 4px; font-size: 0.875rem; }
-.comp-feedback-form { max-width: 32rem; margin-top: 0.5rem; }
-.comp-feedback-form .button { min-height: 2.5rem; }
-.comp-feedback-thanks { display: none; }
-#feedback-sent:target .comp-feedback-thanks { display: block; }
 .comp-feedback-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .comp-feedback-item.is-done { opacity: 0.6; }
 /* Search and filters on lists of people (views/lists.templ): the name search, then a
@@ -1015,8 +1012,13 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 /* Filters under a button: a column of them in its panel, each full width. */
 .comp-list-filter-panel { display: grid; gap: 0.5rem; padding: 0.6rem; min-width: 15rem; }
 .comp-list-filter-panel .select, .comp-list-filter-panel .select select { width: 100%; }
-.comp-list-count { display: flex; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
+.comp-list-count { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-height: 1.9rem; }
 .comp-list-clear { height: auto; padding: 0 0.25rem; }
+/* The filters chosen, after the count: each a chip, its whole width taking it off. */
+.comp-list-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.comp-list-chips:empty { display: none; }
+.comp-list-chip { border: 0; cursor: pointer; font-family: inherit; text-decoration: none; min-height: 1.75rem; }
+.comp-list-chip:hover { filter: brightness(0.95); }
 @media screen and (max-width: 768px) {
   .comp-list-controls .comp-list-search { flex-basis: 100%; max-width: none; }
   .comp-list-controls .select { flex: 1 1 calc(50% - 0.25rem); }
@@ -1073,8 +1075,8 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
   --role-organiser: #3b4a5e;
 }
 /* A long chip wraps inside the space it has rather than running off a phone's screen. */
-.chip { display: inline-flex; align-items: baseline; gap: 0.3em; max-width: 100%; font-size: 0.8em; font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 0.8em; overflow-wrap: anywhere; vertical-align: baseline; }
-.chip-mark { font-weight: 700; }
+/* Never smaller than 12px, even inside small text. */
+.chip { display: inline-flex; align-items: baseline; gap: 0.3em; max-width: 100%; font-size: max(0.8em, 0.75rem); font-weight: 600; line-height: 1.4; padding: 0.1em 0.6em; border-radius: 0.8em; overflow-wrap: anywhere; vertical-align: baseline; }
 /* A chip after a name or another chip keeps a gap from it; in a flex row, the row's gap
    does that instead. */
 * + .chip { margin-left: 0.3em; }
@@ -1140,16 +1142,9 @@ a.chip-link:hover { background: #f5f5ff; }
 /* The last routine on: Finished in Next gymnast's place, Back beside it. */
 .comp-up-last { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .comp-up-last .buttons, .comp-up-last .buttons .button { margin-bottom: 0; }
-/* Wide tables (static/js/tables.js): a line at an edge with more to scroll; a
-   column hidden, sized or clipped as the viewer set it with Columns. */
-.table-container { border-left: 3px solid transparent; border-right: 3px solid transparent; transition: border-color 0.15s ease; }
-.table-container.has-more-left { border-left-color: #8a8a8a; }
-.table-container.has-more-right { border-right-color: #8a8a8a; }
-/* A row of tabs wider than the screen: the same line where there are more. */
-.comp-page .tabs { border-left: 3px solid transparent; border-right: 3px solid transparent; }
-.comp-page .tabs.has-more-left { border-left-color: #8a8a8a; }
-.comp-page .tabs.has-more-right { border-right-color: #8a8a8a; }
-@media (prefers-reduced-motion: reduce) { .table-container { transition: none; } }
+/* Wide tables (static/js/tables.js): a column hidden, sized or clipped as the
+   viewer set it with Columns. Their edges fade where there's more to scroll
+   (the shared look's scroll fade, at the end of this file). */
 table [hidden] { display: none !important; }
 table[data-table-view] th { position: relative; }
 .comp-col-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 2; }
@@ -1188,6 +1183,13 @@ a:hover > .chip { text-decoration: underline; }
 .select-search-option { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; width: 100%; padding: 0.4rem 0.75rem; border: 0; background: none; font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
 .select-search-option:hover, .select-search-option:focus { background: #eef1fb; }
 .select-search-group { font-size: 0.75rem; color: #555; white-space: nowrap; }
+/* A yes or no group as a chip's colours: ✓ who can take a seat, ✗ who
+   can't; in a narrow list (a timetable column), the mark alone. */
+.select-search-list { container-type: inline-size; }
+.select-search-mark { flex: none; font-size: 0.75rem; font-weight: 600; white-space: nowrap; border-radius: 9999px; padding: 0.05rem 0.45rem; }
+.select-search-mark.is-yes { color: var(--state-done-ink); background: var(--state-done-bg); }
+.select-search-mark.is-no { color: var(--state-attention-ink); background: var(--state-attention-bg); }
+@container (max-width: 15rem) { .select-search-mark-word { display: none; } }
 .select-search-none { font-size: 0.85rem; color: #555; padding: 0.4rem 0.75rem; margin: 0; }
 /* The requirements editor redraws itself by replacing its form (htmx). The
    browser's scroll anchoring then held the page to something below it, so
@@ -1233,7 +1235,7 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .set-routine-maker #add-btn { width: auto; }
 
 /* Entries ticked: a bar at the foot of the screen with Remove and Hold. */
-.comp-tick-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; background: #fff; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); max-width: calc(100% - 2rem); }
+.comp-tick-bar { position: fixed; left: 50%; transform: translateX(-50%); width: max-content; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; background: #fff; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); max-width: calc(100% - 2rem); }
 .comp-tick-bar .button { margin: 0; }
 
 /* Fees: Record a payment opens as a panel under its button, so the table's
@@ -1248,10 +1250,9 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .comp-coached li { padding: 0.35rem 0; border-bottom: 1px solid #ededed; }
 .comp-coached .chip { margin-left: 0.4rem; }
 
-/* The entries table on a wide screen: the page's full width, the gymnast's
-   name (and tick) staying in view as the rest scrolls, and a problem's
-   chip alone so rows stay one line. */
-.comp-page .container:has(#entries) { max-width: none; }
+/* The entries table on a wide screen: the gymnast's name (and tick)
+   staying in view as the rest scrolls, and a problem's chip alone so rows
+   stay one line. */
 @media screen and (min-width: 769px) {
   .comp-entries .comp-problem-first { display: none; }
   .comp-entries td.comp-stack-title, .comp-entries th.comp-stack-title { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #ededed; }
@@ -1270,9 +1271,7 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 .comp-sticky-notice { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
 
 /* The timetable's areas on a day: one column each, side by side. */
-.comp-tt-areas { display: grid; grid-template-columns: repeat(var(--areas), minmax(15rem, 1fr)); gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; border-left: 3px solid transparent; border-right: 3px solid transparent; }
-.comp-tt-areas.has-more-left { border-left-color: #8a8a8a; }
-.comp-tt-areas.has-more-right { border-right-color: #8a8a8a; }
+.comp-tt-areas { display: grid; grid-template-columns: repeat(var(--areas), minmax(15rem, 1fr)); gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
 .comp-tt-area { min-width: 0; }
 @media screen and (max-width: 768px) { .comp-tt-areas { grid-template-columns: minmax(0, 1fr); } }
 /* The fade's widths, registered so they can be animated (initial-value has
@@ -1308,7 +1307,7 @@ details.comp-tt-day > summary::before { content: none; }
   @media (prefers-reduced-motion: reduce) { .comp-tt-dayrow, .comp-tt-dayrow.is-scrolling { transition: none; } }
   @media (min-width: 1024px) { .comp-tt-dayrow { --room: 2.5rem; } } /* the page's margin is 3rem here, 1.5rem below */
   .comp-tt-dayrow > .comp-tt-day { flex: 1 0 calc(var(--areas) * 15rem + (var(--areas) - 1) * 1rem); min-width: 0; }
-  .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; border-color: transparent !important; } /* the row scrolls, not each day */
+  .comp-tt-dayrow .comp-tt-areas { overflow-x: visible; } /* the row scrolls, not each day */
   /* Room after the last day shown, so it scrolls to the left edge as the
      others do (--tail, set by dayPick when the days don't all fit). */
   .comp-tt-dayrow::after { content: ""; flex: 0 0 var(--tail, 0px); margin-left: -2rem; }
@@ -1329,8 +1328,8 @@ details.comp-tt-day > summary::before { content: none; }
 .comp-day-card > .comp-day-people[open] { order: -1; margin-bottom: 0.75rem; }
 /* An action's button (no row naming it) keeps its name open, its arrow up,
    so two open side by side still say which is which. */
-.comp-opens.comp-opens-action[open] .comp-opens-label { display: inline; }
-.comp-opens.comp-opens-action[open] .comp-opens-close { display: none; }
+.comp-opens.comp-opens-action[open] > summary .comp-opens-label { display: inline; }
+.comp-opens.comp-opens-action[open] > summary .comp-opens-close { display: none; }
 
 /* The desk's To: each choice's controls only while it's chosen. */
 form:has(input[name="to"][value="club"]:not(:checked)) .desk-to-club,
@@ -1385,7 +1384,7 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
   table.comp-entries.comp-stack > tbody > tr > td.comp-stack-title { flex: 1 1 calc(100% - 2.5rem); order: -2; font-size: 1rem; }
   table.comp-entries.comp-stack > tbody > tr > td.comp-stack-tick { float: none; order: -1; }
   table.comp-entries.comp-stack > tbody > tr > td.comp-problem-cell { flex-basis: 100%; }
-  table.comp-entries.comp-stack > tbody > tr > td[data-label]::before { font-weight: 500; color: #7a7a7a; }
+  table.comp-entries.comp-stack > tbody > tr > td[data-label]::before { font-weight: 500; color: #6b6b6b; }
   table.comp-entries.comp-stack > tbody > tr > td:has(> .comp-none:only-child) { display: none; }
 }
 
@@ -1393,6 +1392,166 @@ form:has(input[name="to"][value="people"]:not(:checked)) .desk-to-people { displ
    own (not nested in the offer's open box, whose styles it would take). */
 .comp-judging-add > summary { list-style: none; }
 .comp-judging-add > summary::-webkit-details-marker { display: none; }
-.comp-judging-add[open] > .comp-opens-button::after { transform: translateY(0.1em) rotate(-135deg); }
-.comp-opens[open] .comp-judging-add:not([open]) > .comp-opens-button::after { transform: translateY(-0.15em) rotate(45deg); }
+.comp-judging-add[open] > .comp-opens-button::after { transform: rotate(180deg); }
+.comp-opens[open] .comp-judging-add:not([open]) > .comp-opens-button::after { transform: none; }
 .comp-judging-add > form { margin-top: 0.5rem; }
+
+/* --- The shared look of the competition and club pages ---
+   The rules are written down in knowledge/architecture/ui.md; these are the
+   pieces every page uses. */
+
+/* Width: every page has the same column, so the menu and heading sit in the
+   same place on each, whatever is under them; a wide table or the day's
+   areas scroll inside it. (Bulma's own widths are more specific.) */
+.section.comp-page > .container:not(.is-max-desktop):not(.is-max-widescreen) { max-width: 84rem; }
+
+/* The page's side margin, as --room: a scroller at the page's edge reaches
+   into it, padded back by as much, so at rest nothing moves and its fade
+   sits in the margin. None inside a box, a column or a form that opened,
+   whose edges aren't the page's. */
+.comp-page { --room: 0.75rem; }
+@media screen and (min-width: 769px) { .comp-page { --room: 1.5rem; } }
+@media screen and (min-width: 1024px) { .comp-page { --room: 3rem; } }
+.comp-page :is(.box, .card, .column, .comp-opens-form, .comp-popup-panel, .modal, td, .comp-exercise) { --room: 0px; }
+
+/* Scroll fade: a row of tabs, a wide table or the timetable's areas, wider
+   than the screen, fades out at the edge where there's more (has-more-left,
+   has-more-right, set by static/js/tables.js). While it's being scrolled
+   the fade steps aside quickly (is-scrolling), and eases back once it
+   stops. At least 1.25rem wide, so it shows on a phone's narrow margin. No
+   grey bars, no snapping. */
+.comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets) {
+  max-width: none; margin-inline: calc(-1 * var(--room)); padding-inline: var(--room);
+  --fade-left: 0px; --fade-right: 0px; transition: --fade-left 0.6s ease-out, --fade-right 0.6s ease-out;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-right)), transparent);
+}
+.comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets).has-more-left { --fade-left: max(var(--room), 1.25rem); }
+.comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets).has-more-right { --fade-right: max(var(--room), 1.25rem); }
+.comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets).is-scrolling { --fade-left: 0px; --fade-right: 0px; transition-duration: 0.15s; }
+@media (prefers-reduced-motion: reduce) { .comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets) { transition: none; } }
+/* A day's areas inside the timetable's row of days: the row scrolls and fades, not each day. */
+.comp-page .comp-tt-dayrow .comp-tt-areas { margin-inline: 0; padding-inline: 0; -webkit-mask-image: none; mask-image: none; }
+@media print { .comp-page :is(.table-container, .tabs, .comp-tt-areas, .comp-tl-sheets) { -webkit-mask-image: none; mask-image: none; margin-inline: 0; padding-inline: 0; } }
+
+/* Buttons, by role (ui.md): the main action is-primary, ordinary ones plain,
+   Change a comp-opens-button, Remove and Delete red text (is-text
+   has-text-danger), quiet ones is-text. Red is Bulma's darker red, which
+   reads at 5.7:1, white on it and it on white. */
+.button.is-danger:not(.is-light):not(.is-outlined) { background-color: #cc0f35; color: #fff; }
+.button.is-danger:not(.is-light):not(.is-outlined):hover { background-color: #b00d2d; }
+.button.is-danger.is-outlined { border-color: #cc0f35; color: #cc0f35; }
+.button.is-danger.is-outlined:hover, .button.is-danger.is-outlined:focus { background-color: #cc0f35; border-color: #cc0f35; color: #fff; }
+.button.is-text.has-text-danger:hover, .button.is-text.has-text-danger:focus { background-color: #feecf0; }
+/* A button that sets a state (On the day's Here, Scratched, Missing) takes
+   that state's colours from the palette. */
+.button.is-state-done { color: var(--state-done-ink); background-color: var(--state-done-bg); border-color: transparent; }
+.button.is-state-stopped { color: var(--state-stopped-ink); background-color: var(--state-stopped-bg); border-color: transparent; }
+.button.is-state-done:hover, .button.is-state-stopped:hover { border-color: currentColor; }
+/* Grey small text reads at 5.3:1 (Bulma's grey is 4.3:1). */
+.has-text-grey { color: #6b6b6b !important; }
+
+/* Things that open below show one arrow: a solid triangle in the text's
+   colour, as a dropdown's (details > summary::before) and a button's
+   (comp-opens-button::after) are; a list to choose from has it too. */
+.comp-page .select:not(.is-multiple):not(.is-loading)::after { border: 0; border-radius: 0; width: 0.6em; height: 0.5em; margin-top: -0.25em; transform: none; background: #4a4a4a; clip-path: polygon(0 0, 100% 0, 50% 100%); }
+
+/* A notice after a change (views/notice.templ): green, with × to put it away. */
+.comp-notice { padding-right: 2.5rem; }
+
+/* The way back, above the heading: an arrow and the page it goes to. */
+.comp-back { margin-bottom: 0.75rem; }
+.comp-back a { display: inline-flex; align-items: center; gap: 0.3em; }
+
+/* Nothing to show yet: one line, in grey, the same size everywhere. */
+.comp-empty { color: #6b6b6b; margin-bottom: 0.75rem; }
+
+/* An entry's problems: an amber chip and the list, as on the entries page. */
+.comp-problems { margin-bottom: 1rem; }
+.comp-problems ul { list-style: disc; margin: 0.35rem 0 0 1.25rem; }
+
+/* The levels to print cards from (views.CompetitionCards): rows of the page. */
+.comp-card-levels { margin-bottom: 1rem; max-width: 32rem; }
+.comp-card-levels li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.25rem 1rem; padding: 0.4rem 0; border-bottom: 1px solid #ededed; }
+
+/* On a phone everything tapped is big enough for a finger: small buttons
+   36px tall, tick boxes 20px in a row 36px tall, a menu's rows 40px. */
+@media screen and (max-width: 768px) {
+  .comp-page .button.is-small:not(.comp-list-clear) { min-height: 2.25rem; }
+  .comp-page input[type="checkbox"], .comp-page input[type="radio"] { width: 1.25rem; height: 1.25rem; }
+  .comp-page label.checkbox, .comp-page label.radio { min-height: 2.25rem; display: inline-flex; align-items: center; gap: 0.4em; }
+  .comp-page .checkbox.comp-check { align-items: flex-start; padding-top: 0.4rem; }
+  .comp-page .checkbox.comp-check input { margin-top: 0; }
+  .comp-page td.comp-stack-tick input { width: 1.5rem; height: 1.5rem; margin: 0.25rem; }
+  .comp-popup-panel a { display: flex; align-items: center; min-height: 2.5rem; }
+  .comp-table-menu-row, .comp-list-filter-panel .checkbox { min-height: 2.5rem; }
+  .comp-back a { min-height: 2.25rem; }
+}
+
+/* Printed, a page is what it shows: no menu, tabs, buttons, way back or
+   Feedback. */
+@media print {
+  .comp-menu, .role-tabs, .comp-offline, .comp-back, .comp-tick-bar, .comp-list-controls,
+  .comp-page .button, .comp-page .delete, .comp-page summary.button, .comp-tt-daypick { display: none !important; }
+  .comp-sticky-notice, .comp-day-notice { position: static; box-shadow: none; }
+  .comp-page.section { padding: 0; }
+}
+
+/* An entry's sign-off in a row (views.signoffCell): the coach's name and
+   what they did, on one line; an asterisk for a coach not approved, which
+   the key under the table explains. A problem's chip stays one line too. */
+.comp-signoff { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.4em; }
+.comp-signoff > .chip { margin-left: 0; }
+.comp-unapproved { text-decoration: none; cursor: help; font-weight: 700; color: var(--state-attention-ink); margin-left: 0.1em; }
+.comp-key { display: block; font-size: 0.875rem; color: #6b6b6b; margin: 0.25rem 0 0.75rem; }
+@media screen and (min-width: 769px) {
+  .comp-entries .comp-signoff { flex-wrap: nowrap; white-space: nowrap; }
+  .comp-entries td[data-label="Coach"] { white-space: nowrap; }
+  .comp-entries td .chip { white-space: nowrap; overflow-wrap: normal; }
+}
+
+/* A row of tabs fades the same way, but by a white veil over its edge
+   rather than a mask, with a small arrow in it: a row can end between two
+   tabs at the screen's edge, leaving a mask nothing to fade. The veil sticks
+   to the row's edge as it scrolls, and comes and goes as the fade does. */
+.comp-page .tabs { -webkit-mask-image: none; mask-image: none; }
+.comp-page .tabs::before, .comp-page .tabs::after { position: sticky; z-index: 1; flex: 0 0 1.75rem; display: flex; align-items: center;
+  font-size: 1.2rem; line-height: 1; color: #4a4a4a; opacity: 0; transition: opacity 0.6s ease-out; pointer-events: none; }
+.comp-page .tabs::before { content: "‹"; order: -1; left: calc(-1 * var(--room)); margin-right: -1.75rem; justify-content: flex-start; padding-left: 0.1rem;
+  background: linear-gradient(to right, #fff 35%, rgba(255, 255, 255, 0)); }
+.comp-page .tabs::after { content: "›"; right: calc(-1 * var(--room)); margin-left: -1.75rem; justify-content: flex-end; padding-right: 0.1rem;
+  background: linear-gradient(to left, #fff 35%, rgba(255, 255, 255, 0)); }
+.comp-page .tabs.has-more-left::before, .comp-page .tabs.has-more-right::after { opacity: 1; }
+.comp-page .tabs.is-scrolling::before, .comp-page .tabs.is-scrolling::after { opacity: 0; transition-duration: 0.15s; }
+@media (prefers-reduced-motion: reduce) { .comp-page .tabs::before, .comp-page .tabs::after { transition: none; } }
+
+/* A discipline on a member's page: a heading, the size of the row's text. */
+.comp-event-name { display: inline; font-size: 1rem; font-weight: 700; margin-right: 0.3em; }
+
+/* Deleting a whole competition or club (comp-danger-zone): set apart by a red
+   edge, its Delete button outlined red and the last one solid red, unlike the
+   red-text removes of single things. */
+.comp-danger-zone { border-left: 3px solid var(--state-stopped-ink); padding-left: 0.75rem; margin-top: 0.5rem; }
+.comp-danger-zone .comp-opens-button { color: var(--state-stopped-ink); border-color: var(--state-stopped-ink); }
+.comp-danger-zone .button.is-danger { background: var(--state-stopped-ink); border-color: var(--state-stopped-ink); color: #fff; }
+.comp-type-delete-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; }
+.comp-type-delete-row .input { max-width: 12rem; }
+/* An ask to remove something (views.Ask.Remove): a red edge, and the button
+   outlined in the darker red, so it reads as removing, not a main action. */
+.comp-ask.is-remove { border-left: 4px solid var(--state-stopped-ink); }
+.comp-ask .button.is-danger.is-outlined { color: var(--state-stopped-ink); border-color: var(--state-stopped-ink); background: #fff; }
+.comp-ask .button.is-danger.is-outlined:hover, .comp-ask .button.is-danger.is-outlined:focus { color: #fff; background: var(--state-stopped-ink); }
+
+/* Tell the organiser (views/my.templ): what it's about, a list to tick,
+   grouped by event for a comp sec or coach, scrolling when long; and the
+   messages sent, with the organiser's replies. */
+.comp-tell-about { max-height: 16rem; overflow: auto; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.4rem 0.6rem; }
+.comp-tell-about .checkbox { display: flex; gap: 0.45rem; align-items: baseline; min-height: 1.9rem; padding: 0.15rem 0; }
+.comp-tell-entry.is-grouped { padding-left: 1.4rem; }
+.comp-tell-group + .comp-tell-group { border-top: 1px solid #f0f0f0; margin-top: 0.2rem; padding-top: 0.2rem; }
+.comp-tell-sent { padding: 0.6rem 0; border-bottom: 1px solid #ededed; }
+.comp-tell-sent:last-child { border-bottom: 0; }
+.comp-tell-post { margin: 0.4rem 0 0 0.75rem; padding-left: 0.6rem; border-left: 3px solid #dbdbdb; }
+.comp-tell-post.is-organiser { border-left-color: var(--state-in-progress-ink); }
+.comp-concern-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; }
+.comp-concern-actions > details[open] { flex-basis: 100%; }

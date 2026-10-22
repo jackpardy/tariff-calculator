@@ -29,9 +29,9 @@ type Competition struct {
 	// none; NoWait sends them at once on the competition's days.
 	NotifyDue time.Time
 	NoWait    bool
-	// FeedbackButton shows a Feedback button on every page of the
-	// competition (on unless the organiser turns it off).
-	FeedbackButton bool
+	// Messages lets people at the competition send the organiser messages
+	// from their own pages (on unless the organiser turns it off).
+	Messages bool
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -41,7 +41,7 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	if err != nil {
 		return Competition{}, "", fmt.Errorf("encoding levels: %w", err)
 	}
-	out := Competition{ID: newID(), Competition: c, ClubLink: newToken(), IndividualLink: newToken(), CreatedAt: parseTime(s.stamp()), FeedbackButton: true}
+	out := Competition{ID: newID(), Competition: c, ClubLink: newToken(), IndividualLink: newToken(), CreatedAt: parseTime(s.stamp()), Messages: true}
 	admin := newToken()
 	video, err := json.Marshal(c.Video)
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, feedback`
+const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
@@ -75,7 +75,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.FeedbackButton); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -752,15 +752,22 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, now.AddDate(0, 0, -competitions.RetentionDays).Format(timeLayout)); err != nil {
 			return err
 		}
-		if err := dropTies(ctx, tx); err != nil {
-			return err
-		}
-		if err := dropOrphanedKept(ctx, tx); err != nil {
-			return err
-		}
-		return dropEntryRows(ctx, tx, "")
+		return dropLeftovers(ctx, tx)
 	})
 	return comps, clubs, err
+}
+
+// dropLeftovers deletes what deleting competitions, clubs or individuals
+// leaves behind: the rows that refer to them without a foreign key, and the
+// requirements of people who are gone (DeleteExpired, DeleteCopy).
+func dropLeftovers(ctx context.Context, tx *sql.Tx) error {
+	if err := dropTies(ctx, tx); err != nil {
+		return err
+	}
+	if err := dropOrphanedKept(ctx, tx); err != nil {
+		return err
+	}
+	return dropEntryRows(ctx, tx, "")
 }
 
 // SetApproveCoaches says whether only coaches the organiser approves can sign

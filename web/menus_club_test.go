@@ -41,7 +41,7 @@ func TestClubSections(t *testing.T) {
 			t.Errorf("Competitions should have %q", want)
 		}
 	}
-	for _, not := range []string{"Join link", "Add coach", "Replace the admin link"} {
+	for _, not := range []string{"Join link", "Add coach", "Replace the club admin link"} {
 		if strings.Contains(page, not) {
 			t.Errorf("Competitions shouldn't have %q", not)
 		}
@@ -73,7 +73,7 @@ func TestClubSections(t *testing.T) {
 		t.Errorf("a member's new link is shown on Members: %d", rec.Code)
 	}
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
-	if got := withoutQuery(redirected(t, h, remove, url.Values{})); got != club+"/members" {
+	if got := withoutQuery(redirected(t, h, remove, url.Values{"anyway": {"1"}})); got != club+"/members" {
 		t.Errorf("removing a member goes back to Members: %s", got)
 	}
 	_ = member
@@ -105,7 +105,7 @@ func TestClubSections(t *testing.T) {
 	}{
 		{club + "/coaches-see-all", url.Values{"on": {"1"}}},
 		{club + "/coaches/" + coachID + "/signs-off", url.Values{"on": {""}}},
-		{club + "/coaches/" + coachID + "/remove", url.Values{}},
+		{club + "/coaches/" + coachID + "/remove", url.Values{"anyway": {"1"}}},
 	} {
 		if got := withoutQuery(redirected(t, h, post.path, post.form)); got != club+"/coaches" {
 			t.Errorf("POST %s goes back to Coaches: %s", post.path, got)
@@ -117,16 +117,16 @@ func TestClubSections(t *testing.T) {
 	if got := currentTab(t, page); got != "Settings" {
 		t.Errorf("the settings section is %q", got)
 	}
-	if !strings.Contains(page, "Replace the admin link") || !strings.Contains(page, "Delete the club") || strings.Contains(page, "Add coach") {
+	if !strings.Contains(page, "Replace the club admin link") || !strings.Contains(page, "Delete the club") || strings.Contains(page, "Add coach") {
 		t.Error("Settings is the replace and delete forms")
 	}
-	if got := redirected(t, h, club+"/delete", url.Values{}); got != club+"/settings" {
+	if got := redirected(t, h, club+"/delete", url.Values{}); !strings.HasPrefix(got, club+"/settings?notice=") {
 		t.Errorf("deleting without confirming goes back to Settings: %s", got)
 	}
 	// Replacing the admin link asks first, on Settings; then the new one
 	// is shown on the default page, where it's saved.
 	if rec := do(t, h, http.MethodPost, club+"/replace-link", url.Values{}); rec.Code != http.StatusOK || currentTab(t, rec.Body.String()) != "Settings" ||
-		!strings.Contains(rec.Body.String(), "Replace the admin link?") || !strings.Contains(rec.Body.String(), `href="`+club+`/settings">Cancel`) {
+		!strings.Contains(rec.Body.String(), "Replace the club admin link?") || !strings.Contains(rec.Body.String(), `href="`+club+`/settings">Cancel`) {
 		t.Errorf("replacing the admin link asks first: %d", rec.Code)
 	}
 	if got := redirected(t, h, club+"/replace-link", url.Values{"anyway": {"1"}}); !strings.HasSuffix(got, "?new=replaced") || strings.Contains(got, "/settings") {
@@ -170,7 +170,7 @@ func TestClubCompetitionsSectionPages(t *testing.T) {
 		t.Error("changing a member's offer is in Competitions")
 	}
 	if got := withoutQuery(redirected(t, h, offer, url.Values{"recorder": {"1"}})); got != compPage+"/offers" {
-		t.Errorf("saving a member's offer goes back to Judging and helping: %s", got)
+		t.Errorf("saving a member's offer goes back to Officiating: %s", got)
 	}
 }
 
@@ -206,7 +206,7 @@ func TestMemberTabs(t *testing.T) {
 	if row == nil || !strings.Contains(list, "Not entered") || !strings.Contains(list, "Saturday 16 March 2030") {
 		t.Fatalf("the list has the competition, its date and status, linking to its page: %s", list)
 	}
-	if strings.Contains(list, "Your coach") || strings.Contains(list, "Change your entry") || strings.Contains(list, "<details") {
+	if strings.Contains(list, "Your coach") || strings.Contains(list, "Change your entry") || strings.Contains(withoutFeedback(list), "<details") {
 		t.Error("the list is only the list")
 	}
 
@@ -231,7 +231,7 @@ func TestMemberTabs(t *testing.T) {
 	if !strings.Contains(page, `href="`+member+`">← Competitions</a>`) || !strings.Contains(page, "Student Open") || !strings.Contains(page, "Entries close") {
 		t.Error("the competition's page has a way back and its facts")
 	}
-	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> `+chip(t, views.NotYet, "Not entered")+`</summary>`) {
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><h3 class="comp-event-name">Trampoline</h3>`+chip(t, views.NotYet, "Not entered")+`</summary>`) {
 		t.Errorf("an unentered discipline is a collapsed row saying so: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}
 
@@ -252,7 +252,7 @@ func TestMemberTabs(t *testing.T) {
 		t.Error("the notice's entry is shown open")
 	}
 	page = do(t, h, http.MethodGet, compPath, nil).Body.String()
-	if !strings.Contains(page, `<details class="box comp-event-row"><summary><strong>Trampoline</strong> <span class="has-text-grey is-size-7">· BUCS L3</span>`+chip(t, views.Attention, "2 problems")+`</summary>`) ||
+	if !strings.Contains(page, `<details class="box comp-event-row"><summary><h3 class="comp-event-name">Trampoline</h3><span class="has-text-grey is-size-7">· BUCS L3</span>`+chip(t, views.Attention, "2 problems")+`</summary>`) ||
 		!strings.Contains(page, "Saved, not sent yet") {
 		t.Errorf("an entered discipline is a collapsed row with its level and status, opening to its card: %s", regexp.MustCompile(`<details class="box comp-event-row".{0,300}`).FindString(page))
 	}
@@ -323,17 +323,17 @@ func TestEntryBrief(t *testing.T) {
 		want     string
 		state    views.State
 	}{
-		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Saved, not sent", views.NotYet},
+		{"saved", store.MemberEntry{}, store.Entry{}, false, 0, 0, "Not sent", views.NotYet},
 		{"sent", sent, store.Entry{}, false, 0, 0, "Sent", views.InProgress},
-		{"checked", checked, store.Entry{}, false, 0, 0, "Organiser checked", views.Done},
-		{"changed", changed, store.Entry{}, false, 0, 0, "Changed, send again", views.Attention},
+		{"checked", checked, store.Entry{}, false, 0, 0, "Checked", views.Done},
+		{"changed", changed, store.Entry{}, false, 0, 0, "Changed since sent", views.Attention},
 		{"one problem", checked, store.Entry{}, false, 1, 0, "1 problem", views.Attention},
 		{"problems", checked, store.Entry{}, false, 2, 0, "2 problems", views.Attention},
 		{"waiting", sent, store.Entry{}, false, 0, 3, "Waiting list, 3rd", views.InProgress},
 		{"on hold", sent, store.Entry{Removal: store.Held}, true, 0, 0, "On hold", views.Attention},
 		{"removed", sent, store.Entry{Removal: store.Removed}, true, 0, 0, "Removed", views.Stopped},
 	} {
-		if got, state := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place, "Sent"); got != c.want || state != c.state {
+		if got, state := brief(memberState(c.e, c.removal, c.removed, c.place), c.problems, c.place); got != c.want || state != c.state {
 			t.Errorf("%s: %q %s, want %q %s", c.name, got, state, c.want, c.state)
 		}
 	}
@@ -369,15 +369,15 @@ func TestEntryStanding(t *testing.T) {
 	if got := memberStatus(memberState(sent, store.Entry{}, false, 1), store.Entry{}, false); got != "Sent by your club" {
 		t.Errorf("a member's checked entry on a waiting list: %q", got)
 	}
-	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Sent by your club · checked by the organiser ✓" {
+	if got := memberStatus(memberState(sent, store.Entry{}, false, 0), store.Entry{}, false); got != "Checked by the organiser" {
 		t.Errorf("a member's checked entry: %q", got)
 	}
 	// An individual's: on a waiting list, and checked.
 	in := store.Entry{CheckedAt: time.Now()}
-	if got, _ := brief(individualState(in, 2), 0, 2, "Entered"); got != "Waiting list, 2nd" {
+	if got, _ := brief(individualState(in, 2), 0, 2); got != "Waiting list, 2nd" {
 		t.Errorf("an individual on a waiting list: %q", got)
 	}
-	if got, _ := brief(individualState(in, 0), 0, 0, "Entered"); got != "Organiser checked" {
+	if got, _ := brief(individualState(in, 0), 0, 0); got != "Checked" {
 		t.Errorf("an individual checked: %q", got)
 	}
 }

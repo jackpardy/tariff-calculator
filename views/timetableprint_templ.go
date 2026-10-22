@@ -772,7 +772,7 @@ func dutiesBox(duties []string, scoreSheets string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(duties) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div class=\"notification is-info is-light\"><p><strong>Officiating</strong></p><ul class=\"is-size-7\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div class=\"notification is-info is-light\"><p><strong>Your duties</strong></p><ul class=\"is-size-7\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

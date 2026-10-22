@@ -79,7 +79,7 @@ func TestDeskMessageToAClub(t *testing.T) {
 
 	desk := admin + "/desk"
 	page := do(t, h, http.MethodGet, desk, nil).Body.String()
-	clubID := regexp.MustCompile(`<option value="([^"]+)">UCD</option>`).FindStringSubmatch(page)
+	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(page)
 	if clubID == nil || !strings.Contains(page, "Nothing sent yet") {
 		t.Fatalf("the desk lists the club: %s", page)
 	}
@@ -327,7 +327,7 @@ func TestDeskToACoach(t *testing.T) {
 	ucd := aClub(t, h, admin, "UCD", true, "Ann", "Bea")
 	club, members := ucd.page, ucd.members
 	bob := pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
-	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"]+"/details", nil).Body.String())[1]
+	bobID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Bob</option>`).FindStringSubmatch(do(t, h, http.MethodGet, members["Ann"]+"/details", nil).Body.String())[1]
 	redirected(t, h, members["Ann"]+"/coach", url.Values{"coach": {bobID}})
 	subscribeByEmail(t, h, mail, notifyPageOf(t, h, bob, bob), "bob@example.com")
 
@@ -348,7 +348,7 @@ func TestDeskToACoach(t *testing.T) {
 		t.Errorf("Bob is shown what is for Ann: %s", body)
 	}
 	mail.sent = nil
-	clubID := regexp.MustCompile(`<option value="([^"]+)">UCD</option>`).FindStringSubmatch(page)[1]
+	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(page)[1]
 	redirected(t, h, desk, url.Values{"to": {"club"}, "club": {clubID}, "text": {"For the club"}})
 	if len(mail.sent) != 1 || mail.sent[0].to != "bob@example.com" {
 		t.Errorf("a club's coaches hear what is sent to it: %+v", mail.sent)
@@ -365,7 +365,7 @@ func TestDeskToOfficials(t *testing.T) {
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"1"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	eve := anIndividual(t, h, admin, "Eve")
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
@@ -422,7 +422,7 @@ func TestDeskToOfficials(t *testing.T) {
 	// A flight: its gymnasts, its officials, or both. Eve competes in BUCS
 	// L3; Dara judges it.
 	page = do(t, h, http.MethodGet, desk, nil).Body.String()
-	flight := regexp.MustCompile(`<option value="([^"]+)">[^<]*BUCS L3[^<]*</option>`).FindStringSubmatch(page)
+	flight := regexp.MustCompile(`<option value="([^"]+)"[^>]*>[^<]*BUCS L3[^<]*</option>`).FindStringSubmatch(page)
 	if flight == nil {
 		t.Fatalf("BUCS L3's flight is offered: %s", page)
 	}

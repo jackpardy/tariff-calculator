@@ -5,6 +5,7 @@ import "strconv"
 // FeesPage is the organiser's page of entry fees (roadmap 2026-10-08).
 type FeesPage struct {
 	Base, Notice string
+	Ask          *Ask // asking before a payment is removed
 	Competition  CompetitionSummary
 	Menu         []MenuSection
 	On           bool // anything is charged
@@ -53,8 +54,9 @@ templ FeesAdmin(p FeesPage) {
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
+		@askBox(p.Ask)
 		@changeLine("What you charge", p.Now, !p.On) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/fees/settings") }>
 				<div class="field">
@@ -94,7 +96,7 @@ templ FeesAdmin(p FeesPage) {
 			</nav>
 		}
 		if len(p.Accounts) == 0 {
-			<p class="has-text-grey">No entries yet.</p>
+			@emptyLine("No entries yet.")
 		} else if p.On {
 			<div class="table-container">
 				<table class="table is-fullwidth is-narrow comp-stack">
@@ -113,8 +115,8 @@ templ FeesAdmin(p FeesPage) {
 												· { pay.Note }
 											}
 											· { pay.Who }
-											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline" onsubmit={ confirmFirst("Remove the payment of " + pay.Amount + "?") }>
-												<button class="button is-small is-text has-text-danger p-0 ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
+											<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments/" + pay.ID + "/remove") } class="is-inline">
+												<button class="button is-small is-text has-text-danger ml-1 comp-inline-button" type="submit" aria-label={ "Remove the payment of " + pay.Amount }>Remove</button>
 											</form>
 										</div>
 									}
@@ -134,7 +136,7 @@ templ FeesAdmin(p FeesPage) {
 									}
 								</td>
 								<td class="comp-pay-cell">
-									<a class="is-size-7" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
+									<a class="button is-small" href={ templ.SafeURL(a.Invoice) }>Invoice</a>
 									// Recording a payment is for one row at a time, so it opens from a button.
 									@opens("", "", "Record a payment", a.Open) {
 										<form method="post" action={ templ.SafeURL(p.Base + "/fees/payments") } class="comp-pay-form">
@@ -168,6 +170,7 @@ templ moneyCount(amount, label string) {
 type InvoicePage struct {
 	Competition                   CompetitionSummary
 	Back, To, Date, Instructions  string
+	BackTo                        string // the page Back is, e.g. "Fees"
 	Lines                         []InvoiceLineView
 	Total, Paid, Balance          string
 	Settled                       bool
@@ -184,7 +187,7 @@ type InvoiceLineView struct {
 templ Invoice(p InvoicePage) {
 	@competitionLayout("Invoice · " + p.To + " · " + p.Competition.Name) {
 		<div class="comp-print-bar screen-only">
-			<a href={ templ.SafeURL(p.Back) }>← Back</a>
+			<a href={ templ.SafeURL(p.Back) }>← { p.BackTo }</a>
 			<button type="button" class="button is-small is-primary" onclick="window.print()">Print / Save as PDF</button>
 		</div>
 		<h1 class="title is-4">Invoice</h1>

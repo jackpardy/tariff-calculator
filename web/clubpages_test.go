@@ -222,13 +222,22 @@ func TestClubs(t *testing.T) {
 
 	// Removing a member ends their link.
 	remove := strings.TrimSuffix(newLink, "/new-link") + "/remove"
-	redirected(t, h, remove, url.Values{})
+	// Asked first, on Members, with no browser pop-up: nothing goes until yes.
+	if page := do(t, h, http.MethodPost, remove, url.Values{}).Body.String(); !strings.Contains(page, "Their entries go with them") ||
+		!strings.Contains(page, `action="`+remove+`"`) || !strings.Contains(page, `name="anyway" value="1"`) || strings.Contains(page, "confirm(") ||
+		do(t, h, http.MethodGet, fresh, nil).Code != http.StatusOK {
+		t.Errorf("removing a member asks first: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if do(t, h, http.MethodGet, fresh, nil).Code != http.StatusNotFound {
 		t.Error("a removed member's link stops working")
 	}
 
-	// Deleting the club.
-	if rec := do(t, h, http.MethodPost, club+"/delete", url.Values{"confirm": {"1"}}); rec.Code != http.StatusOK || do(t, h, http.MethodGet, club, nil).Code != http.StatusNotFound {
+	// Deleting the club needs "delete" typed (in any case).
+	if got := redirected(t, h, club+"/delete", url.Values{"confirm": {"1"}}); !strings.Contains(got, "Type+delete") || do(t, h, http.MethodGet, club, nil).Code != http.StatusOK {
+		t.Errorf("the old tick box's 1 deletes nothing, and says why: %s", got)
+	}
+	if rec := do(t, h, http.MethodPost, club+"/delete", url.Values{"confirm": {"Delete "}}); rec.Code != http.StatusOK || do(t, h, http.MethodGet, club, nil).Code != http.StatusNotFound {
 		t.Errorf("deleted: %d", rec.Code)
 	}
 }

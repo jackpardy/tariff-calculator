@@ -33,7 +33,6 @@ const (
 	menuScreen    = "/screen"
 	menuSettings  = "/settings"
 	menuHistory   = "/history"
-	menuFeedback  = "/feedback"
 )
 
 // menuState is what a competition's menu depends on besides the link: which
@@ -44,7 +43,6 @@ type menuState struct {
 	ApproveCoaches bool // coaches are approved, so there's a page to do it on
 	LateWaiting    int  // late changes to decide
 	CoachesWaiting int  // coaches sent or named, not decided yet
-	FeedbackNew    int  // feedback about the app not dealt with yet
 }
 
 // menuFor is the menu of a competition's pages for the request's link, with
@@ -67,9 +65,6 @@ func (p *competitionPages) menuFor(r *http.Request, c store.Competition, current
 		if err1 == nil && err2 == nil {
 			m.CoachesWaiting = coachApprovalForm(c.Competition, sent, named).Waiting
 		}
-	}
-	if a.Feedback {
-		m.FeedbackNew, _ = p.st.FeedbackWaiting(r.Context(), c.ID)
 	}
 	return orgMenu(adminPath(r.PathValue("token")), a, m, current)
 }
@@ -105,14 +100,17 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		sections = append(sections, s)
 	}
 
-	entries := []views.MenuItem{item("Entries", menuEntries, "")}
+	// A section's first page has a name of its own, not the section's again.
+	entries := []views.MenuItem{item("All entries", menuEntries, "")}
 	if a.People {
 		entries = append(entries, item("People", menuPeople, ""))
 	}
 	if a.Settings {
 		entries = append(entries, item("Late changes", menuLate, badge(m.LateWaiting, "to decide")))
 	}
-	if m.ApproveCoaches && a.Coaches {
+	// The coaches page while coaches are approved, and while on it when they
+	// aren't (it still opens), so a page always has a tab of its own.
+	if (m.ApproveCoaches || current == menuCoaches) && a.Coaches {
 		entries = append(entries, item("Coaches", menuCoaches, badge(m.CoachesWaiting, "waiting")))
 	}
 	if a.Settings {
@@ -123,7 +121,7 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	// A link that only prints the timetable's sheets (a chair of judges) finds
 	// them as buttons on the entries page: printouts have no menu of their own.
 	if a.Timetable {
-		items := []views.MenuItem{item("Timetable", menuTimetable, ""), item("Setup", menuSetup, "")}
+		items := []views.MenuItem{item("Flights", menuTimetable, ""), item("Setup", menuSetup, "")}
 		if a.Officials {
 			items = append(items, item("Officials", menuOfficials, ""))
 		}
@@ -141,7 +139,7 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 	if m.Published || current == menuDay || current == menuDesk || current == menuScreen {
 		var day []views.MenuItem
 		if a.Day {
-			day = append(day, item("On the day", menuDay, ""))
+			day = append(day, item("Areas", menuDay, ""))
 		}
 		if a.Desk {
 			day = append(day, item("Desk messages", menuDesk, ""))
@@ -152,23 +150,9 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		add("On the day", day...)
 	}
 
-	// Feedback about the app, beside the history, for links that may read it.
-	// The history (payments, feedback) is for links that change the settings.
-	var more []views.MenuItem
+	// The history (payments) is for links that change the settings.
 	if a.Settings {
-		more = append(more, item("Settings", menuSettings, ""), item("History", menuHistory, ""))
-	}
-	if a.Feedback {
-		more = append(more, item("Feedback", menuFeedback, badge(m.FeedbackNew, "new")))
-	}
-	if a.Settings {
-		add("Settings", more...)
-		// The badge there is new feedback, not a setting: say so on the tab.
-		if last := &sections[len(sections)-1]; last.Badge != "" {
-			last.Badge += " feedback"
-		}
-	} else {
-		add("Feedback", more...) // a link without the settings has no history
+		add("Settings", item("Competition", menuSettings, ""), item("History", menuHistory, ""))
 	}
 	return sections
 }

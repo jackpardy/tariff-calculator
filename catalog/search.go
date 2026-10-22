@@ -437,3 +437,39 @@ func rotationReadings(q string) []rotationReading {
 	}
 	return out
 }
+
+// LandingTiles are the Body landings tiles that follow the skill before
+// ("To Feet", "½ Twist To Seat") whose names a query is, or is the start
+// of, word for word: "to feet" is To Feet, "half twist to s" is ½ Twist To
+// Seat. A search shows them first, so typing a landing puts in the version
+// that takes off where the skill before landed, as the tile does (the owner,
+// 2026-10-19). Notation and other words find nothing here.
+func LandingTiles(query string) []Entry {
+	q := tokens(query)
+	if len(q) < 2 || looksLikeNotation(query) {
+		return nil // "to" alone would be every tile
+	}
+	var exact, starts []Entry
+	for _, t := range landingTiles {
+		label := tokens(t.label)
+		if len(q) > len(label) {
+			continue
+		}
+		match := true
+		for i, w := range q {
+			last := i == len(q)-1
+			if label[i] != w && !(last && strings.HasPrefix(label[i], w)) {
+				match = false
+				break
+			}
+		}
+		switch {
+		case !match:
+		case len(q) == len(label) && label[len(q)-1] == q[len(q)-1]:
+			exact = append(exact, t.entry())
+		default:
+			starts = append(starts, t.entry())
+		}
+	}
+	return append(exact, starts...)
+}

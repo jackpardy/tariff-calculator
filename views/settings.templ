@@ -11,6 +11,7 @@ import (
 type SettingsPage struct {
 	Base           string // the admin link's path, which the page's own links extend
 	Notice         string // what just happened
+	Ask            *Ask   // asking before replacing the admin link or removing a helper's
 	New            string // "replaced" just after the admin link was replaced, to say to save it
 	Menu           []MenuSection
 	Access         Access // what the link it was opened by can do (ADR 0009)
@@ -28,7 +29,7 @@ type SettingsPage struct {
 	LiveTime       string
 	NotifyOn       bool // people can ask to hear about changes (ADR 0008)
 	NoWait         bool // no wait on the competition's days
-	FeedbackButton bool // a Feedback button on every page
+	Messages       bool // people can send the organiser messages from their pages
 	Limits         []LimitField
 	Video          VideoForm
 	CoachApproval  CoachApprovalForm
@@ -57,8 +58,9 @@ templ CompetitionSettings(p SettingsPage) {
 		}
 		if p.Notice != "" {
 			// Stays in sight as the page goes to the setting changed.
-			<div class="notification is-success is-light comp-sticky-notice"><button class="delete" type="button" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>{ p.Notice }</div>
+			@stickyNotice(p.Notice)
 		}
+		@askBox(p.Ask)
 		<p class="is-size-7 mb-4">
 			Jump to:
 			<a href="#links">Links</a> ·
@@ -72,7 +74,7 @@ templ CompetitionSettings(p SettingsPage) {
 				<a href="#notify">Telling people about changes</a> ·
 			}
 			<a href="#individuals">Entering on their own</a> ·
-			<a href="#feedback">Feedback</a>
+			<a href="#messages">Messages to you</a>
 			if p.Access.Organiser {
 				· <a href="#admin-link">Admin link and deleting</a>
 			}
@@ -209,34 +211,32 @@ templ CompetitionSettings(p SettingsPage) {
 				}
 			</form>
 		}
-		@settingsGroup("feedback", "Feedback")
-		@changeLine("Feedback button", onOff(p.FeedbackButton, "on every page", "not shown"), false) {
-			<form method="post" action={ templ.SafeURL(p.Base + "/feedback-button") } class="mb-3">
-				<input type="hidden" name="on" value={ boolValue(!p.FeedbackButton) }/>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" checked?={ p.FeedbackButton } onchange="this.form.submit()"/>
-					Show a Feedback button on every page
-				</label>
-				<noscript><button class="button is-small" type="submit">Change</button></noscript>
-				<p class="help">For everyone using the competition's pages to tell the people who make the app what confused them. You read it under <a href={ templ.SafeURL(p.Base + "/feedback") }>Feedback</a>.</p>
+		@settingsGroup("messages", "Messages to you")
+		@changeLine("Tell the organiser", onOff(p.Messages, "members, coaches, comp secs and gymnasts can send you messages", "turned off"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/messages") } class="mb-3">
+				if p.Messages {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Stop messages</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Let people send you messages</button>
+				}
+				<p class="help">A <strong>Tell the organiser</strong> form on their pages for the competition, with their name and club, and the entry it's about if they choose. Messages come to your dashboard's <a href={ templ.SafeURL(p.Base + "#concerns") }>Messages and concerns</a>. Feedback about the app itself goes to the people who make it, not to you.</p>
 			</form>
 		}
 		if p.Access.Organiser {
 			@settingsGroup("admin-link", "Admin link and deleting")
 			@opens("Replace the admin link", "if it's been shared too widely: the old one stops working", "Replace", false) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/replace-link") } class="mb-3">
-					<button class="button is-small" type="submit">Replace the admin link</button>
+					<button class="button is-small" type="submit" title="You're asked first, as the old one stops working">Replace the admin link</button>
 				</form>
 			}
-			@opens("Delete the competition", "and every entry, for good", "Delete", false) {
-				<form method="post" action={ templ.SafeURL(p.Base + "/delete") } class="mb-3">
-					<label class="checkbox is-size-7">
-						<input type="checkbox" name="confirm" value="1" required/>
-						Delete the competition and every entry, now
-					</label>
-					<button class="button is-small is-danger is-outlined ml-2" type="submit">Delete</button>
-				</form>
-			}
+			// Deleting the whole competition looks unlike any other remove.
+			<div class="comp-danger-zone">
+				@opens("Delete the competition", "and every entry, for good", "Delete", false) {
+					@typeToDelete(p.Base+"/delete", "delete-competition", "the competition and every entry, for good", "Delete the competition")
+				}
+			</div>
 		}
 		<script>
 			// A change that comes back to a row's form (…#level-order) opens its row.

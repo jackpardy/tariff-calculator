@@ -11,6 +11,7 @@ import (
 type NotifyPage struct {
 	Competition CompetitionSummary
 	Back        string
+	BackTo      string // the page Back is, e.g. "My competition"
 	Action      string // where the form posts
 	For         string // whose changes, e.g. "you", "UCD's members"
 	Notice      string
@@ -53,14 +54,17 @@ type NotifyTopic struct {
 // NotifyCompetition is the page for opting in.
 templ NotifyCompetition(p NotifyPage) {
 	@competitionLayout("Changes · " + p.Competition.Name) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Back</a></p>
+		@backLink(p.Back, p.BackTo)
 		<h1 class="title is-4">Tell me about changes</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
 		@problemList(p.Problems)
 		<p class="mb-4">Hear when the organiser changes something for { p.For }: one message for all of it, a few minutes after they publish, with what was and what is now.</p>
+		if SandboxOf(ctx) {
+			<div class="notification is-warning is-light">{ NotificationsOff } Nothing is emailed or pushed from here, so there's nothing to turn on.</div>
+		}
 		if p.PushKey != "" {
 			@pushBox(p)
 		}
@@ -69,7 +73,7 @@ templ NotifyCompetition(p NotifyPage) {
 				<h2 class="title is-6 mb-2">By email</h2>
 				if p.Email.Address != "" {
 					<p class="mb-2">
-						<strong>{ p.Email.Address }</strong>
+						<strong data-private>{ p.Email.Address }</strong>
 						if p.Email.Confirmed {
 							@StateChip(Done, "On")
 						} else {
@@ -83,7 +87,7 @@ templ NotifyCompetition(p NotifyPage) {
 				<form method="post" action={ templ.SafeURL(p.Action) }>
 					<div class="field">
 						<label class="label is-small" for="notify-email">Email</label>
-						<input class="input is-small" id="notify-email" name="email" type="email" required maxlength="254" value={ p.Email.Address } autocomplete="email"/>
+						<input class="input is-small" id="notify-email" name="email" type="email" required maxlength="254" value={ p.Email.Address } autocomplete="email" data-private/>
 					</div>
 					<fieldset class="field">
 						<legend class="label is-small">About</legend>

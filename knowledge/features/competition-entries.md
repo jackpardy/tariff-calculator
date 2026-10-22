@@ -34,7 +34,8 @@ are `views/competitions.templ` (the layout and shared parts),
     - [The menu and the Settings page (roadmap 2026-10-14)](#the-menu-and-the-settings-page-roadmap-2026-10-14)
     - [All people (roadmap 2026-10-14)](#all-people-roadmap-2026-10-14)
     - [Helpers' links, history and concerns (ADR 0009)](#helpers-links-history-and-concerns-adr-0009)
-    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app-ready-for-the-dry-run)
+    - [Messages to the organiser (ready for the dry run)](#messages-to-the-organiser)
+    - [Feedback about the app (ready for the dry run)](#feedback-about-the-app)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
     - [Late changes](#late-changes)
     - [Limits and waiting lists](#limits-and-waiting-lists)
@@ -58,6 +59,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [Simulation (ADR 0005, step 6)](#simulation-adr-0005-step-6)
 - [Coaches (coach link)](#coaches-coach-link)
 - [The club's comp sec (club admin link)](#the-clubs-comp-sec-club-admin-link)
+    - [Club roles and links (ADR 0015)](#club-roles-and-links-adr-0015)
 - [A member (personal link)](#a-member-personal-link)
 - [One link, several roles (ADR 0010)](#one-link-several-roles-adr-0010)
     - [Entering on your own: one page](#entering-on-your-own-one-page)
@@ -80,7 +82,7 @@ shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
-**Settings** (Settings, History, and Feedback for links that may read it). Late changes, Coaches and Feedback show a count of
+**Settings** (Settings, History). Late changes and Coaches show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People); a
 chair of judges adds the day's pages, and finds the printed sheets in the
@@ -95,7 +97,7 @@ jump links at the top: Links (helpers' links for the organiser, the club
 link, the link for entering on their own), Entries and deadlines, Limits and waiting
 lists, Events and levels (events, order of levels, men and women), Sign-off
 and coaches, Video, Going live, Telling people about changes (when people
-can ask to hear), Entering on their own, Feedback, and Admin link and deleting (the
+can ask to hear), Entering on their own, Messages to you, and Admin link and deleting (the
 organiser only). Each setting is a row saying how it's set, with **Change**
 opening its form (`changeLine`, rendering.md "Settings and forms on a
 page"); replacing the admin link and deleting each open a step before they
@@ -134,7 +136,7 @@ the first key found, and another of their keys redirects to it.
 Each row has the name (a link), the club ("On their own" for someone entering
 without a club, nothing for an official with no club) and **what they do**: the
 events they compete in ("Trampoline BUCS L7, Synchro BUCS L6/L7"), what they
-offered ("judge, can chair, recorder, marshal") and "coaches 6" (the gymnasts
+offered ("Judge, Chair, Recorder, Marshal") and "coaches 6" (the gymnasts
 they coach). The list can be searched by name and filtered by club and by what
 they do (gymnast, official, coach; judging, chairing, recording or marshalling
 makes an official), from the same pieces as the Officials list
@@ -155,10 +157,11 @@ calendar, "I'm here for the rest", the score sheets link) and these added:
 - **Who they are**: name, club, and a tag for each role.
 - **Entries**: each event with its card status and a link to the entry, who
   coaches it (linking to the coach's page), and once the timetable is
-  published their flight, place, rough times and check-in (here, scratched or
-  not marked yet).
+  published their flight, place, rough times and check-in, as a chip (Here,
+  Scratched or Not checked in).
 - **Officiating**: what they offered and who sent it, which events they may
-  judge under the judging rule (and can chair), whether they're marked
+  judge under the judging rule, with the roles there ("BUCS L7 (execution,
+  chair and HD)"), whether they're marked
   qualified where the rule asks, their seats (the published timetable's, or
   the draft's once planned) and whether they're here for their panels.
 - **Coaching**: the entries they coach, each gymnast linking to their page,
@@ -196,65 +199,215 @@ and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
 are kept.
 
 **Concerns:** anyone with an admin link can **flag a concern**, on an entry
-or generally (**Flag a concern**, a button opening the form). The dashboard
-lists the open ones under a Concerns heading with a count chip, with who and
-when, and those resolved closed beneath (with none open, one line opening to
-them); the organiser and co-organisers mark each **Resolved**, with a note. The demo has helpers' links (printed by `demo`),
-three cards checked and two concerns.
+or generally (**Flag a concern**, a button opening the form). They share a
+list with [messages to the organiser](#messages-to-the-organiser): the
+dashboard lists the open ones under a **Messages and concerns** heading with
+a count chip (and a "3 messages and concerns open" chip above the entries,
+linking down to them), with who and when, and those resolved closed beneath
+(with none open, one line opening to them); the organiser and co-organisers
+mark each resolved, with a note of their own (messages also take replies,
+below). Up to 2,000 a competition. The demo has helpers' links (printed by
+`demo`), three cards checked, two concerns and a member's message, with the
+organiser's reply and the member's answer.
 
-## Feedback about the app (ready for the dry run)
+## Messages to the organiser
 
-For the dry run, everyone using a competition's pages can tell the people
-who make the app what confused them, at the moment it does. A small
-**Feedback** dropdown sits at the foot of every page someone uses for one
-competition: the organiser's and helpers' pages, the comp sec's pages for a
-member's entry, offers, late changes, notifications and the club's
-timetable, the club link's entering page, a member's and coach's pages for
-the competition, an individual's entry pages and My competition, entering on
-their own, the synchro partner's page and the individual's coach's sign-off.
-Not the venue screen, printouts, cards, downloads, or pages about several
-competitions (a club's, member's, coach's or individual's home page, and a
-coach's late change). It opens a short form: what happened or what they
-think (required, up to 2,000 characters) and, optionally, a name or email
-for a reply (up to 200). `static/js/feedback.js` sends it without leaving
-the page and says "Thanks: your feedback is sent." there; without
-JavaScript the page comes back at `#feedback-sent`, which shows the thanks.
+People at a competition can tell its organiser something from their own
+pages: a question, or something to put right. It's separate from
+[feedback about the app](#feedback-about-the-app), which goes to the people
+who make the app; each says so.
 
-What's kept (migration 40, the `feedback` table, in `store/feedback.go`):
-the competition, the words, the reply-to, the role (Organiser, "Helper
-link: Chairs (chairs of judges)", Comp sec, Member, Coach, Individual,
-Synchro partner or An individual's coach, from the link it's posted under,
-never from the form), the page as its **route pattern**
-(`/clubs/member/{token}/competitions/{id}/day`, only one of those with the
-button; never the path, which holds the secret link) and the time. No
-token is kept. A competition takes 200 in any 24 hours; empty or overlong
-feedback is refused with a plain reason.
+**Where.** A **Tell the organiser** row (`tellOrganiser` in
+`views/my.templ`, one line with a **Write** button opening the form, like
+a setting) at the bottom of a person's or club's page for the competition:
+a member's page for it and My competition; the comp sec's Entries for it;
+each competition on a coach's Entries; an individual's page for it (an
+entry's link opens that page) and My competition. Not on home pages that
+list competitions, the club link's page (whose sender isn't known), or any
+admin page.
 
-How it works (`web/feedback.go`): `feedbackPages` lists the pages with the
-button by pattern. For those, the request gets an empty
-`views.FeedbackForm`; the loader that finds the page's competition
-(`gate` for the admin pages, `enteredCompetition`, `own`, `individual`,
-`clubLinkCompetition`, `invite`, `signoffEntry`, `gymnastEntered`,
-`coachSees`) fills in the competition and whether it shows the button, and
-the layout (`competitionLayout`) draws it. So no page loads the competition
-twice for it. The form posts to its link's own `/feedback` route; for a
-club's, member's, coach's or individual's link the posted competition must
-be one they're entered in.
+**Named, never typed.** The form says who it's from, as the organiser will
+see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
+Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "Club admin, UCD"
+or, from a club link with a role, "Mary (Treasurer), UCD" ([club
+roles](#club-roles-and-links-adr-0015)), or "Bea Byrne, entered on their
+own". A club's messages are the club's (sent as `club:<id>`): every club
+link that can talk to the organiser sees them and adds to them, and each
+says who of the club sent it or added to it ("Mary (Team manager), UCD
+added"; on the club's page "Mary (Team manager) added"). The name and the club's name are kept
+as they were when it was sent. **About** is a list to tick, any number,
+of their entries the competition has (sent): a member's or individual's own
+(a synchro pair's too; an individual's in every discipline), a comp sec's
+club's, or a coach's gymnasts' (those the coach sees); none ticked is the
+competition generally. A comp sec's and coach's are grouped by event, each
+with a whole-event choice ("BUCS L3 · all 8"), which greys out the entries
+it covers (`static/js/tell.js`; without it the server drops them); past 8
+entries the list has a search box (a gymnast or event, ignoring case and
+accents). Posting an entry that isn't theirs, an event they've no entries
+in, or (a member or individual) a whole event is a 404. The words are
+required, up to 1,000 characters.
 
-The organiser turns it off or on in **Settings** under Feedback ("Show a
-Feedback button on every page"); it's on for new competitions and, from the
-migration, for those already made. The **Feedback** page (in the Settings
-section of the menu, with a count of those not dealt with) lists it newest
-first: when, role, page, the words and the reply-to, with a **Dealt with**
-tick. Like resolving concerns, reading it needs the organiser's or a
-co-organiser's link; anyone with an admin link but the venue screen's can
-send it. Sending, marking and turning it on or off are in the history.
+**Where it goes.** `POST {their page}/organiser` (one handler for every
+kind of link, through `whose`) keeps it in `concerns` with the sender's
+role, club and record (migration 48) and what it's about (`entries`,
+`events`, migration 49), and comes back to the page it was sent from
+saying "Sent to the organiser of Student Open, with your name." It shows on
+the organiser's dashboard with the concerns, each entry linked ("all of
+UCD's BUCS L3" for an event). Each sender can send 10 a competition in 24
+hours (`MaxMessagesPerDay`); past that the page says so and suggests
+speaking to the organiser.
 
-With `FEEDBACK_EMAIL` set and email set up ([deploy](../operations/deploy.md#notifications)),
-each is emailed there too, with a `Reply-To` when the reply-to is an email
-address, sent in the background (`emailFeedback`, one call to move onto the
-background sender). The demo has two, from a member's My competition and the
-chairs of judges.
+**A thread, both ways** (migration 49, `web/replies.go`). On the
+dashboard, a message from someone shows **Waiting for you** while the last
+word is theirs (or **Replied**), who said it was received, and the thread
+after it. The organiser and co-organisers can:
+
+- **Received**: tells the sender they have it (once; a reply says so too).
+- **Reply**: words the sender sees on their page.
+- **Resolve**: with, optionally, a reply the sender sees and a note for
+  themselves that only organisers see ("your note: …").
+
+Each is in the history ("Said a message was received", "Replied to a
+message", "Replied to a message and resolved it"). The sender is told of
+each by push or email if they've asked to hear about changes on that page
+(`tellSender`, the background sender; "The organiser of Student Open has
+your message", "Reply from the organiser of …", with their message quoted),
+and the notice says whether they were.
+
+The sender sees their messages under **Your messages to the organiser** (a
+line saying how many, and how many replied to) beneath the form: each with
+its state (**Sent**, **Received**, **Resolved**), when, what about, and the
+thread. **Add to this** (`POST {their page}/organiser/{message}`) adds
+their words to the thread, only to their own (anyone else's is a 404); more
+from them opens a resolved message again, waiting for the organiser. A
+thread takes 50 additions (`MaxPosts`). With messages off, they still see
+what they sent, without adding. A concern flagged from an admin link has no
+sender, so no Received, replies or thread: only Resolve, with a note.
+
+**The organiser's switch.** On Settings, under **Messages to you**, a
+**Tell the organiser** line says whether members, coaches, comp secs and
+gymnasts can send messages, with a button to stop them or let them again
+(`POST /messages`, the organiser's and everything links). It's on for every
+competition (migration 48 made the column the old Feedback button used,
+`competitions.feedback`, into `competitions.messages`, on for all). Off,
+the forms go and anything posted is refused; those sent stay on the
+dashboard.
+
+**Saying which is which.** The form ends: "Something wrong with the app
+itself? Use **Feedback** at the right edge of the screen: that goes to the
+people who make the app, not the organiser." On a page with the form, the
+Feedback tab's panel says "This doesn't go to the competition's organiser:
+for them, use **Tell the organiser** on this page" (on other competition
+pages, without the pointer).
+
+## Feedback about the app
+
+Anyone on any page of the app can tell the maintainer what confused them,
+at the moment it does. Feedback goes to the **maintainer**, not to each
+competition's organiser (messages to the organiser are separate:
+[Tell the organiser](#messages-to-the-organiser), and helper links' **Flag a
+concern**). Built for the
+dry run, it replaced the first version (migration 40), which the organiser
+read on a Feedback page of their own; that page, its menu tab and its
+Settings switch are gone, and what had been sent moved to the maintainer
+(migration 47).
+
+**The button.** A **Feedback** tab sits at the right edge of the screen,
+half way down, on every page drawn with the app's layout: the calculator's
+pages (Routine builder, Compare, View, Tariff sheet, Requirements), the
+competition and club pages of every link, home pages included, and the pages
+before a link (making a competition or a club, joining one). Not the venue
+screen, printouts (cards, invoices, the timetable's sheets, score sheets) or
+downloads. Being at the edge, it's in reach wherever someone is on a page,
+and clear of the bars along the bottom. It opens a short form over the page:
+what happened or what they think (required, up to 2,000 characters) and,
+optionally, a name or email for a reply (up to 200). Its look is its own
+(`static/css/feedback.css`), the same on pages with Bulma and without.
+`static/js/feedback.js` sends it without leaving the page and says "Thanks:
+your feedback is sent."; without JavaScript the page comes back at
+`#feedback-sent`, which shows the thanks.
+
+**Full or Light.** The maintainer chooses what goes with each piece:
+
+- **Full** (to start with, for the demo and the dry run, where everyone has
+  been told): as the form opens, before it covers anything, a **picture of
+  the screen** (what's in the window, not the whole page, drawn in the
+  browser by the vendored modern-screenshot, loaded only then) and a **copy
+  of the page** (its HTML with what had been typed, ticked and picked written
+  in, without its scripts, gzipped where the browser can), plus every
+  detail below. The form says so: "A picture of your screen and a copy of
+  this page go with it, to the people who make the app only."
+- **Light** (before real entries open): the details, without the dropdowns'
+  names, and a picture only when they tick **Include a picture of the
+  screen**, which shows it before it's sent, with anything marked
+  `data-private` blurred (every link box, `linkBox`; the email on Hearing
+  about changes; the "your other link" box when entering). No copy of the
+  page.
+
+The **details** are what the browser says about itself, each bounded: its
+window and screen size, user agent and language, whether it thought it had
+signal, opened from the home screen, the app version and when the page was
+made (a page kept offline is older), how far down they'd scrolled, taps
+waiting for signal, the page's last script errors and failed requests (never
+an address), the pages opened before in that tab (as patterns), and in Full
+which dropdowns were open.
+
+**What's kept** (`store/sitefeedback.go`): `site_feedback` has the words,
+the reply-to, the role (Organiser, "Helper link: Chairs (chairs of
+judges)", "Club admin, UCD" or "Mary (Treasurer), UCD" from a club's link,
+Comp sec (from a competition's club link), Member, Coach, Individual, Synchro partner, An
+individual's coach, Calculator, or Without a link, from the link it's posted
+under, never from the form), the page as its **route pattern**
+(`/clubs/member/{token}/competitions/{id}/day`, only a page the app has;
+never the path, which holds the secret link), the competition it was sent
+from and its name, the details as JSON and the time. The sender's link token
+is taken out of the details and the copy wherever it appears. The picture
+and copy are in `site_feedback_captures`, apart, so they can be deleted on
+their own: they go by themselves after 90 days (with the rest of what
+expires), or all at once from the maintainer's page, and they're left off
+(the words still kept) past 500 MB of them or with the disk nearly full. The
+app takes 300 pieces a day; an address sends 30 an hour from the pages
+without a link (a whole gym on one wifi shares an address); a picture is up
+to 2 MB, a copy 3 MB as sent and 12 MB unzipped. A picture that isn't a
+JPEG, PNG or WebP is left off.
+
+**The copy, cleaned.** It's cleaned once, as it arrives (`web/snapshot.go`,
+`cleanSnapshot`): no scripts, frames, objects or `<base>`, no `on…`, htmx or
+Alpine attributes, no form action, every link going nowhere (`#`), only the
+app's own style sheets (at their current version, so a copy from before a
+deploy still looks right) and pictures, and a mark where they'd scrolled to.
+As it's shown, the app's style sheets go into it (`inlineStyles`), so it
+asks for nothing; it's served with a policy that runs nothing, sends no form
+and loads nothing from elsewhere (`snapshotPolicy`: `sandbox`, `default-src
+'none'`). On the maintainer's page, `static/js/maintainer.js` fetches it as
+its section opens into a sandboxed frame (`srcdoc`: the desktop app's
+browser refuses a sandboxed frame's own requests), the frame the page's
+whole height in a box the size of their window, scrolled to where they were.
+
+**How it works** (`web/feedback.go`): every GET page registered under the
+competition routes is noted (`notePage`), and the calculator's pages are
+wrapped (`public`); for those, while the button is on, the request gets a
+`views.FeedbackForm` and the layout draws it. A page under a link posts to
+that link's own `/feedback` route, so the role is the link's; the loader
+that finds the page's competition marks it (`feedbackAbout`), and for a
+club's, member's, coach's or individual's link the competition is kept only
+if they can see it. Any other page posts to `/feedback`.
+
+**The maintainer's page** (`web/maintainerpages.go`) is at `/site/{token}`,
+opened with a link made on the server (`tariffCalculator maintainer-link`,
+[deploy](../operations/deploy.md#notifications)); making one stops the last
+from working, and only its hash is kept. It lists what's not dealt with, or
+**All**, newest first: the words, when, role, page, competition, reply-to,
+the picture, **The page as they had it** and **Details**, with a **Dealt
+with** tick. Above, as settings lines: the button on every page or not shown
+anywhere, Full or Light, and the pictures and copies kept, with **Delete**.
+Any other address under `/site/` is a page that isn't there.
+
+With `FEEDBACK_EMAIL` set and email set up, each is emailed there too: the
+words, competition, role, page, time, reply-to (as `Reply-To` when it's an
+email address), a line of the details, and whether a picture and copy are on
+the maintainer's page; never a link. The demo has two, from a member's My
+competition and the chairs of judges.
 
 ## When entries, changes and sign-offs close
 
@@ -350,7 +503,8 @@ Removed, held and withdrawn entries aren't charged (`Fees.Invoice`). The
 page lists each club, and each individual's entry, with entries, due, paid
 and balance (the Paid chip once settled), and totals; the organiser records
 each payment (**Record a payment**, opening the amount and note, with who
-recorded it) and can remove one made by mistake. An amount is whole and
+recorded it) and can remove one made by mistake (asked first, at the top of
+Fees: it's typed again to put it back). An amount is whole and
 cents ("12.50" or "12,50"; "1,000" is refused rather than read as 1), a fee
 up to 1,000 and a payment up to 100,000 (a club's whole bill) (`ParseMoney`, `ParsePayment`),
 and a refund shows on the invoice as "Refunded … +€X". Each has an **invoice** to print: a line per entry and the club
@@ -392,9 +546,13 @@ columns count. Until the viewer chooses, the columns named in the tables'
 `data-table-hidden` are hidden: Sent, so the rest fit a 1,300 px window
 (two-word headings, a long club and the coach's chips wrap, a set is named
 without its level: "option 2"), Coach and Checked in sight; measured at
-1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways shows a line at the edge
-with more to see.
-Levels start folded, with **Expand all** and **Collapse all**; the browser
+1,198 px wide in a 1,198 px box at 1,300, 1,338 in 1,338 at 1,440. Any table that scrolls sideways fades at the edge
+with more to see ([the shared look](../architecture/ui.md#scrolling-sideways)).
+The Coach column is the coach's name, then **Signed off**, **Needs changes**
+or **Waiting**, on one line; a coach not approved to sign off has an asterisk
+instead, explained under the table (`views.signoffCell`).
+Levels start folded, with one **Expand all** button (it reads **Collapse all**
+once every level is open); the browser
 remembers which were left open, and a search or filter opens the levels it
 finds people in. A folded level's rows come in a `<template data-lazy>`, put in
 the page when it opens or a search needs them (`competitions.js`, `lazyRows`;
@@ -442,9 +600,9 @@ and no Bulma colour for a state (buttons keep theirs):
 | One entry | Checked; the video review | |
 | The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
 | A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
-| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | on the timetable a seat's name links to their page instead (2026-10-22: a chip on every seat crowded the panel); on Officials, who offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
-| My competition (and the organiser's page of a person) | each event checked by the organiser, problems to sort out, or sent, not checked yet; Scratched | |
+| My competition (and the organiser's page of a person) | each event Checked, N problems, or Sent; Scratched; check-in (Here, Not checked in) | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
 | Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
 | Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
@@ -613,7 +771,15 @@ pieces ([how](../architecture/rendering.md#lists-of-people-search-and-filters)).
 "Find a name" looks at a name's letters only, ignoring case, accents, spaces
 and punctuation, the same in the browser as on the server, so "marykate"
 finds Mary Kate and "oneill" finds O'Néill; the count says how many are
-shown, and Clear shows everyone again. The lists are the dashboard's
+shown, and Clear shows everyone again. Each filter's choices say how many
+they would leave given the search and the other filters ("UCD (12)"),
+greyed out when that's nobody (but the one chosen); the filters chosen are
+chips after the count ("Club: UCD ×"), each taking its filter off. A
+withdrawn entry is listed, marked, but counted nowhere: not in "N of M", a
+level's count or what a choice would leave (`ListRow.Uncounted`), as it isn't
+in the total. All
+people can also be narrowed by the level someone can judge, so a judge from
+a club for a level is found, or plainly not there. The lists are the dashboard's
 entries, All people, Officials, the organiser's Coaches, the desk's People I
 pick, the club's Members, Coaches and each competition's entries, a
 coach's own entries, and the names on the timetable and On the day. On the dashboard the filters work on the server, so its
@@ -637,9 +803,15 @@ a harder one), and qualified or not. The search and filters stay while the tab
 is open, so ticking someone qualified keeps the list as it was, back at their row with a notice saying so
 ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
-- **Offers.** On their page, a member says what they can do at each
-  competition: judge a discipline (up to a level, perhaps chairing), and help
-  as a recorder or marshal. The comp sec can correct it, or add one for a
+- **Offers** ([ADR 0017](../../docs/adr/0017-judge-levels-by-role.md)). On
+  their page, a member says what they can do at each competition: judge a
+  discipline, and help as a recorder or marshal. Judging a discipline takes
+  its HD and synchronisation seats at any level; execution, difficulty and
+  chair are each **no**, **any level** or **up to** a level, so someone can
+  judge difficulty at a level they don't judge execution at (a new offer
+  starts as execution and difficulty at any level, not chairing). Offers
+  from before (one level and "can chair") read as HD only. The organiser's
+  **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
@@ -664,9 +836,12 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   with 2 synchronisation judges (the Code's §18.1 leaves synchronisation to
   a machine, which student competitions don't have), any of its judges able
   to take the seat; set 0 where a machine measures it.
-- **Who may judge what:** anyone up to the level they say (the default), only
-  levels below the one they compete at, or only people the organiser marks
-  qualified. Both go by the **order of levels**, easiest first: built-in
+- **Who may judge what:** anyone as they offer (the default), or only people
+  the organiser marks qualified (for every judging seat). The rule of judging
+  only levels below one's own is gone (migration 52 moved competitions with
+  it to the default); the organiser can write a **note to those offering**
+  instead (up to 500 characters, with the panels), shown above every offer
+  form. "Up to" goes by the **order of levels**, easiest first: built-in
   levels by their rank (BUCS lists its levels hardest first, so they're
   turned round), a coach's own levels after them, and tumbling and DMT's as
   typed. The organiser moves any level up or down on the Settings page;
@@ -686,9 +861,11 @@ A seat goes to someone free for the whole event. The organiser can let
 are then filled flight by flight.
 
 - **Never in two places:** no one officiates while competing, or on two
-  panels at once. Each seat goes only to someone who may take it: judges
-  under the judging rule and up to their level, chairs who said they can
-  chair, recorders and marshals who offered.
+  panels at once. Each seat goes only to someone who may take it: under the
+  judging rule, HD and synchronisation judges who judge the discipline,
+  execution and difficulty judges and chairs up to their level for that role,
+  recorders and marshals who offered. Judges who could take execution or
+  difficulty are kept for those seats over HD where there's a choice.
 - **As far as it can:** clubs share judging their own gymnasts fairly (each
   time costs a club more than the last), the work is spread, a panel stays
   together on its area from one event to the next, helpers who could judge
@@ -705,8 +882,16 @@ are then filled flight by flight.
   can't take), rules not kept, times each club judged its own, and the
   busiest officials.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
-  goes on the event's other flights the same person had that seat for.
-  **Assign officials again** starts the rota afresh, keeping the flights.
+  goes on the event's other flights the same person had that seat for. The
+  dropdown lists first those who can take the seat chosen beside it (by role
+  and level: "Can take this seat"), then the rest ("Can't take this seat"),
+  to choose anyway (in the dropdown's search, a green ✓ or amber ✗ beside
+  each name, with "Can take" or "Can't" where the list is wide enough); the
+  ask then says why ("Ann can't take the execution
+  judge seat at FIG AG3: their offer: Judge Trampoline (execution up to BUCS
+  L3, and HD)", or "they aren't marked qualified").
+  **Assign officials again** starts the rota afresh, keeping the flights;
+  it asks first on a page of its own, as what was changed by hand is lost.
 - **Coaches** aren't checked (the owner's decision, 2026-10-19): the
   planner doesn't keep a coach's gymnasts apart, and nothing reports a coach
   needed on two areas or coaching while they compete.
@@ -883,7 +1068,9 @@ are then filled flight by flight.
   which every attendee page reads (placements, duties, "My competition",
   personal and club timetables). With changes not published, the page says
   so: **Publish changes** copies the draft over, **Discard changes** copies
-  the published one back, **Unpublish** takes it down. Timetables published
+  the published one back, **Unpublish** takes it down. Discarding and
+  unpublishing ask first, on **Before you change it**, never in a browser
+  pop-up ([asking first](../architecture/ui.md#asking-first)). Timetables published
   before this became their own published copy (migration 14).
 - **Changes at once** (built 2026-10-15): every change to the draft (setup,
   plan, a move, a redraw, a seat, a rota rule, a kept "what if", an accepted
@@ -921,13 +1108,19 @@ are then filled flight by flight.
   a gymnast checked in or scratched), the timetable isn't planned again
   (the owner, 2026-10-19: what's run has run, and a fresh plan starts from
   the first morning): Setup shows a note in place of **Plan again**, and a
-  plan posted anyway is refused, nothing changed. Changes by hand (moves,
+  plan posted anyway is refused, nothing changed. Before then, **Plan again**
+  asks once, on **Before you change it** (what was changed by hand is lost),
+  with no browser pop-up first. Changes by hand (moves,
   seats, redraws) and the "what ifs" still work. **Publish changes** says
   first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel
   check-ins for seats no longer in it (the flight's gone, or the person's no
-  longer on it), and gymnasts checked in or scratched who aren't in it, with
-  **Publish anyway**. The dropped rows stay in the database, unseen. Moves,
+  longer on it), gymnasts checked in or scratched who aren't in it, and
+  those moved by hand to another flight, with **Publish anyway**. A gymnast
+  moved to another flight has their check-in cleared when it's published
+  (`movedFlight`; the owner, 2026-10-19): they check in again at the new
+  flight. Moving or redrawing a whole flight keeps its gymnasts in it, so
+  theirs stay. The dropped rows stay in the database, unseen. Moves,
   redraws, seats and a kept "what if" keep IDs, so they drop only what the
   change itself takes away. A page that only asks isn't recorded in History.
 
@@ -1596,8 +1789,10 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   approving a withdrawn coach again asks whether their earlier sign-offs
   count, or only those from then (`counts_from`). Deciding comes back to
   the coach (`#coach-<id>`, `#named-<entry>`), the notice staying in sight;
-  **Approve** for a coach sent with no qualifications asks first, and the
-  notice says so. Turning approval on where entries are signed off by
+  **Approve** for a coach sent with no qualifications asks first, in a box
+  at the top of Coaches (the note typed kept), and the notice says so.
+  **Withdraw approval** isn't asked about: its notice has **Undo**, which
+  approves them again with their sign-offs before (`undo=coach-<id>`). Turning approval on where entries are signed off by
   coaches not approved asks first, saying how many entries that leaves
   waiting for a coach's sign-off (`waitingOnApproval`,
   `Store.UnapprovedSignoffs`). A sign-off records which
@@ -1653,9 +1848,13 @@ Where a competition requires it, each entry needs a coach's **sign-off**
 
 # The club's comp sec (club admin link)
 
-The comp sec's page has a menu of four sections (roadmap 2026-10-13, finding
-your way round; the menu is `views/menu.templ`, built for each page in
-`web/menus_club.go`), each a page of its own:
+The club's link is the club admin's, and the club admin makes a link with a
+role for each person who helps ([club roles](#club-roles-and-links-adr-0015));
+each sees these pages, offering only what their role can do. The pages have
+a menu of four sections (roadmap 2026-10-13, finding your way round; the
+menu is `views/menu.templ`, built for each page in `web/menus_club.go`;
+Settings only for the club admin and a role with Club settings), each a page
+of its own:
 
 - **Competitions** (`/clubs/admin/{token}`, the default): a row for each
   competition the club is in (built 2026-10-15, like a member's list): its
@@ -1676,15 +1875,15 @@ your way round; the menu is `views/menu.templ`, built for each page in
     to send.
   - **Coaches** (`/coaches`, only where it approves coaches): the coaches
     to send, ticked, each with where they stand.
-  - **Judging and helping** (`/offers`): what members offer, each with
-    **Change**.
+  - **Judging and helping** (`/offers`): what members offer to officiate, each
+    with **Change**.
   - **Fees** (`/fees`, only where it charges): what's left to pay as a
     chip, the invoice's lines and payments, how to pay, and **Print the
     invoice** (the printable invoice's Back returns here).
 
   The pages for editing a member's entry or offer are in this section too,
   with the competition's tabs; each names the member once, at its head, and
-  goes back (and saving goes back) to Entries or Judging and helping.
+  goes back (and saving goes back) to Entries or Officiating.
   Sending, sending coaches and entering the club through its club link land
   on the competition's page.
 - **Members** (`/members`): the join link, the members (a coach to choose,
@@ -1707,11 +1906,14 @@ your way round; the menu is `views/menu.templ`, built for each page in
   searched by name and filtered by whether they sign off routines and whether
   they have qualifications. Both are sections that can be collapsed and start
   open ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
-- **Settings** (`/settings`): setting rows (rendering.md, "Settings and forms
-  on a page"): who sees members' skills, replacing the admin link and
-  deleting the club, each opening its form,
-  when the club would be deleted if no one uses it, and who opens these pages
-  from their own link, each with **Remove**
+- **Settings** (`/settings`, for the club admin and a role with Club
+  settings): for the club admin, **Roles** and **Links**
+  ([club roles](#club-roles-and-links-adr-0015)); then setting rows
+  (rendering.md, "Settings and forms on a page"): who sees members' skills,
+  the club's **History**, and for the club admin replacing the club admin
+  link and deleting the club, each opening its form; when the club would be
+  deleted if no one uses it, and (the club admin) who opens these pages from
+  their own link, each with **Remove**
   ([one link, several roles](#one-link-several-roles-adr-0010)).
 
 **How long a club is kept** (ADR 0011 Decision 7, built 2026-10-15): until 13
@@ -1728,12 +1930,14 @@ link opens the coach's page. Members shows them with a Coach chip, Coaches as
 "A member too: opens from their member link".
 
 **Replacing a link asks first** (audit 2026-10-16, built 2026-10-19): a
-member's or coach's **New link** and **Replace the admin link** post once
+member's or coach's **New link** and **Replace the club admin link** post once
 to show the section with a box saying the old link stops working at once,
 wherever it's saved, what stays, and where the new one shows; its button
-posts again with `anyway=1` to replace it (`askReplace`), and **Cancel**
+posts again with `anyway=1` to replace it (`askClub`), and **Cancel**
 goes back to the row. No browser `confirm()`. Individuals have no way to
-replace their own link.
+replace their own link. **Remove** on a member or a coach asks the same way
+(2026-10-19): a member's entries go with them, a coach's members have no
+coach until one is chosen ([asking first](../architecture/ui.md#asking-first)).
 
 **Who signs off** (built 2026-10-19): an entry waiting for a coach's
 sign-off (`whoSignsOff`) says who can give it: the club's coaches who sign
@@ -1753,6 +1957,84 @@ the browser when it's opened (`data-club-page`), as the organiser's dashboard
 does (`data-competition-page`) and members', coaches' and gymnasts' pages do;
 never on a page opened through someone's own link or a helper's link (a "~" in
 the path). The new or replaced link is shown and saved too (`data-club-admin`).
+
+## Club roles and links (ADR 0015)
+
+Built 2026-10-21 (migration 50, `store/clubroles.go`, `web/clubaccess.go`,
+`web/clubrolepages.go`, `views/clubroles.templ`). The club's link is the
+**club admin**'s: it does everything, and only it makes, changes and
+removes roles and links, sees every link, replaces the club admin link and
+deletes the club. Its pages say, under the menu, that it's for setting the
+club up, and point to **Settings → Roles** to make yourself a link with a
+role (a club can call one "Comp sec") for every day. A link with a role
+says whose it is ("You're using the link for Mary (Treasurer).").
+
+**Roles** are the club's: the club admin names one and ticks what it can do
+besides seeing the club. A club starts with none (Settings explains them,
+with **Make a role** open); up to 10 (`store.MaxClubRoles`), one name each.
+The permissions (`store.ClubPermissions`, `views.ClubPermissions`):
+
+| Permission | Allows, besides seeing the club |
+|---|---|
+| *(every role)* See the club | Competitions and each one's entries, coaches sent and offers; Members and Coaches (looking); each member's routines and skills; timetables and calendars; the organisers' desk messages; Feedback |
+| Enter and change entries | Enter a member, change or withdraw an entry, offers to help, late changes |
+| Send entries | Send the entries, and the coaches to approve |
+| Fees | Each competition's Fees tab and invoice |
+| Manage members | The join link; a member's coach, New link, Remove; their judging qualifications |
+| Manage coaches | Add a coach, make a member one, New link, Remove, Signs off, qualifications |
+| Certificates | Open coaches' and judges' certificates (personal documents) |
+| Talk to the organiser | Tell the organiser and answer the club's messages; hear about changes (Notify) |
+| Club settings | The Settings tab: who coaches see, who sees members' skills, the History |
+
+A role's **Change** renames it and sets its ticks, for every link with it at
+once; **Remove the role** is offered only once it has no links (a role with
+links is refused, saying how many). **Links** are for people: **Make a
+link** takes a name (one link a name) and a role, and shows the link once
+(kept as a hash, ADR 0004); each link listed is a setting row (its name,
+role and when it was made) whose **Change** opens **Change role** (a
+select) and **Remove**, which asks first and stops it at once. Up to 30
+(`store.MaxClubLinks`). A link has the club admin's address shape
+(`/clubs/admin/{token}`), so every page, bookmark and saved link works the
+same; the store finds the club by either (`ClubByLink`, which says which
+link; `ClubByAdmin` is the club alone). Entering the club in a competition
+through its club link takes the club admin link or one whose role can enter
+entries.
+
+**One gate.** Every route under `/clubs/admin/{token}`, those registered
+under the shared roots too (late changes, timelines, calendars,
+notifications, messages, feedback), is wrapped by `clubGate`, which looks
+the link up once (handlers read it from the request, `clubAdmin`) and checks
+`clubRoutes`: each route's permission, every role's (seeing the club) or the
+club admin's alone. A route a role can't use is a 403 page: "This link
+can't do that. Ask your club admin." A route left out of the table is the
+club admin's alone, and `TestEveryClubRouteHasAPermission` fails; another
+test tries every route with a role of each permission. Pages offer only what
+the link can do (`views.ClubAccess`, kept in the request's context): no
+Settings tab without Club settings, no Send without Send entries (where
+sending stands, instead), no Fees tab without Fees, no Enter a member,
+Change or late change without Enter and change entries, no join link,
+coach select, New link or Remove on Members without Manage members, no Add
+a coach, Signs off, New link, Remove or qualification forms on Coaches
+without Manage coaches, no certificate links without Certificates, no Tell
+the organiser or Notify without Talk to the organiser.
+
+**Names go with what's done.** Feedback from a club link is saved as "Mary
+(Treasurer), UCD" or "Club admin, UCD"; a message to the organiser and each
+thing added to it as the same ([messages](#messages-to-the-organiser)).
+
+**History** (`club_log`): each change made through any club link, when, who
+("Club admin", or "Mary (Treasurer)") and what ("Withdrew Ann Ryan · BUCS
+L3", "Sent the new and changed entries to Student Open", "Made a link for
+Mary (Treasurer)"), worked out before the change (`describeClub`); asks,
+refusals ("nothing was changed", "already") and deleting the club aren't
+recorded, nor hearing about changes. The latest 1,000 a club are kept; Settings shows
+the latest 50, with **See every change kept**.
+
+**On a personal link** (ADR 0010): pasting a club role's link into one's own
+page ties that role (tie kind `clublink`): their personal link then opens
+the club as that role, with a tab named for it ("Treasurer"); the club
+admin's link tied the same way opens the club admin's pages ("Club admin"
+tab). Removing a link ends it on their page too.
 
 # A member (personal link)
 
@@ -2095,7 +2377,7 @@ someone opens it.
 Roadmap item 5, built 2026-10-14. A person's **records** are their club
 memberships, their coaching for a club, and their entering on their own;
 records with the same `person_id` are one person, and **whichever of their
-personal links they open, tabs above the page** (Member, Coach, Competition secretary,
+personal links they open, tabs above the page** (Member, Coach, Club admin, a club role's name such as Treasurer ([ADR 0015](#club-roles-and-links-adr-0015)),
 On your own, Organiser · competition, or a helper link's name · competition)
 switch between their roles, each keeping its own menu. With one role there
 are no tabs. The tabs are worked out for any page a personal link opens
@@ -2155,7 +2437,7 @@ facts, the My competition link, messages, Tell me about changes and their
 officiating, then a row per discipline, with its status, that opens to all
 of that entry (`entryBody`): checked, the flight, the organiser's notes,
 the card, **Change the entry** and **Withdraw**, **Your coach** and the
-sign-off link for their coach, fees and Judging and helping; then
+sign-off link for their coach, fees and their offer to officiate; then
 **Enter another discipline** while entries are open, opening on the first
 discipline not entered yet. It's one of their pages (their tabs, **← the
 competition** back to it, `GymnastEnterPage`): a tab for each discipline not
@@ -2211,8 +2493,8 @@ Tell me about changes), not the timetables and calendars as well.
 
 - Every event they're in that has reached the competition (a member's sent
   entries; an individual's entries, as one person; synchro as either
-  partner), with its card's status: checked, problems to sort out (listed),
-  or not checked yet.
+  partner), with its card's status as a chip: Checked, N problems (listed),
+  or Sent ([the same words](../architecture/ui.md#the-same-words)).
 - Once the timetable is published, their events come in the order they warm
   up (`byWarmUp`), any not in a flight last, each with its flight, area, day
   and warm-up, where

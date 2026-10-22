@@ -25,7 +25,7 @@ func TestReplanKeepsDayMarks(t *testing.T) {
 	officials := admin + "/officials"
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"1"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
 	enter := pathIn(t, get(admin+"/settings"), "/competitions/enter/")
 	for _, name := range []string{"Ann", "Bea", "Cal"} {
@@ -187,6 +187,7 @@ func TestDayMarksLost(t *testing.T) {
 		"1 flight that has started or finished isn't in the plan any more: its times and who's up are dropped (L3).",
 		"2 panel check-ins are for seats no longer in the plan.",
 		"1 gymnast checked in or scratched isn't in the plan any more: BEA.",
+		"1 gymnast checked in or scratched moves to another flight, so their check-in clears to be done again there: ANN.",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("lost:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))

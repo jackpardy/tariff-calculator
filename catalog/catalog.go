@@ -18,11 +18,20 @@ import (
 type Entry struct {
 	Key   string // key in skills.CommonSkills
 	Skill skills.TrampolineSkill
-	Label string // its name within a Group, e.g. "½ Twist To Feet" under "From seat"
+	Label string // its name within a Group, e.g. "½ Twist To Back" under "To back"
+	// Tile, for a body landing, is where it lands and its twist: it takes off
+	// from wherever the skill before it landed (Follow), and Key is its usual
+	// skill, for when nothing lands like that from there.
+	Tile *Tile
 }
 
 // ID tells entries apart in the picker: the key, plus the shape for a jump.
 func (e Entry) ID() string {
+	if e.Tile != nil {
+		// A tile that follows the skill before isn't the fixed drop from the
+		// feet that shares its usual skill ("½ Twist To Front").
+		return "landing-" + e.Key
+	}
 	if e.Skill.IsBasicJump() {
 		return e.Key + "-" + strings.ToLower(e.Skill.Shape.String())
 	}
@@ -109,18 +118,155 @@ type Category struct {
 type Group struct {
 	Title   string
 	Options []Entry
+	// Note is a line under the title, saying what the group's tiles share
+	// ("Each takes off from …"); "" for none.
+	Note string
 }
 
-// groups are the picker's groups, in order, with each option's label.
-var groups = []struct {
-	category, title string
-	options         [][2]string // CommonSkills key, label
-}{
-	{"drops", "To seat", [][2]string{{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"}}},
-	{"drops", "From seat", [][2]string{{"seatToFeet", "To Feet"}, {"seatHalfToFeet", "½ Twist To Feet"}, {"seatHalfToSeat", "½ Twist To Seat"}, {"seatHalfToFront", "½ Twist To Front"}}},
-	{"drops", "To back or front", [][2]string{{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"}, {"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"}}},
-	{"drops", "From back or front", [][2]string{{"backToFeet", "Back To Feet"}, {"backHalfToFeet", "Back ½ Twist To Feet"}, {"frontToFeet", "Front To Feet"}, {"cradle", "Back ½ Twist To Back"}, {"catTwist", "Back Full Twist To Back"}}},
+// Tile is a body-landing tile in the picker: where the skill lands and how
+// much it twists, but not where it takes off from, which follows the skill
+// before it. "½ Twist To Seat" is a swivel hips after a seat drop, and a half
+// twist to seat from the feet.
+type Tile struct {
+	To    skills.BodyPosition
+	Twist int // half twists
 }
+
+// landingTiles are the Body landings tab's tiles that follow the skill before,
+// in one group (the owner, 2026-10-19), by where they land: a tile for each
+// twist, with its usual skill (a CommonSkills key) and label.
+var landingTiles = []landingTile{
+	{"seatToFeet", "To Feet", skills.Feet, 0}, {"seatHalfToFeet", "½ Twist To Feet", skills.Feet, 1},
+	{"seatDrop", "To Seat", skills.Seat, 0}, {"halfToSeat", "½ Twist To Seat", skills.Seat, 1},
+	{"backDrop", "To Back", skills.Back, 0}, {"halfToBack", "½ Twist To Back", skills.Back, 1}, {"catTwist", "Full Twist To Back", skills.Back, 2}, {"corkscrew", "1½ Twist To Back", skills.Back, 3},
+	{"frontDrop", "To Front", skills.Front, 0}, {"halfToFront", "½ Twist To Front", skills.Front, 1},
+}
+
+// fromFeet are the drops from the feet, fixed tiles of their own at the top
+// of the Body landings tab, as before (the owner, 2026-10-19): the tiles that
+// follow the skill before are for what comes after a body landing.
+var fromFeet = [][2]string{ // CommonSkills key, label
+	{"seatDrop", "Seat Drop"}, {"halfToSeat", "½ Twist To Seat"},
+	{"backDrop", "Back Drop"}, {"halfToBack", "½ Twist To Back"},
+	{"frontDrop", "Front Drop"}, {"halfToFront", "½ Twist To Front"},
+}
+
+// fromALanding is the group of tiles that follow the skill before, and its note.
+const (
+	fromALanding     = "From a body landing"
+	fromALandingNote = "Each takes off from where the skill before it lands."
+)
+
+type landingTile struct {
+	key, label string
+	to         skills.BodyPosition
+	twist      int
+}
+
+// Takeoffs are the places a skill can take off from, as the builder lists them.
+var Takeoffs = []skills.BodyPosition{skills.Feet, skills.Front, skills.Back, skills.Seat}
+
+// LandingTile is the Body landings tile whose usual skill is key, if any.
+func LandingTile(key string) (Entry, bool) {
+	for _, t := range landingTiles {
+		if t.key == key {
+			return t.entry(), true
+		}
+	}
+	return Entry{}, false
+}
+
+func (t landingTile) entry() Entry {
+	s := skills.CommonSkills[t.key]
+	s.Name = skills.FindCommonSkillName(s)
+	s.SetTariff()
+	return Entry{Key: t.key, Skill: s, Label: t.label, Tile: &Tile{To: t.to, Twist: t.twist}}
+}
+
+// Follow is a body-landing tile's skill taking off from where the skill
+// before it landed (from), named and priced: the one with that take-off,
+// landing and twist that turns least, as the skills package lands it.
+// Between two that turn as little (a half somersault either way), it's the
+// one in the catalogue, or else forwards. It must have a name of its own,
+// from the catalogue or from its parts, that isn't another skill's: "Back
+// To Seat" from a back drop would read as the somersault. Without one, or
+// from the feet back to the feet (a jump), it's the tile's usual skill and
+// ok is false.
+func (e Entry) Follow(from skills.BodyPosition) (s skills.TrampolineSkill, ok bool) {
+	if e.Tile == nil || (from == skills.Feet && e.Tile.To == skills.Feet) {
+		return e.Skill, false
+	}
+	// Seat to seat, back to back or front to front with no twist isn't a
+	// skill: it's a bounce, like a straight jump (the owner, 2026-10-19).
+	if from == e.Tile.To && e.Tile.Twist == 0 {
+		return e.Skill, false
+	}
+	// Up to a half somersault: any more is a somersault, not a body landing.
+	for rotation := 0; rotation <= 2; rotation++ {
+		var found []skills.TrampolineSkill
+		for _, backward := range []bool{false, true} {
+			if rotation == 0 && backward {
+				continue // no somersault, no direction
+			}
+			c := skills.TrampolineSkill{
+				Rotation:          rotation,
+				TwistDistribution: []int{e.Tile.Twist},
+				TakeoffPosition:   from,
+				Backward:          backward,
+				Shape:             skills.Straight,
+				SeatLanding:       e.Tile.To == skills.Seat,
+			}
+			if c.LandingPosition() != e.Tile.To {
+				continue
+			}
+			c.Name = skills.FindCommonSkillName(c)
+			if c.Name == skills.UnnamedSkill || (!InCatalogue(c) && commonNames[c.Name]) {
+				continue
+			}
+			c.SetTariff()
+			found = append(found, c)
+		}
+		if len(found) > 0 {
+			if i := slices.IndexFunc(found, InCatalogue); i >= 0 {
+				return found[i], true
+			}
+			return found[0], true
+		}
+	}
+	return e.Skill, false
+}
+
+// Versions are the skills a body-landing tile gives after each take-off,
+// each once, its usual one first.
+func (e Entry) Versions() []skills.TrampolineSkill {
+	versions := []skills.TrampolineSkill{e.Skill}
+	for _, from := range Takeoffs {
+		if s, ok := e.Follow(from); ok && !slices.ContainsFunc(versions, func(v skills.TrampolineSkill) bool { return v.Equal(&s) }) {
+			versions = append(versions, s)
+		}
+	}
+	return versions
+}
+
+// InCatalogue reports whether the skill is one of the common skills, rather
+// than named from its parts.
+func InCatalogue(s skills.TrampolineSkill) bool {
+	for _, c := range skills.CommonSkills {
+		if c.Equal(&s) {
+			return true
+		}
+	}
+	return false
+}
+
+// commonNames are the common skills' names.
+var commonNames = func() map[string]bool {
+	names := map[string]bool{}
+	for _, c := range skills.CommonSkills {
+		names[c.Name] = true
+	}
+	return names
+}()
 
 // categoryOrder is the picker's tab order, from the simplest skills up.
 var categoryOrder = []struct{ Key, Label string }{
@@ -160,6 +306,7 @@ var otherNames = map[string]string{
 	"Front To Seat":           "Front s/s To Seat",
 	"Seat Half Twist To Seat": "Swivel Hips",
 	"Back Half Twist To Back": "Cradle",
+	"Back 1½ Twist To Back":   "Corkscrew",
 	"Back Full Twist To Back": "Cat Twist",
 }
 
@@ -191,19 +338,32 @@ func AlsoCalled(s skills.TrampolineSkill) string {
 // Categories lists the common skills by category, in picker order, each
 // category sorted by tariff and then name. Empty categories are left out.
 func Categories() []Category {
+	// A common skill a tile gives, after one take-off or another, isn't a
+	// box of its own as well.
 	grouped := map[string]bool{}
 	byCategory := map[string][]Group{}
-	for _, g := range groups {
-		group := Group{Title: g.title}
-		for _, o := range g.options {
-			s := skills.CommonSkills[o[0]]
-			s.Name = skills.FindCommonSkillName(s)
-			s.SetTariff()
-			group.Options = append(group.Options, Entry{Key: o[0], Skill: s, Label: o[1]})
-			grouped[o[0]] = true
-		}
-		byCategory[g.category] = append(byCategory[g.category], group)
+	feet := Group{Title: "From feet"}
+	for _, o := range fromFeet {
+		s := skills.CommonSkills[o[0]]
+		s.Name = skills.FindCommonSkillName(s)
+		s.SetTariff()
+		feet.Options = append(feet.Options, Entry{Key: o[0], Skill: s, Label: o[1]})
+		grouped[o[0]] = true
 	}
+	byCategory["drops"] = append(byCategory["drops"], feet)
+	follow := Group{Title: fromALanding, Note: fromALandingNote}
+	for _, t := range landingTiles {
+		e := t.entry()
+		follow.Options = append(follow.Options, e)
+		for _, v := range e.Versions() {
+			for key, c := range skills.CommonSkills {
+				if c.Equal(&v) {
+					grouped[key] = true
+				}
+			}
+		}
+	}
+	byCategory["drops"] = append(byCategory["drops"], follow)
 
 	byKey := map[string][]Entry{}
 	add := func(key string, s skills.TrampolineSkill) {

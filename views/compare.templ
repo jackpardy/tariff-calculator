@@ -34,6 +34,7 @@ templ ComparePage() {
 			<script defer src={ static.URL("js/judging.js") }></script>
 		</head>
 		<body class="tool-page">
+			@sandboxBanner()
 			@toolBanner("/compare", false)
 			<main class="section tool-section">
 				<div class="container is-narrow-tool">
@@ -53,6 +54,7 @@ templ ComparePage() {
 					</div>
 				</div>
 			</main>
+			@feedbackButton(FeedbackFormOf(ctx))
 		</body>
 	</html>
 }

@@ -210,7 +210,7 @@ func (dp *dirPerson) offered() (judge, chair, recorder, marshal bool) {
 	for _, o := range dp.officials {
 		judge = judge || len(o.Offer.Judge) > 0
 		for _, j := range o.Offer.Judge {
-			chair = chair || j.Chair
+			chair = chair || j.Takes(competitions.RoleChair)
 		}
 		recorder, marshal = recorder || o.Offer.Recorder, marshal || o.Offer.Marshal
 	}
@@ -235,7 +235,7 @@ func (dp *dirPerson) roles() (words, tags []string) {
 		add("judge", "Judge")
 	}
 	if chair {
-		add("chair", "Can chair")
+		add("chair", "Chair")
 	}
 	if recorder {
 		add("recorder", "Recorder")
@@ -261,7 +261,7 @@ func (dp *dirPerson) does() string {
 	for _, h := range []struct {
 		on   bool
 		word string
-	}{{judge, "judge"}, {chair, "can chair"}, {recorder, "recorder"}, {marshal, "marshal"}} {
+	}{{judge, "Judge"}, {chair, "Chair"}, {recorder, "Recorder"}, {marshal, "Marshal"}} {
 		if h.on {
 			help = append(help, h.word)
 		}
@@ -300,11 +300,21 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 	for _, dp := range dir.list {
 		clubs = append(clubs, dp.club)
 	}
-	page.Tools = views.ListTools{ID: "people", Noun: "people", Total: len(dir.list), Filters: []views.ListFilter{clubFilter(clubs), peopleDoFilter()}}
+	// Can judge too, so the organiser looking for a judge from a club for a
+	// level sees whether there's anyone.
+	page.Tools = views.ListTools{ID: "people", Noun: "people", Total: len(dir.list), Filters: []views.ListFilter{clubFilter(clubs), peopleDoFilter(), judgesFilter(c.Competition)}}
 	for _, dp := range dir.list {
 		words, _ := dp.roles()
+		var judging []string
+		for _, o := range dp.officials {
+			for _, j := range judges(c.Competition, o.Offer) {
+				if !slices.Contains(judging, j) {
+					judging = append(judging, j)
+				}
+			}
+		}
 		page.People = append(page.People, views.PersonRow{Name: dp.name, Club: dp.club, Href: personPath(base, dp.key), Does: dp.does(),
-			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words)}}})
+			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words), "judges": judging}}})
 	}
 	render(w, r, views.People(page))
 }
@@ -355,7 +365,7 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 			case store.Scratched:
 				ev.Checkin = "Scratched"
 			default:
-				ev.Checkin = "Not marked yet"
+				ev.Checkin = "Not checked in"
 			}
 		}
 		page.Events[i] = ev
@@ -389,13 +399,10 @@ func deskReach(dp *dirPerson) (people, clubs, staff []string) {
 
 // judgeRule says in words who may judge what, under a competition's rule.
 func judgeRule(rule string) string {
-	switch rule {
-	case competitions.JudgeBelow:
-		return "only levels below the one they compete at"
-	case competitions.JudgeQualified:
+	if rule == competitions.JudgeQualified {
 		return "only people you mark qualified"
 	}
-	return "anyone, up to the level they say"
+	return "anyone, as they offer"
 }
 
 // officiatingOf is what someone offered to officiate, which events they may
@@ -445,17 +452,26 @@ func (p *competitionPages) officiatingOf(c store.Competition, dp *dirPerson, f d
 			o.Qualified = "Marked qualified."
 		}
 	}
-	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries, groups) {
+	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries) {
 		if rp.Key != dp.key {
 			continue
 		}
+		// Each event with the roles they may take there, e.g. "BUCS L7
+		// (execution, chair and HD)".
 		var events []string
-		for _, ev := range c.EventNames() {
-			if rp.Judge[ev] {
-				if rp.Chair[ev] {
-					ev += " (can chair)"
+		for _, d := range c.Disciplines() {
+			for _, l := range c.LevelNames(d) {
+				ev := competitions.EventName(d, l)
+				if !rp.Judge[ev] {
+					continue
 				}
-				events = append(events, ev)
+				var roles []string
+				for _, role := range append(slices.Clone(competitions.LevelRoles), competitions.Measured(d)...) {
+					if rp.Can(role, ev) {
+						roles = append(roles, competitions.JudgingWord(role))
+					}
+				}
+				events = append(events, ev+" ("+competitions.JoinList(roles)+")")
 			}
 		}
 		o.Judges = strings.Join(events, ", ")
@@ -490,7 +506,7 @@ func panelStatus(s competitions.Schedule, person string, official map[string]map
 	case missing == total:
 		return "Missing"
 	case here == 0 && missing == 0:
-		return "Not marked yet"
+		return "Not checked in"
 	}
 	out := fmt.Sprintf("Here for %d of %s", here, views.Count(total, "flight", "flights"))
 	if missing > 0 {

@@ -131,7 +131,7 @@ templ otherLinksBox(o OtherLinks) {
 						<input class="input is-small" id="other-link" name="link" required placeholder="Paste the link" autocomplete="off"/>
 					</div>
 					<div class="control">
-						<button class="button is-small is-link" type="submit">Add</button>
+						<button class="button is-small is-primary" type="submit">Add</button>
 					</div>
 				</div>
 				<p class="help">Only add links that are yours. A shared link, such as a club's comp sec link, opens from here, but never opens this page.</p>
@@ -168,7 +168,7 @@ templ SameLink(p SameLinkPage) {
 			<form method="post" action={ templ.SafeURL(p.Add) } class="buttons">
 				<input type="hidden" name="link" value={ p.Link }/>
 				<input type="hidden" name="sure" value="1"/>
-				<button class="button is-small is-link" type="submit">It's mine: add it</button>
+				<button class="button is-small is-primary" type="submit">It's mine: add it</button>
 				<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
 			</form>
 		</div>

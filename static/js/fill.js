@@ -3,7 +3,8 @@
 // seat, the days and areas a flight can move to) are on the page once, in a
 // <template>; each dropdown marked
 // data-fill="<its id>" fills from it the first time it's opened or focused,
-// after its first choice ("Choose a flight", "Choose a person").
+// after its first choice ("Choose a flight", "Choose a person"). A seat's
+// people come in two groups: who can take it, and the rest.
 (function () {
     // A move offers only flights of its gymnasts' discipline (data-group),
     // and not the flight they're in (data-except).
@@ -34,10 +35,41 @@
             if (!options) { return; }
             select.dataset.filled = '1';
             select.append(options.content.cloneNode(true));
+            sortSeat(select);
             return;
         }
         fill(select);
     };
+    // A seat's people: first those who can take the seat chosen beside it,
+    // then the rest, to choose anyway (the change then says what it breaks).
+    // Each seat says what it needs (data-need: an event's code and a role's
+    // letter, or "r" or "m") and each person what they can take (data-can,
+    // web.seatCan).
+    const sortSeat = (people) => {
+        const need = people.form?.querySelector('select[name="seat"]')?.selectedOptions[0]?.dataset.need;
+        if (!need) { return; }
+        const [event, role] = need.includes(':') ? need.split(':') : ['', need];
+        const can = (o) => (o.dataset.can || '').split(' ').some((t) => event === '' ? t === role : t.startsWith(event + ':') && t.slice(event.length + 1).includes(role));
+        const chosen = people.value;
+        const all = [...people.querySelectorAll('option[data-can]')];
+        people.querySelectorAll('optgroup').forEach((g) => g.remove());
+        all.forEach((o) => o.remove());
+        for (const [label, mark, list] of [["Can take this seat", 'yes', all.filter(can)], ["Can't take this seat", 'no', all.filter((o) => !can(o))]]) {
+            if (list.length === 0) { continue; }
+            const group = document.createElement('optgroup');
+            group.label = label;
+            group.dataset.mark = mark; // a ✓ or ✗ in the search's list (static/js/selectsearch.js)
+            group.append(...list);
+            people.append(group);
+        }
+        if (chosen) { people.value = chosen; }
+    };
+    document.addEventListener('change', (e) => {
+        if (e.target.matches && e.target.matches('select[name="seat"]')) {
+            const people = e.target.form?.querySelector('select[data-fill="seat-options"]');
+            if (people?.dataset.filled) { sortSeat(people); }
+        }
+    });
     document.addEventListener('toggle', (e) => {
         if (e.target.tagName === 'DETAILS' && e.target.open) {
             e.target.querySelectorAll('select[data-fill]').forEach(fillSelect);

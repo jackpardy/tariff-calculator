@@ -82,7 +82,14 @@ func TestTimetable(t *testing.T) {
 	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "The setup has changed since this was planned.") {
 		t.Error("stale")
 	}
-	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	// Planning again asks once, on a page; no browser pop-up first.
+	if setup := do(t, h, http.MethodGet, tt+"/setup", nil).Body.String(); strings.Contains(setup, "confirm(") || !strings.Contains(setup, "Plan again") {
+		t.Error("Plan again has no browser pop-up")
+	}
+	if rec := do(t, h, http.MethodPost, tt+"/plan", url.Values{}); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Plan the timetable again") || !strings.Contains(rec.Body.String(), `name="anyway" value="1"`) {
+		t.Errorf("planning again asks first: %d %s", rec.Code, rec.Body.String())
+	}
+	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}}), nil).Body.String()
 	if !strings.Contains(page, "BUCS L3 Women · flight 1 of 2") {
 		t.Error("flights of at most 2: the three women in two flights")
 	}
@@ -113,7 +120,7 @@ func TestTimetable(t *testing.T) {
 	// Sunday none by 09:15, so one of the three trampoline flights is left over.
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"09:20"},
 		"day-1-name": {"Sunday"}, "day-1-start": {"09:00"}, "day-1-end": {"09:15"}, "day-1-area": {"Panel 1"}})
-	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}}), nil).Body.String()
 	if !strings.Contains(page, "Doesn&#39;t fit:") && !strings.Contains(page, "Doesn't fit:") {
 		t.Error("says what doesn't fit")
 	}
@@ -122,7 +129,7 @@ func TestTimetable(t *testing.T) {
 	}
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"18:00"},
 		"day-1-name": {"Sunday"}, "day-1-start": {"09:00"}, "day-1-end": {"13:00"}, "day-1-area": {"Panel 1"}})
-	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+	page = do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}}), nil).Body.String()
 
 	// Hand changes: move a flight, redraw it, move a gymnast.
 	flight := regexp.MustCompile(`name="flight" value="(\d+)"`).FindStringSubmatch(page)[1]
@@ -189,22 +196,26 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 
 	tt := admin + "/timetable"
 	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"08:30"}, "day-0-end": {"18:00"}})
-	redirected(t, h, tt+"/plan", url.Values{})
+	redirected(t, h, tt+"/plan", url.Values{"anyway": {"1"}})
+	if strings.Contains(clubEntriesPage(t, h, club), "comp-flight-line") {
+		t.Error("planned but not published: no flights shown yet")
+	}
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 	// Each entry shows its own flight. The member's two flights can't overlap,
 	// so either may come first.
 	page := clubEntriesPage(t, h, club)
 	flightOf := func(level string) string {
-		m := regexp.MustCompile(`<td[^>]*>` + level + `</td>.*?comp-flight-line">([^<]*)`).FindStringSubmatch(page)
+		// Under its level, in the Level column.
+		m := regexp.MustCompile(`<td data-label="Level">\s*` + level + `\s*<br/?>\s*<span[^>]*comp-flight-line">([^<]*)`).FindStringSubmatch(page)
 		if m == nil {
 			return ""
 		}
 		return m[1]
 	}
-	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^BUCS L3 · Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
-		t.Errorf("the comp sec sees the trampoline entry's flight: %q", at)
+	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+		t.Errorf("the comp sec sees the trampoline entry's flight, not repeating its level: %q", at)
 	}
-	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^[^·]*Novice[^·]* · Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
 		t.Errorf("the comp sec sees the tumbling entry's flight: %q", at)
 	}
 	if page := memberCompetitionPage(t, h, member); !regexp.MustCompile(`Panel 1 · warm-up Saturday \d\d:\d\d`).MatchString(page) {

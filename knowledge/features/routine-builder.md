@@ -25,7 +25,17 @@ The "Add a skill" card shows one skill with a live summary: its name, FIG
 notation and tariff. There are three ways to set it:
 
 - **Picker**: big buttons by category, with tuck, pike or straight where the
-  shape matters ([skill catalog](../domain/skill-catalog.md)).
+  shape matters ([skill catalog](../domain/skill-catalog.md)). Body landings
+  start with the drops from the feet (fixed tiles); then one group, "From a
+  body landing", by where they land (To Feet, ½ Twist To Feet, To Seat…), and a
+  tile takes off from where the skill before it landed: the last skill of the
+  routine Add puts it in, or the one before the skill being edited (feet at
+  the start). The form posts that skill (`previous_skill`, from
+  `previousSkill()` in `static/js/app.js`) and the server chooses the version,
+  so after a Seat Drop "½ Twist To Seat" is a Seat Half Twist To Seat (Swivel
+  Hips). The card says why ("From seat, after Seat Drop · also called Swivel Hips"). The set routine
+  maker on the Requirements page posts its list's last skill the same way,
+  though its compact form has only the search and the builder.
 - **Search**: by name, alias or FIG notation.
 - **Builder**: rotation, a twist box per phase, take-off, direction, seat
   landing and shape. The server decides which twist boxes exist and whether

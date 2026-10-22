@@ -797,6 +797,134 @@ var migrations = []string{
 	// with it, so another device lists it under its level, not with the
 	// person's own requirements.
 	`ALTER TABLE person_requirements ADD COLUMN in_level INTEGER NOT NULL DEFAULT 0;`,
+
+	// 47: feedback about the app goes to the maintainer, from every page,
+	// not to each competition's organiser (migration 40's feedback moves
+	// here, keeping the competition's name). Each piece keeps the page's
+	// route pattern (never its path, which holds a secret link), the
+	// competition it was sent from if any, and details from the browser;
+	// what was captured with it (a picture of the screen, a copy of the
+	// page, gzipped) is kept apart, so it can be deleted on its own.
+	// competitions.feedback, the organiser's button, is left unused (48
+	// makes it the switch for messages to the organiser).
+	`CREATE TABLE site_feedback (
+		id             TEXT PRIMARY KEY,
+		text           TEXT NOT NULL,
+		reply_to       TEXT NOT NULL DEFAULT '',
+		role           TEXT NOT NULL,
+		page           TEXT NOT NULL,
+		competition_id TEXT NOT NULL DEFAULT '',
+		competition    TEXT NOT NULL DEFAULT '',
+		details        TEXT NOT NULL DEFAULT '',
+		at             TEXT NOT NULL,
+		done_at        TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX site_feedback_at ON site_feedback (at);
+	CREATE TABLE site_feedback_captures (
+		feedback_id  TEXT PRIMARY KEY REFERENCES site_feedback (id) ON DELETE CASCADE,
+		picture      BLOB,
+		picture_type TEXT NOT NULL DEFAULT '',
+		snapshot     BLOB,
+		at           TEXT NOT NULL
+	);
+	CREATE INDEX site_feedback_captures_at ON site_feedback_captures (at);
+	INSERT INTO site_feedback (id, text, reply_to, role, page, competition_id, competition, at, done_at)
+		SELECT f.id, f.text, f.reply_to, f.role, f.page, f.competition_id, c.name, f.at, f.done_at
+		FROM feedback f JOIN competitions c ON c.id = f.competition_id;
+	DROP TABLE feedback;`,
+
+	// 48: messages to the organiser, from a member's, coach's, comp sec's or
+	// individual's own link, join the concerns, named: the sender's role
+	// ("" for a concern flagged from an admin link), their club's name when
+	// sent, and their record (kind:id), for how many each sends.
+	// competitions.feedback, left unused by 47, becomes the organiser's
+	// switch for them, named for it, and on for every competition: it said
+	// whether the old Feedback button showed, which isn't this.
+	`ALTER TABLE concerns ADD COLUMN role TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN club TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN sender TEXT NOT NULL DEFAULT '';
+	CREATE INDEX concerns_sender ON concerns (competition_id, sender, at);
+	ALTER TABLE competitions RENAME COLUMN feedback TO messages;
+	UPDATE competitions SET messages = TRUE;`,
+
+	// 49: a message to the organiser is about any of the sender's entries
+	// (entries, a JSON list of ids) and, for a comp sec or coach, whole
+	// events (events, a JSON list of names), not just one entry: a
+	// message's entry_id moves into entries (a concern flagged from an
+	// admin link keeps its one). The organiser can say they've received it
+	// (acknowledged_at, _by), and both sides add to it as a thread
+	// (concern_posts: by_sender for the sender's, otherwise the
+	// organiser's, who by the link's name); resolution stays the
+	// organiser's own note.
+	`ALTER TABLE concerns ADD COLUMN entries TEXT NOT NULL DEFAULT '[]';
+	ALTER TABLE concerns ADD COLUMN events TEXT NOT NULL DEFAULT '[]';
+	ALTER TABLE concerns ADD COLUMN acknowledged_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN acknowledged_by TEXT NOT NULL DEFAULT '';
+	UPDATE concerns SET entries = json_array(entry_id), entry_id = '' WHERE role <> '' AND entry_id <> '';
+	CREATE TABLE concern_posts (
+		id         TEXT PRIMARY KEY,
+		concern_id TEXT NOT NULL REFERENCES concerns (id) ON DELETE CASCADE,
+		at         TEXT NOT NULL,
+		by_sender  BOOLEAN NOT NULL DEFAULT FALSE,
+		who        TEXT NOT NULL,
+		text       TEXT NOT NULL
+	);
+	CREATE INDEX concern_posts_concern ON concern_posts (concern_id, at);`,
+
+	// 50: club roles (ADR 0015): the club admin names roles, each a set of
+	// permissions (a JSON list), and makes a link for each person, with a
+	// role; and the club's history of changes made through any of its
+	// links. A role with links can't be removed (role_id has no ON DELETE),
+	// but a club's roles and links go with it. Clubs start with none.
+	`CREATE TABLE club_roles (
+		id          TEXT PRIMARY KEY,
+		club_id     TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		name        TEXT NOT NULL,
+		permissions TEXT NOT NULL DEFAULT '[]',
+		position    INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX club_roles_club ON club_roles (club_id, position);
+	CREATE TABLE club_links (
+		id         TEXT PRIMARY KEY,
+		club_id    TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		role_id    TEXT NOT NULL REFERENCES club_roles (id),
+		name       TEXT NOT NULL,
+		token_hash TEXT NOT NULL UNIQUE,
+		created_at TEXT NOT NULL
+	);
+	CREATE INDEX club_links_club ON club_links (club_id);
+	CREATE INDEX club_links_role ON club_links (role_id);
+	CREATE TABLE club_log (
+		id      INTEGER PRIMARY KEY AUTOINCREMENT,
+		club_id TEXT NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+		at      TEXT NOT NULL,
+		who     TEXT NOT NULL,
+		what    TEXT NOT NULL
+	);
+	CREATE INDEX club_log_club ON club_log (club_id, id);`,
+
+	// 51: a sandbox's copies (ADR 0016): what each seed made (its
+	// competitions, clubs and individuals, and the feedback it sent), so
+	// deleting a copy deletes exactly that, and its links by role, for the
+	// start page. expires_at is empty for the shared copy.
+	`CREATE TABLE sandbox_copies (
+		id         TEXT PRIMARY KEY,
+		created_at TEXT NOT NULL,
+		expires_at TEXT NOT NULL DEFAULT '',
+		size       INTEGER NOT NULL,
+		links      TEXT NOT NULL
+	);
+	CREATE TABLE sandbox_items (
+		copy_id TEXT NOT NULL REFERENCES sandbox_copies (id) ON DELETE CASCADE,
+		kind    TEXT NOT NULL,
+		id      TEXT NOT NULL,
+		PRIMARY KEY (copy_id, kind, id)
+	);`,
+
+	// 52: the rule of judging only levels below one's own is gone (judges
+	// offer each role up to a level of their own): competitions with it
+	// take the default, anyone as they offer.
+	`UPDATE competitions SET officials = json_remove(officials, '$.judge') WHERE json_extract(officials, '$.judge') = 'below';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
@@ -893,7 +1021,8 @@ func dropTies(ctx context.Context, tx *sql.Tx) error {
 			SELECT id FROM members UNION ALL SELECT id FROM coaches UNION ALL SELECT id FROM individuals)
 		OR (kind = 'club' AND target_id NOT IN (SELECT id FROM clubs))
 		OR (kind = 'organiser' AND target_id NOT IN (SELECT id FROM competitions))
-		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))`)
+		OR (kind = 'helper' AND target_id NOT IN (SELECT id FROM competition_links))
+		OR (kind = 'clublink' AND target_id NOT IN (SELECT id FROM club_links))`)
 	return err
 }
 

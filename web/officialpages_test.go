@@ -34,11 +34,11 @@ func TestOfficialPages(t *testing.T) {
 		t.Error("the member page asks what they can judge and help with")
 	}
 	offer := regexp.MustCompile(`action="(` + regexp.QuoteMeta(a) + `/competitions/[^"]+/offer)"`).FindStringSubmatch(page)[1]
-	redirected(t, h, offer, url.Values{"judge-trampoline": {"1"}, "upto-trampoline": {"BUCS L3"}, "chair-trampoline": {"1"}, "recorder": {"1"}})
-	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "Judge Trampoline up to BUCS L3 (can chair); recorder") {
+	redirected(t, h, offer, url.Values{"judge-trampoline": {"1"}, "execution-trampoline": {"BUCS L3"}, "difficulty-trampoline": {"BUCS L3"}, "chair-trampoline": {""}, "recorder": {"1"}})
+	if page := memberCompetitionPage(t, h, a); !strings.Contains(page, "Judge Trampoline (execution and difficulty up to BUCS L3, chair at any level, and HD); Recorder") {
 		t.Error("the member sees what they offer")
 	}
-	if rec := do(t, h, http.MethodPost, offer, url.Values{"judge-tumbling": {"1"}, "upto-tumbling": {"Master"}}); rec.Code != http.StatusBadRequest {
+	if rec := do(t, h, http.MethodPost, offer, url.Values{"judge-tumbling": {"1"}, "execution-tumbling": {"Master"}, "difficulty-tumbling": {"Master"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("a level the discipline doesn't have: %d", rec.Code)
 	}
 	clubPage := clubCompetitionTab(t, h, club, "/offers")
@@ -52,15 +52,15 @@ func TestOfficialPages(t *testing.T) {
 	}
 	redirected(t, h, formAction(t, clubEntriesPage(t, h, club), club+"/competitions/"), url.Values{"which": {"all"}})
 	page = do(t, h, http.MethodGet, officials, nil).Body.String()
-	if !strings.Contains(page, "Judge Trampoline and Tumbling; marshal") {
+	if !strings.Contains(page, "Judge Trampoline (execution and difficulty at any level, and HD) and Tumbling (execution and difficulty at any level); Marshal") {
 		t.Error("the club's offer reaches the organiser, as the comp sec corrected it")
 	}
 
 	// An individual offers on their entry.
 	enter := pathIn(t, dash, "/competitions/enter/")
 	own := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"I"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
-	redirected(t, h, own+"/offer", url.Values{"judge-tumbling": {"1"}, "upto-tumbling": {"Novice"}})
-	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); !strings.Contains(page, "entering on their own") || !strings.Contains(page, "Judge Tumbling up to Novice") {
+	redirected(t, h, own+"/offer", url.Values{"judge-tumbling": {"1"}, "execution-tumbling": {"Novice"}, "difficulty-tumbling": {"Novice"}})
+	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); !strings.Contains(page, "entering on their own") || !strings.Contains(page, "Judge Tumbling (execution and difficulty up to Novice)") {
 		t.Error("the individual's offer")
 	}
 
@@ -68,7 +68,7 @@ func TestOfficialPages(t *testing.T) {
 	if location := redirected(t, h, officials+"/add", url.Values{"name": {"J"}}); !strings.Contains(location, "Nobody+was+added") {
 		t.Error("an added person needs something they can do")
 	}
-	redirected(t, h, officials+"/add", url.Values{"name": {"Judge J"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Judge J"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	page = do(t, h, http.MethodGet, officials, nil).Body.String()
 	if !strings.Contains(page, "added by you") {
 		t.Fatal("added")

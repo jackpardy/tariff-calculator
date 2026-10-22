@@ -100,5 +100,28 @@ func TestDemoSeed(t *testing.T) {
 			}
 		}
 	}
+	// The first club's treasurer and team manager (ADR 0015): each link
+	// opens the club as its role.
+	for _, tc := range []struct{ line, role, can, cannot string }{
+		{"A treasurer", "Treasurer", "/fees", "/notify"},
+		{"A team manager", "Team manager", "/notify", "/fees"},
+	} {
+		m := regexp.MustCompile(`(?m)^` + tc.line + `: +(.+) \(.+\): (/clubs/admin/\S+)$`).FindStringSubmatch(out.String())
+		if m == nil {
+			t.Errorf("no %s link in:\n%s", tc.line, out.String())
+			continue
+		}
+		page := unescape(do(t, s.h, http.MethodGet, m[2], nil).Body.String())
+		if !strings.Contains(page, "You're using the link for <strong>"+m[1]+" ("+tc.role+")</strong>.") {
+			t.Errorf("%s's link opens the club as %s", m[1], tc.role)
+		}
+		comp := m[2] + "/competitions/" + c.ID
+		if code := do(t, s.h, http.MethodGet, comp+tc.can, nil).Code; code != http.StatusOK {
+			t.Errorf("%s: %s %d", tc.role, tc.can, code)
+		}
+		if code := do(t, s.h, http.MethodGet, comp+tc.cannot, nil).Code; code != http.StatusForbidden {
+			t.Errorf("%s: %s %d", tc.role, tc.cannot, code)
+		}
+	}
 	t.Logf("%d clubs, %d entries (%d waiting), %d flights, %d of %d seats filled", len(clubs), len(entries), waiting, len(c.Published.Flights), filled, seats)
 }

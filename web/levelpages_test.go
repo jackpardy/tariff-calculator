@@ -111,7 +111,7 @@ func TestClubLevels(t *testing.T) {
 	if link == nil {
 		t.Fatalf("the link is marked as a whole: %s", levelIn(page, "Grade 1"))
 	}
-	if got := levelIn(page, "Grade 1"); !strings.Contains(got, "Gymnast 1 of 3") || !strings.Contains(got, "A back somersault From the skills marked You ✓ Can do") || !strings.Contains(got, "Done in Drops") {
+	if got := levelIn(page, "Grade 1"); !strings.Contains(got, "Gymnast 1 of 3") || !strings.Contains(got, "A back somersault From the skills marked You Can do") || !strings.Contains(got, "Done in Drops") {
 		t.Errorf("the derived item, and the routine doing the link: %q", got)
 	}
 	if notice := noticeOf(t, redirected(t, h, member+"/skills", url.Values{"item": {link[1]}, "state": {"learning"}})); notice != "Back drop, then back to feet: Learning." {
@@ -135,7 +135,7 @@ func TestClubLevels(t *testing.T) {
 	redirected(t, h, open+"/skills", url.Values{"item": {link[1]}, "state": {"can"}})
 	page = do(t, h, http.MethodGet, member+"/skills", nil).Body.String()
 	got := levelIn(page, "Grade 1")
-	if !strings.Contains(got, "Gymnast 2 of 3 Coach 1 of 3") || !strings.Contains(got, "Back drop, then back to feet Done in Drops You ◐ Learning") || !strings.Contains(got, "Coach · Ann ✓ Can do") {
+	if !strings.Contains(got, "Gymnast 2 of 3 Coach 1 of 3") || !strings.Contains(got, "Back drop, then back to feet Done in Drops You Learning") || !strings.Contains(got, "Coach · Ann Can do") {
 		t.Errorf("after the coach marks the link: %q", got)
 	}
 	if rec := do(t, h, http.MethodPost, member+"/skills", url.Values{"item": {"r:nope"}, "state": {"can"}}); rec.Code != http.StatusNotFound {
@@ -149,7 +149,10 @@ func TestClubLevels(t *testing.T) {
 		t.Error("the comp sec sees the level")
 	}
 	remove := regexp.MustCompile(`action="(` + regexp.QuoteMeta(ann) + `/levels/[^/"]+/remove)"`).FindStringSubmatch(do(t, h, http.MethodGet, ann+"/levels", nil).Body.String())[1]
-	redirected(t, h, remove, nil)
+	if page := do(t, h, http.MethodPost, remove, nil).Body.String(); !strings.Contains(page, "Remove Grade 1?") || !strings.Contains(page, `name="anyway" value="1"`) {
+		t.Errorf("removing a level asks first: %s", page)
+	}
+	redirected(t, h, remove, url.Values{"anyway": {"1"}})
 	if strings.Contains(do(t, h, http.MethodGet, member+"/skills", nil).Body.String(), "Grade 1") {
 		t.Error("removed")
 	}
@@ -200,7 +203,7 @@ func TestSavingLevelsAsAMemberWhoCoaches(t *testing.T) {
 	bob := pathIn(t, do(t, h, http.MethodPost, dcu.page+"/coaches", url.Values{"name": {"Bob"}}).Body.String(), "/clubs/coach/")
 	redirected(t, h, murphy+"/links", url.Values{"link": {"http://example.com" + bob}, "sure": {"1"}})
 	page := do(t, h, http.MethodPost, "/clubs/levels/save", url.Values{"link": {murphy}, "set": {set}, "id": {"b2"}}).Body.String()
-	choice := regexp.MustCompile(`(?s)<input type="hidden" name="role" value="([^"]+)">\s*<button class="button is-fullwidth" type="submit">DCU</button>`).FindStringSubmatch(page)
+	choice := regexp.MustCompile(`(?s)<input type="hidden" name="role" value="([^"]+)">\s*<button class="button" type="submit">DCU</button>`).FindStringSubmatch(page)
 	if !strings.Contains(page, "Which club?") || choice == nil {
 		t.Fatalf("which club: %s", page)
 	}

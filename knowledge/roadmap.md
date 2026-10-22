@@ -216,6 +216,19 @@ build on:
       uses, so a regional scheme's grades are made once. The club that
       opens the link gets its own copy to track against and change.
 
+**Club roles (decided 2026-10-21, to build before the dry run).** A club's link is shared
+by several people who all can do everything, and nothing says who did
+what. The owner asked for the club's link to be the **club admin**, who
+makes and names roles, chooses each one's permissions from a fixed list
+(enter and change entries, send entries, fees, manage members, manage
+coaches, certificates, talk to the organiser, club settings), and makes a
+link for each person with a role; feedback, messages and a club history
+then say who. Built before the dry run so the clubs there try it. The plan
+and the owner's decisions are in [ADR 0015](../docs/adr/0015-club-roles.md).
+**Built 2026-10-21** ([club roles and links](features/competition-entries.md#club-roles-and-links-adr-0015)):
+the demo's first club has a treasurer's and a team manager's link. To
+refine after the dry-run clubs say what they think.
+
 **Later (decided 2026-10-15):** a member moving club takes their routines,
 marks and progress with them. Not to start with: they stay with the club.
 
@@ -512,6 +525,9 @@ features that show that, in this order:
    organiser's Coaches, the desk's People I pick, the club's Members and
    Coaches, and a coach's own entries
    ([how](architecture/rendering.md#lists-of-people-search-and-filters)).
+   **2026-10-19:** each choice says how many it would leave, greyed out when
+   none; the filters chosen are chips under the search, each taking its
+   filter off; All people filters by the level someone can judge.
 7. **Venue screen changes**: **built 2026-10-14.** Colours per area, cards
    that fill the screen for up to seven busy areas (quiet ones as strips),
    gymnasts with clubs and running numbers for now and next, lateness beside
@@ -543,6 +559,21 @@ second full audit, built on their own branches. Clubs and people's dead ends
 comes back to their row, no routine yet leads to the Routine Builder and back,
 a waiting sign-off says who gives it, and entering another discipline on your
 own is on your page.
+
+**One look for the competition pages (full audit, built 2026-10-19).**
+The building blocks every page uses, written down in
+[the shared look](architecture/ui.md): one page width so the menu never
+moves, buttons by role (teal for the one main action, red text for remove),
+one arrow for what opens, one green notice with ×, ways back that say where,
+the scroll fade (with an arrow on tab rows) in place of grey bars, text at
+4.5:1, tap sizes on a phone, a real not-found page, print without the menu
+and buttons, chips without marks and a one-line Coach column with an
+asterisk for a coach not approved. The Routine Builder and Requirements pages
+follow on their own. Then (**built 2026-10-19**) no browser pop-ups: a
+change asks on a page of its own when it does a lot at once, in a box on the
+same page when it's one thing that can't be put back, or is made with Undo;
+and [one wording for each state](architecture/ui.md#the-same-words) on every
+page (Sent, Checked, Officiating, Chair).
 
 **Skill names and search (full audit, built 2026-10-19).** The catalogue
 has the common twisting singles, doubles and triples, named and placed as the
@@ -587,8 +618,21 @@ December. Before it:
   saving the words, the page, the role and the time for the maintainer.
   Helper links already have Flag a concern; this is for everyone. *Built
   2026-10-15*
-  ([feedback](features/competition-entries.md#feedback-about-the-app-ready-for-the-dry-run)):
+  ([feedback](features/competition-entries.md#feedback-about-the-app)):
   the organiser reads it and can turn it off; `FEEDBACK_EMAIL` emails it.
+  *Split 2026-10-20*: feedback about the app goes to the maintainer from
+  every page (the calculator's and home pages too), on a page of their own,
+  with a picture of the screen and a copy of the page (Full, for the demo
+  and the dry run, where everyone has been told) or details and a ticked
+  picture (Light, before real entries open). *Messages to the organiser
+  built 2026-10-21*, separate from it
+  ([messages](features/competition-entries.md#messages-to-the-organiser)):
+  **Tell the organiser** on member, coach, comp sec and individual pages,
+  named from the link and optionally about one of their entries, joining
+  the dashboard's concerns, which the organiser can turn off. *Threads,
+  2026-10-21*: about several entries or whole events; Received, replies,
+  and a note of the organiser's own when resolving; the sender sees their
+  messages and adds to them, and hears of answers by push or email.
 - **Send in the background** (built 2026-10-15). A desk message, or a round of change
   notifications, emailed and pushed each person one at a time before the
   organiser's page answered: about half a second to a second an email, so
@@ -866,6 +910,12 @@ Notifications (7) are built; numbers 1–7 below are built.
     ([ADR 0014](../docs/adr/0014-judges-qualifications.md)): judges add
     theirs with certificates beside their offer; the organiser sees them on
     Officials before ticking Qualified.
+  - **Judging levels by role** (asked 2026-10-22). *Built 2026-10-22*
+    ([ADR 0017](../docs/adr/0017-judge-levels-by-role.md)): HD and
+    synchronisation at any level; execution, difficulty and chair each up to
+    a level of their own; the "below their own level" rule replaced by a note
+    from the organiser; the timetable's seat dropdown lists who can take the
+    seat first, and the ask says why someone can't.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
     calendar link that updates when the timetable is published again
@@ -905,3 +955,16 @@ decisions.
 [^cop]: FIG Trampoline Code of Points 2025–2028
 [^club-software]: Gymnastics club management software round-up (2026)
 [^generators]: Vincent Beaulieu's trampoline routine generator
+
+**A sandbox (decided 2026-10-21; built 2026-10-21, alongside club roles; live 2026-10-22 at <https://sandbox.tariff.pardy.ie/sandbox>: [Sandbox](features/sandbox.md)).** A
+separate instance of the app at `sandbox.tariff.pardy.ie` with ISTO-sized
+made-up competitions (one with entries open; one on the day, which rolls
+back to day 1 every fourth day), messages at every stage, a "Try it as…"
+start page with a link per role, notifications off, and a **Reset the
+sandbox** button on the maintainer's page; built so "make me my own sandbox"
+(smaller) can follow as a small step. For ISTO's organisers. Plan and
+decisions: [ADR 0016](../docs/adr/0016-sandbox.md).
+
+**Archive a competition (noted 2026-10-19, later).** The owner would like a
+competition to be archived once it's over, rather than only deleted: kept,
+read-only, out of the way of the live ones. Not designed yet.

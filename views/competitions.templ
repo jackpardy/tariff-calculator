@@ -81,6 +81,7 @@ templ competitionLayout(title string) {
 			<script defer src={ static.URL("js/tables.js") }></script>
 		</head>
 		<body>
+			@sandboxBanner()
 			<section class="section comp-page">
 				<div class="container">
 					<div class="notification is-warning is-light comp-offline" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>
@@ -117,7 +118,7 @@ templ DeadLink(title, text string) {
 // or to the links saved in this browser.
 templ messageOnward() {
 	<p class="buttons mt-4">
-		<button type="button" class="button is-small" onclick="history.back()">← Back</button>
+		<button type="button" class="button is-small" onclick="history.back()">← The page before</button>
 		<a class="button is-small" href="/competitions">Your competitions and pages</a>
 	</p>
 }
@@ -134,13 +135,14 @@ templ problemList(problems []string) {
 	}
 }
 
-// linkBox shows a link to copy. A secret one says so.
+// linkBox shows a link to copy. A secret one says so. It's blurred in a
+// picture sent with feedback (data-private, Light).
 templ linkBox(label, url, hint string) {
 	<div class="field comp-link">
 		<label class="label is-small">{ label }</label>
 		<div class="field has-addons">
 			<div class="control is-expanded">
-				<input class="input is-small" type="text" readonly value={ url } aria-label={ label }/>
+				<input class="input is-small" type="text" readonly value={ url } aria-label={ label } data-private/>
 			</div>
 			<div class="control">
 				<button type="button" class="button is-small" data-copy={ url }>Copy</button>
@@ -310,7 +312,7 @@ templ liveBox(base string, c CompetitionSummary, liveDate, liveTime, from string
 			<form method="post" action={ templ.SafeURL(base + "/live") } class="mb-2">
 				<input type="hidden" name="opens" value="now"/>
 				@backField(from)
-				<button class="button is-small is-success" type="submit">Go live now</button>
+				<button class="button is-small is-primary" type="submit">Go live now</button>
 			</form>
 			<p class="is-size-7 mb-1">
 				if c.Opens != "" {

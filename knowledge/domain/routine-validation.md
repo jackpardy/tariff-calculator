@@ -24,8 +24,8 @@ pre-priced.[^cop]
 |---|---|---|
 | First skill starts from feet | §12.3 | "Must Start From Feet"; flagged as a bad transition |
 | Each take-off matches the previous landing | — | "Bad Transition: Back -> Feet"; flagged, does **not** interrupt |
-| Repeated element | §14.1 | Both copies marked "Duplicate"; only the first counts |
-| Straight jump mid-routine | §15.1.3 | Interrupts the routine |
+| Repeated element | §14.1 | Both copies marked "Duplicate"; only the first counts. Straight jumps aren't elements, so they never repeat one |
+| Straight jump mid-routine | §15.1.3 | Interrupts the routine. Straight jumps before the first other skill are preparation jumps and don't: the routine starts with the first skill that isn't one |
 | Impossible landing | §15.1.4 | Interrupts the routine |
 | After an interruption | §15.2, §15.3 | The interrupting skill and everything after count nothing |
 | Tenth skill lands on feet | §16.1 | "10th Must Land Feet" warning |

@@ -28,6 +28,16 @@ type asker struct {
 	entry store.Entry
 }
 
+// backTo names the page back is, for the way back to it: the person's or
+// club's page for the competition, by the competition's name, or a coach's
+// entries.
+func (a asker) backTo() string {
+	if a.kind == store.NotifyCoach {
+		return "Entries"
+	}
+	return a.c.Name
+}
+
 // person says whether a person is asking, rather than a club's comp sec or
 // coach.
 func (a asker) person() bool { return a.key != "" }
@@ -81,14 +91,20 @@ type linksFor struct {
 	// Whose desk messages reach them (deskNotes): people, clubs (all their
 	// members) and staff (the comp sec and coaches of these clubs).
 	people, clubs, staff []string
+	tell                 *teller // who a message to the organiser is from; nil for no form
+	back                 string  // the page a message comes back to, as tellBack knows it; "" for base
 }
 
 // competitionLinks are the links on a person's or club's page for a
 // competition: the timetables and calendars once published, notifications,
-// their duties and score sheets, and the desk's messages.
+// their duties and score sheets, the desk's messages, and telling the
+// organiser.
 func (p *competitionPages) competitionLinks(ctx context.Context, c store.Competition, f linksFor) views.MyLinks {
 	l := views.MyLinks{Notify: p.notifyLink(f.base + "/notify"), Duties: dutiesOf(c, f.key),
-		Desk: p.deskNotes(ctx, c.ID, f.people, f.clubs, f.staff)}
+		Desk: p.deskNotes(ctx, c.ID, f.people, f.clubs, f.staff), Tell: p.tellForm(ctx, c, f.base, f.tell)}
+	if l.Tell != nil {
+		l.Tell.Back = f.back
+	}
 	if len(l.Duties) > 0 {
 		l.ScoreSheets = f.base + "/score-sheets"
 	}

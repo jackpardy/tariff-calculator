@@ -2,24 +2,25 @@ package views
 
 import (
 	"context"
-	"strings"
+	"strconv"
 
 	"tariffCalculator/static"
 )
 
-// Feedback about the app (roadmap, ready for the dry run): a Feedback button
-// at the foot of every page of a competition, for whoever is using it, and the
-// organiser's page listing what was sent.
+// Feedback about the app (migration 47): a Feedback button on every page,
+// for anyone to tell the maintainer what confused them, and the maintainer's
+// own page listing what was sent.
 
 // FeedbackForm is the Feedback button of the page being shown. The web layer
-// keeps one for each page that can have it, and fills in the competition when
-// it finds it; the button shows only when the competition has it on.
+// keeps one for each page that can have it while the maintainer has the
+// button on, and fills in the competition when the page is about one.
 type FeedbackForm struct {
-	Action      string // where it posts: the link's own feedback route
+	Action      string // where it posts: the link's own feedback route, or /feedback
 	Page        string // the page's route pattern, never its path
 	Back        string // the page, to come back to without JavaScript
-	Competition string // the competition's id
-	On          bool   // the competition shows the button
+	Competition string // the competition's id, "" for none
+	Organiser   bool   // the page has a Tell the organiser form, which it points to
+	Light       bool   // only details, and a picture if they tick for it; otherwise (Full) a picture and a copy of the page always
 }
 
 type feedbackKey struct{}
@@ -35,102 +36,235 @@ func FeedbackFormOf(ctx context.Context) *FeedbackForm {
 	return f
 }
 
-// feedbackButton is the Feedback button and its form, when the page has one.
-// static/js/feedback.js sends it without leaving the page; without
-// JavaScript it comes back to the page at #feedback-sent, which shows the
-// thanks.
+// feedbackButton is the Feedback button and its form, when the page has one:
+// a tab at the right edge of the screen, so it's there wherever they are on
+// the page, opening the form over the page. static/js/feedback.js sends it
+// without leaving the page, taking the picture and the copy as it opens
+// (loading the picture's library only then); without JavaScript it comes
+// back to the page at #feedback-sent, which shows the thanks.
 templ feedbackButton(f *FeedbackForm) {
-	if f != nil && f.On {
-		<div class="comp-feedback" id="feedback-sent">
-			<p class="comp-feedback-thanks is-size-7 mb-2">Thanks: your feedback is sent.</p>
-			<details>
-				<summary>Feedback</summary>
-				<form method="post" action={ templ.SafeURL(f.Action) } class="comp-feedback-form" data-feedback>
-					<input type="hidden" name="competition" value={ f.Competition }/>
-					<input type="hidden" name="page" value={ f.Page }/>
-					<input type="hidden" name="back" value={ f.Back }/>
-					<p class="is-size-7 mb-2">Something confusing, wrong or missing? Tell the people who make this app. The organiser sees it too.</p>
-					<textarea class="textarea is-small mb-2" name="text" required maxlength="2000" rows="3" placeholder="What happened, or what you think" aria-label="What happened, or what you think"></textarea>
-					<input class="input is-small mb-2" name="reply" maxlength="200" autocomplete="email" placeholder="Your name or email, for a reply (optional)" aria-label="Your name or email, for a reply (optional)"/>
-					<button class="button is-small is-link" type="submit">Send</button>
-					<p class="comp-feedback-said is-size-7 mt-2" role="status" data-feedback-said></p>
-				</form>
+	if f != nil {
+		<link rel="stylesheet" href={ static.URL("css/feedback.css") }/>
+		<div class="site-feedback" id="feedback-sent" data-site-feedback data-shot={ static.URL("js/modern-screenshot.min.js") } data-light?={ f.Light }>
+			<p class="site-feedback-thanks">Thanks: your feedback is sent.</p>
+			<details class="site-feedback-box">
+				<summary class="site-feedback-tab">Feedback</summary>
+				<div class="site-feedback-panel" role="dialog" aria-label="Feedback">
+					<form method="post" action={ templ.SafeURL(f.Action) } enctype="multipart/form-data" data-feedback>
+						if f.Competition != "" {
+							<input type="hidden" name="competition" value={ f.Competition }/>
+						}
+						<input type="hidden" name="page" value={ f.Page }/>
+						<input type="hidden" name="back" value={ f.Back }/>
+						<p class="site-feedback-title">Feedback</p>
+						<p class="site-feedback-small">Something confusing, wrong or missing? Tell the people who make this app.</p>
+						if f.Organiser {
+							<p class="site-feedback-small site-feedback-grey">This doesn't go to the competition's organiser: for them, use <strong>Tell the organiser</strong> on this page.</p>
+						} else if f.Competition != "" {
+							<p class="site-feedback-small site-feedback-grey">This doesn't go to the competition's organiser.</p>
+						}
+						<textarea name="text" required maxlength="2000" rows="3" placeholder="What happened, or what you think" aria-label="What happened, or what you think"></textarea>
+						<input type="text" name="reply" maxlength="200" autocomplete="email" placeholder="Your name or email, for a reply (optional)" aria-label="Your name or email, for a reply (optional)"/>
+						if f.Light {
+							<label class="site-feedback-small site-feedback-tick">
+								<input type="checkbox" name="with-picture" value="1" data-feedback-tick/>
+								Include a picture of the screen
+							</label>
+						} else {
+							<p class="site-feedback-small site-feedback-grey">A picture of your screen and a copy of this page go with it, to the people who make the app only.</p>
+						}
+						<figure class="site-feedback-picture" hidden data-feedback-picture>
+							<img alt="The picture of your screen that goes with it"/>
+							<figcaption class="site-feedback-small site-feedback-grey" data-feedback-caption></figcaption>
+						</figure>
+						<div class="site-feedback-buttons">
+							<button class="site-feedback-send" type="submit">Send</button>
+							<button type="button" data-feedback-close>Close</button>
+						</div>
+						<p class="site-feedback-small" role="status" data-feedback-said></p>
+					</form>
+				</div>
 			</details>
 		</div>
 		<script defer src={ static.URL("js/feedback.js") }></script>
 	}
 }
 
-// FeedbackPage is the feedback sent about the app from a competition's
-// pages, for the organiser.
-type FeedbackPage struct {
-	Competition CompetitionSummary
-	Menu        []MenuSection
-	Base        string
-	Notice      string
-	On          bool // the button is on
-	Items       []FeedbackItem
-	Waiting     int // not dealt with yet
+// MaintainerPage is the maintainer's page: the feedback sent about the
+// app, and how it's taken.
+type MaintainerPage struct {
+	Base     string // the page's own path, with the link
+	Notice   string
+	Off      bool // the button is off everywhere
+	Light    bool // Light rather than Full
+	Captures int  // pictures and copies kept
+	Size     string
+	All      bool // dealt with shown too
+	Waiting  int
+	Total    int
+	Items    []SiteFeedbackItem
+	Sandbox  *SandboxPanel // the sandbox's buttons, in the sandbox only
 }
 
-// FeedbackItem is one piece of feedback.
-type FeedbackItem struct {
-	ID, At, Role, Page, Text, ReplyTo string
-	Done                              bool
-	DoneBy                            string
+// SiteFeedbackItem is one piece of feedback.
+type SiteFeedbackItem struct {
+	ID, At, Role, Page, Pattern, Competition string
+	Text, ReplyTo                            string
+	ReplyEmail                               bool // ReplyTo is an email address
+	Done                                     bool
+	Picture, Snapshot                        bool
+	Width, Height                            int // their window, to show the copy at
+	ScrollY, PageHeight                      int // how far down they were, of the page's height
+	Details                                  []DetailLine
 }
 
-// Feedback lists the feedback, newest first, each to mark dealt with.
-templ Feedback(p FeedbackPage) {
-	@competitionLayout("Feedback · " + p.Competition.Name) {
-		<h1 class="title is-4">Feedback</h1>
-		<p class="subtitle is-6">{ p.Competition.Name }</p>
-		@pageMenu(p.Menu)
+// DetailLine is a line of what the browser said about itself.
+type DetailLine struct{ Label, Value string }
+
+// Maintainer lists the feedback, newest first, each to mark dealt with, with
+// what came with it; and the choices for how it's taken.
+templ Maintainer(p MaintainerPage) {
+	@competitionLayout("Feedback about the app") {
+		<h1 class="title is-4">Feedback about the app</h1>
+		<p class="subtitle is-6">From every page, for you alone. Keep this page's link to yourself.</p>
 		if p.Notice != "" {
-			<div class="notification is-success is-light">{ p.Notice }</div>
+			@notice(p.Notice)
 		}
-		<p class="mb-3">
-			What people said with the Feedback button, about the app rather than the competition. It goes to the people who make the app too.
-			if p.On {
-				The button is on every page;
-			} else {
-				The button is off;
+		<div class="box mb-5">
+			@changeLine("Feedback button", onOff(!p.Off, "on every page", "not shown anywhere"), false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/settings") } class="mb-3">
+					if p.Off {
+						<input type="hidden" name="button" value="on"/>
+						<button class="button is-small" type="submit">Show it on every page</button>
+					} else {
+						<input type="hidden" name="button" value="off"/>
+						<button class="button is-small" type="submit">Take it off every page</button>
+					}
+				</form>
 			}
-			<a href={ templ.SafeURL(p.Base + "/settings#feedback") }>change it in Settings</a>.
-		</p>
-		if len(p.Items) == 0 {
-			<p class="has-text-grey">Nothing yet.</p>
-		} else {
-			<p class="is-size-7 has-text-grey mb-2">{ Count(len(p.Items), "message", "messages") }, { p.Waiting } not dealt with.</p>
-			<div class="comp-feedback-list">
-				for _, f := range p.Items {
-					<div class={ "box", "comp-feedback-item", templ.KV("is-done", f.Done) }>
-						<p class="comp-feedback-text">{ f.Text }</p>
-						<p class="is-size-7 has-text-grey mt-1">
-							<span class="comp-feedback-when">{ f.At }</span> · <span class="comp-feedback-role">{ f.Role }</span> · <span class="comp-feedback-page">{ f.Page }</span>
-						</p>
-						if f.ReplyTo != "" {
-							// An email to write to; otherwise what they gave, a name to find them by.
-							if strings.Contains(f.ReplyTo, "@") && !strings.ContainsAny(f.ReplyTo, " <>") {
-								<p class="is-size-7">Reply to: <a class="comp-feedback-reply" href={ templ.SafeURL("mailto:" + f.ReplyTo) }>{ f.ReplyTo }</a></p>
-							} else {
-								<p class="is-size-7">They left their name for a reply: <span class="comp-feedback-reply">{ f.ReplyTo }</span> (no email)</p>
-							}
-						}
-						<form method="post" action={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/done") } class="mt-2">
-							<input type="hidden" name="done" value={ boolValue(!f.Done) }/>
-							<label class="checkbox is-size-7">
-								<input type="checkbox" checked?={ f.Done } onchange="this.form.submit()" aria-label="Dealt with"/>
-								Dealt with
-								if f.Done && f.DoneBy != "" {
-									<span class="has-text-grey">({ f.DoneBy })</span>
-								}
-							</label>
-							<noscript><button class="button is-small" type="submit">Change</button></noscript>
-						</form>
+			@changeLine("What goes with it", captureLine(p.Light), false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/settings") } class="mb-3">
+					<div class="control">
+						<label class="radio is-block ml-0 mb-2">
+							<input type="radio" name="capture" value="full" checked?={ !p.Light }/>
+							<strong>Full:</strong> a picture of the screen and a copy of the page with every piece, and details about the browser. For the demo and the dry run, where everyone knows.
+						</label>
+						<label class="radio is-block ml-0 mb-2">
+							<input type="radio" name="capture" value="light" checked?={ p.Light }/>
+							<strong>Light:</strong> details about the browser, and a picture only if they tick for it, with links and emails blurred. Before real entries open.
+						</label>
 					</div>
-				}
-			</div>
+					<button class="button is-small" type="submit">Save</button>
+				</form>
+			}
+			@opens("Pictures and copies kept", keptLine(p.Captures, p.Size), "Delete", false) {
+				<form method="post" action={ templ.SafeURL(p.Base + "/captures/delete") } class="mb-3">
+					<p class="is-size-7 mb-2">Every picture and copy of a page goes; what people wrote stays. They go by themselves after 90 days.</p>
+					<button class="button is-small is-danger" type="submit">Delete them all</button>
+				</form>
+			}
+		</div>
+		if p.Sandbox != nil {
+			@sandboxPanel(*p.Sandbox)
 		}
+		<div class="tabs is-small mb-3">
+			<ul>
+				<li class={ templ.KV("is-active", !p.All) }><a href={ templ.SafeURL(p.Base) }>Not dealt with ({ strconv.Itoa(p.Waiting) })</a></li>
+				<li class={ templ.KV("is-active", p.All) }><a href={ templ.SafeURL(p.Base + "?all=1") }>All ({ strconv.Itoa(p.Total) })</a></li>
+			</ul>
+		</div>
+		if len(p.Items) == 0 {
+			@emptyLine("Nothing here.")
+		}
+		<div class="comp-feedback-list">
+			for _, f := range p.Items {
+				<div class={ "box", "comp-feedback-item", templ.KV("is-done", f.Done) } id={ "f-" + f.ID }>
+					<p class="comp-feedback-text">{ f.Text }</p>
+					<p class="is-size-7 has-text-grey mt-1">
+						<span class="comp-feedback-when">{ f.At }</span> · <span class="comp-feedback-role">{ f.Role }</span> · <span class="comp-feedback-page" title={ f.Pattern }>{ f.Page }</span>
+						if f.Competition != "" {
+							· <span class="comp-feedback-competition">{ f.Competition }</span>
+						}
+					</p>
+					if f.ReplyTo != "" {
+						if f.ReplyEmail {
+							<p class="is-size-7">Reply to: <a class="comp-feedback-reply" href={ templ.SafeURL("mailto:" + f.ReplyTo) }>{ f.ReplyTo }</a></p>
+						} else {
+							<p class="is-size-7">They left their name for a reply: <span class="comp-feedback-reply">{ f.ReplyTo }</span> (no email)</p>
+						}
+					}
+					if f.Picture {
+						<a class="site-feedback-shot mt-2" href={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/picture") } target="_blank" rel="noopener">
+							<img src={ p.Base + "/feedback/" + f.ID + "/picture" } alt="Their screen" loading="lazy"/>
+						</a>
+					}
+					if f.Snapshot {
+						@opens("", "", "The page as they had it", false) {
+							<p class="is-size-7 has-text-grey mb-1">
+								A copy, at the size of their window. Nothing on it works: links and buttons go nowhere.
+								<a href={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/page#feedback-scroll") } target="_blank" rel="noopener">Open it on its own</a>
+							</p>
+							<div class="site-feedback-frame" style={ frameSize(f.Width, f.Height, 0) } data-scroll={ strconv.Itoa(f.ScrollY) }>
+								<iframe sandbox="" title="The page as they had it" data-copy={ p.Base + "/feedback/" + f.ID + "/page" } style={ frameSize(f.Width, f.Height, f.PageHeight) }></iframe>
+							</div>
+						}
+					}
+					if len(f.Details) > 0 {
+						@opens("", "", "Details", false) {
+							<table class="table is-narrow is-size-7 site-feedback-details">
+								<tbody>
+									for _, d := range f.Details {
+										<tr><th>{ d.Label }</th><td>{ d.Value }</td></tr>
+									}
+								</tbody>
+							</table>
+						}
+					}
+					<form method="post" action={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/done") } class="mt-2">
+						<input type="hidden" name="done" value={ boolValue(!f.Done) }/>
+						if p.All {
+							<input type="hidden" name="all" value="1"/>
+						}
+						<label class="checkbox is-size-7">
+							<input type="checkbox" checked?={ f.Done } onchange="this.form.submit()" aria-label="Dealt with"/>
+							Dealt with
+						</label>
+						<noscript><button class="button is-small" type="submit">Change</button></noscript>
+					</form>
+				</div>
+			}
+		</div>
+		<link rel="stylesheet" href={ static.URL("css/feedback.css") }/>
+		<script defer src={ static.URL("js/maintainer.js") }></script>
 	}
+}
+
+func captureLine(light bool) string {
+	if light {
+		return "Light: details, and a picture if they tick for it"
+	}
+	return "Full: a picture, a copy of the page and details"
+}
+
+func keptLine(n int, size string) string {
+	if n == 0 {
+		return "none"
+	}
+	return Count(n, "piece of feedback has them", "pieces of feedback have them") + ", " + size
+}
+
+// frameSize sizes the copy to their window, within reason: the box it's
+// in to the window, and the frame itself to the whole page (page, when
+// known), so the box scrolls it to where they were.
+func frameSize(width, height, page int) templ.SafeCSS {
+	if width < 280 || width > 2000 {
+		width = 390
+	}
+	if height < 300 || height > 1400 {
+		height = 700
+	}
+	if page > height && page <= 200000 {
+		height = page
+	}
+	return templ.SafeCSS("width:" + strconv.Itoa(width) + "px;height:" + strconv.Itoa(height) + "px")
 }

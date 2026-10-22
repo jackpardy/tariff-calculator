@@ -36,14 +36,17 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 			@templ.JSONScript("level-data", levelData(groups))
 		</head>
 		<body class="tool-page">
+			@sandboxBanner()
 			@toolBanner("/requirements", false)
 			<main class="section tool-section">
 				<div class="container is-narrow-tool" x-data="requirementsPage()">
 					<h1 class="title is-4">Requirements</h1>
 					<p class="tool-intro">
-						The rules a routine is checked against, and levels: a competition level's two exercises,
-						e.g. a set routine and then a voluntary. Check a routine against them under "Check against"
-						in the Routine Builder; open a level there in Levels mode.
+						Requirements are the rules a routine is checked against: required or banned elements,
+						how many elements and difficulty limits. Choose them for a routine under "Check against"
+						in the Routine Builder. A level pairs requirements and set routines for a competition's
+						two exercises, e.g. a choice of set routines and then a voluntary: open it in the
+						Routine Builder's Levels mode.
 					</p>
 					// The editor, when a set is open.
 					<div class="box" x-show="editing !== null" x-cloak>
@@ -316,6 +319,7 @@ templ RequirementsPage(groups []requirements.BuiltinGroup) {
 					</div>
 				</div>
 			</main>
+			@feedbackButton(FeedbackFormOf(ctx))
 		</body>
 	</html>
 }

@@ -2,6 +2,7 @@
 package web
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -50,6 +51,26 @@ func (a *App) Finish(wait time.Duration) {
 	if left := a.pages.notify.send.stop(wait); left > 0 {
 		log.Printf("Stopping: %d emails and pushes left unsent", left)
 	}
+}
+
+// Sandbox makes the app the sandbox (ADR 0016): nothing emailed or pushed,
+// whatever is set up, a banner on every page, the start page at /sandbox,
+// and the maintainer's buttons to reset it. Its competition on the day
+// restarts its day once its days are over, checked now and every hour.
+// Call it once, before Handler.
+func (a *App) Sandbox() {
+	a.pages.makeSandbox()
+	if a.pages.st != nil {
+		go a.pages.rollDay()
+	}
+}
+
+// ResetSandbox resets the sandbox in st, as its maintainer's button does,
+// and returns how long it took: for `tariffCalculator sandbox-reset`.
+func ResetSandbox(st *store.Store) (time.Duration, error) {
+	p := newCompetitionPages(st)
+	p.makeSandbox()
+	return p.resetSandbox(context.Background())
 }
 
 // Routes is the application's handler over st alone, a fresh App's Handler

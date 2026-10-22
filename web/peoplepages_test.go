@@ -43,7 +43,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	redirected(t, h, mo+"/coach", url.Values{"coach": {annID}})
 	save := formAction(t, memberCompetitionPage(t, h, mo), mo+"/competitions/")
 	redirected(t, h, save, bucsEntry(""))
-	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, save+"/offer", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	comp := regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^/"]+)/coaches`).FindStringSubmatch(clubCompetitionTab(t, h, club, "/coaches"))[1]
 	redirected(t, h, club+"/competitions/"+comp+"/coaches", url.Values{"coach": {annID}})
 	redirected(t, h, admin+"/coaches/"+annID, url.Values{"action": {"approve"}})
@@ -58,7 +58,7 @@ func peopleCompetition(t *testing.T) peopleSetup {
 	// A name with the characters a path can't carry as they are.
 	entry.Set("gymnast", "Kit O/Neil? 100% #1")
 	redirected(t, h, enter, entry)
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	return peopleSetup{h: h, admin: admin, member: mo}
 }
 
@@ -113,10 +113,10 @@ func TestPeople(t *testing.T) {
 	}
 	values := listRows(t, list, "people")
 	is := func(name, key string, want ...string) bool { return slices.Equal(values[name][key], want) }
-	if r := row("Mo"); !is("Mo", "club", "UCD") || !is("Mo", "does", "gymnast", "official") || !strings.Contains(r, "Trampoline BUCS L3 · judge, can chair") {
+	if r := row("Mo"); !is("Mo", "club", "UCD") || !is("Mo", "does", "gymnast", "official") || !strings.Contains(r, "Trampoline BUCS L3 · Judge, Chair") {
 		t.Errorf("Mo's row: %s, %v", r, values["Mo"])
 	}
-	if r := row("Ivy"); !is("Ivy", "club", "On their own") || !strings.Contains(r, "Trampoline BUCS L3 · judge") {
+	if r := row("Ivy"); !is("Ivy", "club", "On their own") || !strings.Contains(r, "Trampoline BUCS L3 · Judge") {
 		t.Errorf("Ivy's row: %s", r)
 	}
 	if r := row("Pat"); !strings.Contains(r, "Synchro BUCS L3") || !is("Pat", "does", "gymnast") {
@@ -150,9 +150,9 @@ func TestPeople(t *testing.T) {
 	// The names link to the people's pages.
 	mo := personLink(t, list, admin, "Mo")
 	page := do(t, h, http.MethodGet, mo, nil).Body.String()
-	for _, want := range []string{"<h1 class=\"title is-4\">Mo</h1>", "UCD ·", `<span class="chip chip-who chip-who-organiser mr-1">Judge</span>`, `<span class="chip chip-who chip-who-organiser mr-1">Can chair</span>`,
-		"← People", `href="` + admin + `/entries/`, "BUCS L3</a>", "to sort out", "Coach: <a href=\"" + admin + "/people/c:", ">Ann</a>",
-		"Judge Trampoline (can chair) · sent by their club", "Can judge:", "Judging rule: anyone, up to the level they say.", "No timetable is planned yet.",
+	for _, want := range []string{"<h1 class=\"title is-4\">Mo</h1>", "UCD ·", `<span class="chip chip-who chip-who-organiser mr-1">Judge</span>`, `<span class="chip chip-who chip-who-organiser mr-1">Chair</span>`,
+		"← People", `href="` + admin + `/entries/`, "BUCS L3</a>", `<span class="chip chip-state-attention">3 problems</span>`, "Coach: <a href=\"" + admin + "/people/c:", ">Ann</a>",
+		"Judge Trampoline (execution, difficulty and chair at any level, and HD) · sent by their club", "Can judge:", "Judging rule: anyone, as they offer.", "No timetable is planned yet.",
 		"The timetable isn't published yet"} {
 		if !strings.Contains(page, want) {
 			t.Errorf("Mo's page has %q", want)
@@ -170,7 +170,7 @@ func TestPeople(t *testing.T) {
 	// Ann coaches Mo, and links to him; the partner has a page of her own.
 	ann := personLink(t, list, admin, "Ann")
 	page = do(t, h, http.MethodGet, ann, nil).Body.String()
-	if !strings.Contains(page, ">Coaching</h2>") || !strings.Contains(page, `<a href="`+mo+`">Mo</a>`) || !strings.Contains(page, "Sent by their club: Approved ✓.") ||
+	if !strings.Contains(page, ">Coaching</h2>") || !strings.Contains(page, `<a href="`+mo+`">Mo</a>`) || !strings.Contains(page, "Sent by their club: Approved.") ||
 		strings.Contains(page, ">Entries</h2>") || strings.Contains(page, "The timetable") {
 		t.Errorf("Ann's page: %s", page)
 	}
@@ -243,11 +243,11 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 
 	redirected(t, h, tt+"/publish", url.Values{"on": {"1"}})
 	page = do(t, h, http.MethodGet, mary, nil).Body.String()
-	if !strings.Contains(page, "(from the published timetable)") || !strings.Contains(page, "Panel check-in: <strong>Not marked yet</strong>") {
+	if !strings.Contains(page, "(from the published timetable)") || !strings.Contains(page, "Panel check-in: "+chip(t, views.NotYet, "Not checked in")) {
 		t.Errorf("Mary's seats once published: %s", page)
 	}
 	page = do(t, h, http.MethodGet, mo, nil).Body.String()
-	for _, want := range []string{"<strong>BUCS L3</strong> · Panel 1 · Saturday", "Warm-up <strong>09:00</strong>", "Check-in: <strong>Not marked yet</strong>", "Their flights and panels",
+	for _, want := range []string{"<strong>BUCS L3</strong> · Panel 1 · Saturday", "Warm-up <strong>09:00</strong>", "Check-in: " + chip(t, views.NotYet, "Not checked in"), "Their flights and panels",
 		"<strong>Mo</strong>", `href="?timetable=all#timetable">Show the whole timetable`} {
 		if !strings.Contains(page, want) {
 			t.Errorf("Mo's page once published has %q", want)
@@ -265,11 +265,11 @@ func TestPeoplePlannedAndPublished(t *testing.T) {
 	day := dayAll(t, h, admin+"/day?day=0")
 	entry := checkinEntry(t, day, "Ivy")
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"here"}, "day": {"0"}})
-	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: <strong>Here</strong>") {
+	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: "+chip(t, views.Done, "Here")) {
 		t.Errorf("Ivy is here: %s", page)
 	}
 	redirected(t, h, admin+"/day/checkin", url.Values{"entry": {entry}, "status": {"scratched"}, "day": {"0"}})
-	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: <strong>Scratched</strong>") || !strings.Contains(page, chip(t, views.Stopped, "Scratched")) {
+	if page := do(t, h, http.MethodGet, ivy, nil).Body.String(); !strings.Contains(page, "Check-in: "+chip(t, views.Stopped, "Scratched")) || !strings.Contains(page, chip(t, views.Stopped, "Scratched")) {
 		t.Errorf("Ivy is scratched: %s", page)
 	}
 	desk := do(t, h, http.MethodGet, admin+"/desk", nil).Body.String()

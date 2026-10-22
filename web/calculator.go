@@ -42,7 +42,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET "+static.Prefix, static.Handler())
 
-	mux.HandleFunc("GET /{$}", handleIndex)
+	mux.HandleFunc("GET /{$}", pages.public(handleIndex))
 	mux.HandleFunc("POST /skill-form", handleSkillForm)
 	mux.HandleFunc("POST /skill-inputs", handleSkillInputs)
 	mux.HandleFunc("GET /skill-search", handleSkillSearch)
@@ -52,15 +52,15 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("POST /set-routine", handleSetRoutine)
 	mux.HandleFunc("POST /qr", handleQR)
-	mux.HandleFunc("GET /compare", handleComparePage)
+	mux.HandleFunc("GET /compare", pages.public(handleComparePage))
 	mux.HandleFunc("POST /compare", handleCompare)
-	mux.HandleFunc("GET /requirements", handleRequirementsPage)
+	mux.HandleFunc("GET /requirements", pages.public(handleRequirementsPage))
 	mux.HandleFunc("POST /requirements/editor", handleSetEditor)
 	mux.HandleFunc("POST /requirements/level-editor", handleLevelEditor)
 	mux.HandleFunc("POST /requirements/set-routine", handleSetRoutineFrom)
-	mux.HandleFunc("GET /view", handleViewPage)
+	mux.HandleFunc("GET /view", pages.public(handleViewPage))
 	mux.HandleFunc("POST /view", handleView)
-	mux.HandleFunc("GET /tariff-sheet", handleTariffSheetPage)
+	mux.HandleFunc("GET /tariff-sheet", pages.public(handleTariffSheetPage))
 	mux.HandleFunc("POST /tariff-sheet", handleTariffSheet)
 	mux.HandleFunc("GET /sw.js", handleServiceWorker)
 	mux.HandleFunc("GET /manifest.webmanifest", handleManifest)
@@ -70,15 +70,32 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	pages.register(mux)
+	// Any other address is a page saying there's nothing there, looking as
+	// the app's pages do, not Go's bare "404 page not found"; an address
+	// that only takes a POST still says the method is wrong.
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		post := r.Clone(r.Context())
+		post.Method = http.MethodPost
+		if _, pattern := mux.Handler(post); pattern != "" && pattern != "GET /" {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		notFound(w, r)
+	})
 
 	return withGzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
 			limit = maxUploadBytes
+		} else if r.Method == http.MethodPost && sendsFeedback(r.URL.Path) {
+			limit = maxFeedbackBytes
 		} else if r.Method == http.MethodPost && keepsRoutines(r.URL.Path) {
 			limit = maxKeepBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		if pages.sandbox != nil {
+			r = r.WithContext(views.WithSandbox(r.Context()))
+		}
 		w.Header().Set(static.VersionHeader, static.Version)
 		mux.ServeHTTP(w, r)
 	}))
@@ -205,6 +222,14 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 			s.Shape = shape
 		}
 		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
+	case "landing": // a body-landing tile, which takes off where the skill before it landed
+		tile, ok := catalog.LandingTile(r.FormValue("commonSkillKey"))
+		if !ok {
+			w.WriteHeader(http.StatusNoContent) // not a tile
+			return
+		}
+		s, editor.Follows = followLanding(tile, r.FormValue("previous_skill"))
+		s.CustomName = strings.TrimSpace(r.FormValue("custom_name"))
 	case "skill": // a search result
 		if err := json.Unmarshal([]byte(r.FormValue("skill")), &s); err != nil {
 			badRequest(w, fmt.Errorf("decoding skill: %w", err))
@@ -229,6 +254,45 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.SkillEditorView(editor))
 }
 
+// followLanding is a body-landing tile's skill after the skill before the
+// place it's going (previous, as JSON; "" at the start of the routine, which
+// takes off from feet), with a note saying why: "From seat, after Seat
+// Drop · also called Swivel Hips". After a skill that can't land, or where nothing lands like the tile
+// from there, it's the tile's usual skill, with no note; the routine flags
+// the transition.
+func followLanding(tile catalog.Entry, previous string) (skills.TrampolineSkill, string) {
+	if previous == "" {
+		s, ok := tile.Follow(skills.Feet)
+		if !ok {
+			return s, ""
+		}
+		return s, "From feet, at the start of the routine"
+	}
+	var prev skills.TrampolineSkill
+	if err := json.Unmarshal([]byte(previous), &prev); err != nil {
+		return tile.Skill, ""
+	}
+	prev.NormalizePhases()
+	landing := prev.LandingPosition()
+	if prev.Validate() != nil || landing == skills.Invalid {
+		return tile.Skill, ""
+	}
+	s, ok := tile.Follow(landing)
+	if !ok {
+		return s, ""
+	}
+	name := prev.CustomName
+	if name == "" {
+		name = skills.NameOf(prev)
+	}
+	note := fmt.Sprintf("From %s, after %s", strings.ToLower(landing.String()), name)
+	// The name it goes by may not be the one the coach had in mind.
+	if also := catalog.AlsoCalled(s); also != "" {
+		note += " · also called " + also
+	}
+	return s, note
+}
+
 // handleSkillSearch lists the skills matching the picker's search box, by name or
 // FIG notation (an empty query lists nothing).
 func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +304,7 @@ func handleSkillSearch(w http.ResponseWriter, r *http.Request) {
 	if s, ok := catalog.NotationReading(q); ok {
 		reading = &s
 	}
-	render(w, r, views.SearchResults(q, catalog.Search(q), reading))
+	render(w, r, views.SearchResults(q, catalog.Search(q), reading, catalog.LandingTiles(q)))
 }
 
 // handlePickSearch finds the requirements editor's picks (requirements.Picks)

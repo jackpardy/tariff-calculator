@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
+	"unicode/utf8"
 )
 
 // Officials (ADR 0005 Decisions 5 and 13): who can judge and help, what each
@@ -54,19 +56,23 @@ func (p Panel) check() error {
 	return nil
 }
 
-// Who may judge what: anyone up to the level they say (the default), only
-// levels below the one they compete at in that discipline, or only people the
-// organiser marks as qualified (up to the level they say).
+// Who may judge what: anyone, as they offer (the default), or only people the
+// organiser marks as qualified (as they offer). A rule of judging only levels
+// below one's own, once offered, reads as the default: the organiser's Note
+// asks for that, where they want it.
 const (
 	JudgeDeclared  = ""
-	JudgeBelow     = "below"
 	JudgeQualified = "qualified"
 )
 
 // OfficialSettings are the organiser's settings for officials.
 type OfficialSettings struct {
 	Panels map[string]Panel `json:"panels,omitempty"` // by discipline; missing: the Code of Points'
-	Judge  string           `json:"judge,omitempty"`  // JudgeDeclared, JudgeBelow or JudgeQualified
+	Judge  string           `json:"judge,omitempty"`  // JudgeDeclared or JudgeQualified
+	// Note is the organiser's word to those offering, beside the offer form,
+	// e.g. who they're short of, or who they'd rather didn't judge their own
+	// level.
+	Note string `json:"note,omitempty"`
 	// RecordersChange and MarshalsChange let those seats change between an
 	// event's flights; otherwise the whole panel stays for all of them (ADR
 	// 0006).
@@ -84,8 +90,11 @@ func (s OfficialSettings) Panel(discipline string) Panel {
 
 // Check reports what's wrong with the settings.
 func (s OfficialSettings) Check() error {
-	if !slices.Contains([]string{JudgeDeclared, JudgeBelow, JudgeQualified}, s.Judge) {
+	if !slices.Contains([]string{JudgeDeclared, JudgeQualified}, s.Judge) {
 		return fmt.Errorf("unknown judging rule %q", s.Judge)
+	}
+	if utf8.RuneCountInString(s.Note) > 500 {
+		return errors.New("the note to those offering is longer than 500 characters")
 	}
 	for d, p := range s.Panels {
 		if !slices.Contains(AllDisciplines, d) {
@@ -98,25 +107,50 @@ func (s OfficialSettings) Check() error {
 	return nil
 }
 
-// Offer is what a person can do as an official: judge some disciplines, up to
-// a level, perhaps chairing, and help as a recorder or marshal.
+// Offer is what a person can do as an official: judge some disciplines (HD
+// and synchronisation at any level, the rest each up to a level of their
+// own) and help as a recorder or marshal.
 type Offer struct {
 	Judge    map[string]JudgeOffer `json:"judge,omitempty"` // by discipline
 	Recorder bool                  `json:"recorder,omitempty"`
 	Marshal  bool                  `json:"marshal,omitempty"`
 }
 
-// JudgeOffer is judging one discipline.
+// JudgeOffer is judging one discipline: its HD and synchronisation at any
+// level, where it has them, and each of LevelRoles up to the level they say.
+// Offers from before levels were by role (up_to and chair) read as none.
 type JudgeOffer struct {
-	UpTo  string `json:"up_to,omitempty"` // the highest level they'll judge; "" for any
-	Chair bool   `json:"chair,omitempty"` // they can chair the panel
+	UpTo map[string]string `json:"roles,omitempty"` // by LevelRoles' role: the highest level they'll take it at, "" for any; missing: not that role
+}
+
+// Takes says whether they offer one of LevelRoles, at some level.
+func (j JudgeOffer) Takes(role string) bool {
+	_, ok := j.UpTo[role]
+	return ok
+}
+
+// LevelRoles are the judging roles taken up to a level, which a judge offers
+// each on its own: someone may judge difficulty at a level but not execution.
+// HD and synchronisation judges measure, the same at every level.
+var LevelRoles = []string{RoleExecution, RoleDifficulty, RoleChair}
+
+// Measured are a discipline's roles any of its judges may take at any level.
+func Measured(discipline string) []string {
+	switch discipline {
+	case Trampoline:
+		return []string{RoleHD}
+	case Synchro:
+		return []string{RoleHD, RoleSync}
+	}
+	return nil
 }
 
 // Empty says whether the offer offers nothing.
 func (o Offer) Empty() bool { return len(o.Judge) == 0 && !o.Recorder && !o.Marshal }
 
 // ValidateOffer reports what's wrong with an offer for this competition:
-// disciplines it doesn't offer, or levels it doesn't have.
+// disciplines it doesn't offer, levels it doesn't have, or judging a
+// discipline with nothing to take in it.
 func (c Competition) ValidateOffer(o Offer) error {
 	var errs []error
 	for d, j := range o.Judge {
@@ -124,19 +158,27 @@ func (c Competition) ValidateOffer(o Offer) error {
 			errs = append(errs, fmt.Errorf("the competition doesn't offer %s", DisciplineName(d)))
 			continue
 		}
-		if j.UpTo != "" && !slices.Contains(c.levelNames(d), j.UpTo) {
-			errs = append(errs, fmt.Errorf("%s has no level %q", DisciplineName(d), j.UpTo))
+		for role, upTo := range j.UpTo {
+			if !slices.Contains(LevelRoles, role) {
+				errs = append(errs, fmt.Errorf("%s: unknown role %q", DisciplineName(d), role))
+			} else if upTo != "" && !slices.Contains(c.levelNames(d), upTo) {
+				errs = append(errs, fmt.Errorf("%s has no level %q", DisciplineName(d), upTo))
+			}
+		}
+		if len(j.UpTo) == 0 && len(Measured(d)) == 0 {
+			errs = append(errs, fmt.Errorf("say what you'd judge in %s: execution, difficulty or chairing", DisciplineName(d)))
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// CanJudge says whether an official may judge a discipline's level under the
-// competition's rule. qualified is the organiser's mark; competing are the
-// levels they compete at, by discipline.
-func (c Competition) CanJudge(o Offer, qualified bool, competing map[string]string, discipline, level string) bool {
+// CanJudge says whether an official may take a judging role at a
+// discipline's level under the competition's rule: HD and synchronisation at
+// any level of a discipline they judge; execution, difficulty and chairing up
+// to the level they say for each. qualified is the organiser's mark.
+func (c Competition) CanJudge(o Offer, qualified bool, discipline, level, role string) bool {
 	j, ok := o.Judge[discipline]
-	if !ok {
+	if !ok || (c.Officials.Judge == JudgeQualified && !qualified) {
 		return false
 	}
 	levels := c.levelNames(discipline)
@@ -144,48 +186,30 @@ func (c Competition) CanJudge(o Offer, qualified bool, competing map[string]stri
 	if at < 0 {
 		return false
 	}
-	if j.UpTo != "" {
-		if top := slices.Index(levels, j.UpTo); top >= 0 && at > top {
-			return false
-		}
+	if slices.Contains(Measured(discipline), role) {
+		return true
 	}
-	switch c.Officials.Judge {
-	case JudgeQualified:
-		return qualified
-	case JudgeBelow:
-		own, competes := competing[discipline]
-		if !competes {
-			return true
-		}
-		return at < slices.Index(levels, own)
+	upTo, ok := j.UpTo[role]
+	if !ok {
+		return false
+	}
+	if top := slices.Index(levels, upTo); upTo != "" && top >= 0 && at > top {
+		return false
 	}
 	return true
 }
 
-// Describe says what an offer offers, e.g. "Judge Trampoline up to BUCS L5
-// (can chair) and Synchro at any level; recorder": "at any level" where
-// another discipline has a limit, so it doesn't read as sharing it.
+// Describe says what an offer offers, e.g. "Judge Trampoline (execution and
+// difficulty up to BUCS L5, chair at any level, and HD) and Synchro (HD and
+// synchronisation only); Recorder".
 func (o Offer) Describe() string {
-	limited := false
-	for _, j := range o.Judge {
-		limited = limited || j.UpTo != ""
-	}
 	var parts []string
 	for _, d := range AllDisciplines {
 		j, ok := o.Judge[d]
 		if !ok {
 			continue
 		}
-		part := DisciplineName(d)
-		if j.UpTo != "" {
-			part += " up to " + j.UpTo
-		} else if limited {
-			part += " at any level"
-		}
-		if j.Chair {
-			part += " (can chair)"
-		}
-		parts = append(parts, part)
+		parts = append(parts, DisciplineName(d)+" ("+j.describe(d)+")")
 	}
 	out := ""
 	if len(parts) > 0 {
@@ -193,10 +217,10 @@ func (o Offer) Describe() string {
 	}
 	var help []string
 	if o.Recorder {
-		help = append(help, "recorder")
+		help = append(help, "Recorder")
 	}
 	if o.Marshal {
-		help = append(help, "marshal")
+		help = append(help, "Marshal")
 	}
 	if len(help) > 0 {
 		if out != "" {
@@ -206,6 +230,51 @@ func (o Offer) Describe() string {
 	}
 	return out
 }
+
+// describe says what judging a discipline takes in, e.g. "execution and
+// difficulty up to BUCS L5, chair at any level, and HD": roles at the same
+// level together, in LevelRoles' order.
+func (j JudgeOffer) describe(discipline string) string {
+	var levels []string
+	roles := map[string][]string{}
+	for _, role := range LevelRoles {
+		upTo, ok := j.UpTo[role]
+		if !ok {
+			continue
+		}
+		if roles[upTo] == nil {
+			levels = append(levels, upTo)
+		}
+		roles[upTo] = append(roles[upTo], roleWords[role])
+	}
+	var parts []string
+	for _, l := range levels {
+		at := "at any level"
+		if l != "" {
+			at = "up to " + l
+		}
+		parts = append(parts, JoinList(roles[l])+" "+at)
+	}
+	var measured []string
+	for _, role := range Measured(discipline) {
+		measured = append(measured, roleWords[role])
+	}
+	if m := JoinList(measured); m != "" {
+		if len(parts) > 0 {
+			m = "and " + m
+		} else {
+			m += " only"
+		}
+		parts = append(parts, m)
+	}
+	return strings.Join(parts, ", ")
+}
+
+// JudgingWord is a judging role as an offer says it, e.g. "execution".
+func JudgingWord(role string) string { return roleWords[role] }
+
+// roleWords are the judging roles as an offer says them.
+var roleWords = map[string]string{RoleExecution: "execution", RoleDifficulty: "difficulty", RoleChair: "chair", RoleHD: "HD", RoleSync: "synchronisation"}
 
 // JoinList joins words as "a, b and c".
 func JoinList(parts []string) string {

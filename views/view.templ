@@ -64,6 +64,7 @@ templ ViewPage() {
 			@templ.JSONScript("level-data", levelData(requirements.BuiltinGroups()))
 		</head>
 		<body>
+			@sandboxBanner()
 			<nav class="view-bar">
 				<a class="view-back" href="/" aria-label="Back to the Routine Builder">←</a>
 				<select id="view-routine" aria-label="Routine"></select>
@@ -89,6 +90,7 @@ templ ViewPage() {
 					<p class="view-loading">Loading the routine saved in this browser...</p>
 				</div>
 			</main>
+			@feedbackButton(FeedbackFormOf(ctx))
 		</body>
 	</html>
 }

@@ -24,11 +24,21 @@ competition deleted, a link replaced) is dropped from the list when you open
 it, and its page has a way back to the list. On another phone, open the
 link itself; copy it somewhere safe with **Copy** when you get it.
 
+**To try it first**, there's a sandbox at
+<https://sandbox.tariff.pardy.ie/sandbox>: a copy full of made-up clubs and
+gymnasts, with one competition open for entries and one on the day. Its start
+page, **Try it as…**, has a link for each role (organiser, helper, club
+admin, someone in a club with a role, coach, member, gymnast on their own,
+the venue screen). Change anything: it's all put back from time to time.
+Notifications don't work there: nothing in it is emailed or pushed.
+
 Who does what:
 
 - The **organiser** creates the competition and sees every entry.
 - A club's **competition secretary** (comp sec) creates the club, enters it in
-  competitions and sends the members' entries.
+  competitions and sends the members' entries. Whoever creates the club is
+  its **club admin**, and gives each person who helps (a treasurer, a team
+  manager) a link with a role that says what they can do.
 - **Members** join their club and keep their own entries.
 - **Coaches** sign off their members' routines, if the competition asks.
 - A gymnast without a club can **enter on their own**, if the organiser allows.
@@ -77,14 +87,13 @@ performed as written.
 under its title: **Entries**, **Timetable**, **On the day** (once the
 timetable is published) and **Settings**. Tap a section to open it; its own
 pages are listed under the bar, with the page you're on marked. **Entries** has
-People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
-Late changes and Coaches when something waits for you. **Timetable** has the
-timetable, Officials, Simulate and the two "what if" pages. **On the day** has
-the day's page, Desk messages and the Venue screen. **Settings** has the
-Settings page, History and Feedback (its tab says how much feedback is new).
-On a phone the bar scrolls sideways. A helper's link shows only the sections
-it can open: one that can read feedback but not change settings has a
-**Feedback** tab.
+All entries, People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
+Late changes and Coaches when something waits for you. **Timetable** has
+Flights (the timetable itself), Setup, Officials, Simulate and the two "what if" pages. **On the day** has
+Areas (the day's page), Desk messages and the Venue screen. **Settings** has
+Competition (the settings themselves) and History.
+On a phone the bar scrolls sideways: its edge fades, with a small arrow, where there's more. A helper's link shows only the sections
+it can open.
 
 The entries page shows the counts, then a table for each event (a level, or
 "Synchro BUCS L3", "Tumbling Novice"): gymnast (both names for a synchro pair), club,
@@ -94,8 +103,8 @@ asked, when it was sent, and whether you've checked it. To find entries:
 "marykate" finds Mary Kate, and synchro partners count), filter by club, coach (or no coach), checked or not, signed off or
 not, video, men or women, or **Problems only**, and sort by club, gymnast,
 latest sent or coach. The filters stay in the page's address, so you can
-bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each event's table starts folded (tap its heading to open it) and
-says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a line at a table's edge means there's more to scroll to. **Expand all** and **Collapse all** open or fold every one, and
+bookmark or share a view; **Print** and **Download CSV**, below the entries, use them too. The page opens on the entries; the competition's dates and counts are at the bottom. With many filters, they're under **Filters**, which says how many are on. Each choice says how many entries it would leave ("UCD (12)"), and one that would leave none is greyed out. The filters you've chosen are listed under the search ("Club: UCD ×"): tap one to take it off. Each event's table starts folded (tap its heading to open it) and
+says how many of its entries are shown ("12 of 96"); **Columns** chooses which columns show (Sent is hidden until you tick it, so the rest fit a laptop's screen) and can clip long text to one line, and dragging the edge of a heading makes a column wider or narrower; a table's edge fades where there's more to scroll to. The Coach column names the coach and says **Signed off**, **Needs changes** or **Waiting**; an asterisk after a coach's name means they aren't approved to sign off for this competition, so their sign-off doesn't count. **Expand all** opens every one (it then reads **Collapse all**, to fold them again), and
 your browser remembers which you left open. A search or filter opens the
 events it finds people in. Tap a gymnast to see both exercises in full (a synchro
 pair's one routine), checked as the Routine Builder checks them.
@@ -128,7 +137,10 @@ pair's one routine), checked as the Routine Builder checks them.
   order, so check where your own levels sit), choose which
   levels rank men and women separately, turn entering on their own, video proof or
   coach sign-off on or off, **Replace the admin link** if it's been shared too
-  widely, or delete the competition (each of those last two asks once more).
+  widely, or delete the competition. Replacing asks first, at the top of
+  Settings: the old link stops working at once for everyone who has it,
+  wherever it's saved (your helpers' links keep working). Deleting needs the
+  word **delete** typed in a box, so it can't happen by accident.
 - **Links for your helpers** (under **Links** on the Settings page): tap
   **Make a link**, name it (who it's for) and choose what it can do: **Checking cards** (for
   difficulty judges: check cards, add notes, review videos), **Chairs of
@@ -137,7 +149,8 @@ pair's one routine), checked as the Routine Builder checks them.
   screen at the venue: what's on each area now and next, and nothing else; see
   [On the day](#on-the-day-venue-screen) below), or **Everything but links
   and deleting** (a co-organiser). Copy the link straight away: it's shown
-  only once. **Remove** stops it working. **History** lists every change,
+  only once. **Remove** stops it working, once you say yes at the top of
+  the page. **History** lists every change,
   when, and which link made it.
 - **Changes and sign-off after entries close** (under **Entries and
   deadlines** on the Settings page): entries closing stops new entries; give **Changes to
@@ -170,21 +183,33 @@ pair's one routine), checked as the Routine Builder checks them.
   and a club fee if you have one) and how to pay. Each club and individual
   is listed with what's due, paid and left; record payments as they come
   (**Record a payment**, with the amount and a note), and print each one's
-  **Invoice**.
+  **Invoice**. **Remove** beside a payment recorded by mistake asks first,
+  at the top of the page.
   Clubs see what they owe on the competition's **Fees** tab of their club page, with their invoice;
   individuals on their entry. Removed, held and withdrawn entries aren't
   charged.
-- **Concerns:** anyone with one of your links can **Flag a concern**, about
-  an entry or generally ("element 7 isn't on the card"). A chip at the top of
-  the entries page says how many are open and goes to them, listed at the
-  foot of the page; mark each **Resolved**, with a note of what was done, and
-  those resolved fold away beneath.
-- **Feedback:** while the app is new, every page has a **Feedback** button
-  at the foot, for anyone to say what confused them. It goes to the people
-  who make the app, and you see it under **Settings**, **Feedback** (the
-  Settings tab says how many are new): tick
-  **Dealt with** as you go. Turn the button off in **Settings**, under
-  Feedback.
+- **Messages and concerns:** members, coaches, comp secs and gymnasts on
+  their own can **Tell the organiser** something from their pages for the
+  competition ("my surname is spelled wrong on the timetable"), with their
+  name and club, and the entries or events it's about if they choose
+  ([how](#tell-the-organiser)). Anyone with one of your links can **Flag a
+  concern**, about an entry or generally ("element 7 isn't on the card"). A
+  chip at the top of the entries page says how many are open and goes to
+  them, listed at the foot of the page, each with who sent it. A message
+  says **Waiting for you** until you answer: tap **Received** to let them
+  know you have it, **Reply** to write back (they see it on their page, and
+  hear by push or email if they've asked to), and **Resolve** when it's
+  done, with a reply for them and a note for yourself, both optional (they
+  never see the note). They can add to it, and more from them opens it
+  again. Those resolved fold away beneath. To stop messages, open
+  **Settings**, **Messages to you**, **Change**, **Stop messages** (those
+  sent stay).
+- **Feedback:** while the app is new, every page has a **Feedback** tab at
+  the right edge of the screen, for anyone to say what confused them. It
+  goes to the people who make the app, not to you; while the app is being
+  tried out, a picture of the screen and a copy of the page go with it, and
+  the form says so. For something about your competition, people use **Tell
+  the organiser** (helpers **Flag a concern**).
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
   discipline (Level 2 to start with; British Gymnastics and Gymnastics
@@ -197,12 +222,13 @@ pair's one routine), checked as the Routine Builder checks them.
   not approved, withdrawn) with the search above the list. Only approved coaches can sign off, and only their
   sign-offs count:
   an entry signed off by anyone else says so. **Withdraw approval** stops a
-  coach's sign-offs counting; approving them again, choose whether the
-  sign-offs they gave before count again or only those from now on.
+  coach's sign-offs counting, at once, with **Undo** in the note that says
+  so; approving them again later, choose whether the sign-offs they gave
+  before count again or only those from now on.
   Turning approval on when entries are already signed off asks first,
   saying how many entries it leaves waiting for a coach's sign-off.
-  Approving a coach whose club sent no qualifications asks first too, and
-  after deciding you're back at that coach.
+  Approving a coach whose club sent no qualifications asks first too, at
+  the top of the page, and after deciding you're back at that coach.
 
 **Remove or hold entries**: tick entries in the tables (a table's header
 ticks them all; filter by club first to take a whole club), then choose
@@ -222,10 +248,14 @@ entries are deleted 120 days after the competition date.
 Tap **People** under **Entries** to see everyone at the competition in one
 list, each person once: gymnasts (and synchro partners), officials and coaches.
 A member who competes and judges is one row. The list shows their name, club
-and what they do ("Trampoline BUCS L7, Synchro BUCS L6/L7 · judge, can chair ·
+and what they do ("Trampoline BUCS L7, Synchro BUCS L6/L7 · Judge, Chair ·
 coaches 6"), with the number of people at the top. Type part of a name in
-**Find a name**, or narrow the list by club or by what they do (gymnast,
-official or coach). **Clear** shows everyone again.
+**Find a name**, or narrow the list by club, by what they do (gymnast,
+official or coach) or by the level they can judge. Each choice says how many
+people it would leave, and one that would leave nobody is greyed out, so
+looking for a judge from a club for a level, you see at once whether there's
+anyone. The filters you've chosen are listed under the search: tap one to
+take it off. **Clear** shows everyone again.
 
 Tap a name to see everything that person is doing, in one page for you to read
 (they can't be changed from it): their entries and the status of each card, with
@@ -268,13 +298,18 @@ and anyone you add.
   **Recorders can change** or **Marshals can change** to let those seats
   change between the event's flights.
   Choose who may
-  judge: anyone up to the level they say, only levels below their own, or only
-  people you mark qualified. "Up to" and "below" go by the **Order of levels**
-  on the Settings page.
+  judge: anyone as they offer, or only people you mark qualified. Judges
+  offer HD and synchronisation at any level, and execution, difficulty and
+  chairing each up to a level they choose; "up to" goes by the **Order of
+  levels** on the Settings page. Write a **note to those offering** if you
+  like (who you're short of, or that you'd rather people didn't judge their
+  own level): it's shown above the form where they say what they'll do.
   To find people in a long list, type part of a name in **Find a name**, or
   narrow it by club, what they can do, the level they can judge (a level
-  shows everyone who can judge it or a harder one) or qualified. **Clear**
-  shows everyone again.
+  shows everyone who can judge it or a harder one) or qualified. Each choice
+  says how many it would leave, greyed out if none; the filters chosen are
+  listed under the search, each with × to take it off. **Clear** shows
+  everyone again.
 
 ## Plan the timetable
 
@@ -346,7 +381,8 @@ a **Change** button to open it.
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
-   for; **Assign officials again** redoes every panel and keeps the flights.
+   for (the people who can take the seat you chose are listed first); **Assign officials again** redoes every panel and keeps the flights
+   (it asks first, as your changes to the panels are lost).
    Moving an event or a gymnast, or giving someone a seat, that would break
    something that holds now (someone in two places, a flight past the end of
    the day, one of your rules, rest where it's a must) asks first: **Before
@@ -383,15 +419,19 @@ a **Change** button to open it.
    seats to officials, keeping a "what if") is a **draft**: everyone else
    still sees what you published until you tap **Publish changes**. The page
    says when there are changes not published yet; **Discard changes** goes
-   back to what's published, and **Unpublish** takes it down.
+   back to what's published, and **Unpublish** takes it down. Each asks
+   first, on a page saying what it does, as does **Plan again** once the
+   timetable is planned.
    What's been marked on the day stays when you change the plan: check-ins
    stay with each gymnast, and a flight keeps its times, who's up and its
    panel's check-ins when you move it, and when you plan again if it keeps
-   the same gymnasts. Once the competition has begun, the timetable can't
+   the same gymnasts. A gymnast you move to another flight is checked in
+   again there: their check-in clears when the move is published. Once the competition has begun, the timetable can't
    be planned again (what's run has run): change flights, gymnasts and
    seats by hand, or use the "what ifs". If publishing would
-   drop anything (a flight that has run but is no longer in the plan, or a
-   panel check-in for a seat that's gone), **Publish changes** says what
+   drop anything (a flight that has run but is no longer in the plan, a
+   panel check-in for a seat that's gone, or a checked-in gymnast moved to
+   another flight), **Publish changes** says what
    first, and you choose **Publish anyway** or **Cancel**.
 11. **On the day** (a button on the entries page once you've published; chairs
    of judges' and timetable links get it too): pick the day. Each area is a
@@ -428,10 +468,10 @@ a **Change** button to open it.
    part of their name in **Find a name**: only the flights with them show,
    with their Check-in or Panel list open, and it stays that way as you tap
    Here. Each area's card has **Open**, which goes straight to that area's own page.
-   **What the colours mean.** Each state is a small label with a mark, the
-   same on every page: grey ○ not yet (not started, not checked in), blue ◐
-   under way or waiting on someone, green ✓ done (finished, here), amber !
-   needs a look (running late, a seat no one is in) and red ✕ out
+   **What the colours mean.** Each state is a small coloured label, the
+   same on every page: grey not yet (not started, not checked in), blue
+   under way or waiting on someone, green done (finished, here), amber
+   needs a look (running late, a seat no one is in) and red out
    (scratched, missing). Each flight says Not started, Under way, Running late
    or Finished; the Check-in and Panel headings count who's here and who's
    out, and a Panel lists any seat that still needs someone.
@@ -540,15 +580,23 @@ venue setup, **Run again**.
 # 2. Run your club (comp secs)
 
 1. Go to **tariff.pardy.ie/competitions** and tap **New club**. Give its name
-   and tap **Create club**. Save the **admin link** you're given.
+   and tap **Create club**. Save the **club admin link** you're given: it
+   can do everything, so keep it for setting the club up.
 2. Open **Members** and share the **Join link** in the club's chat. Members
    join with it.
-3. To enter a competition, open the **club link** the organiser gave you,
-   choose your club (or paste its admin link) and tap **Enter the club**.
-   Members can then add their entries.
+3. On **Settings**, make a role for each kind of help you have and a link
+   for each person who helps, yourself too (see
+   [Roles and links](#roles-and-links)). Use your own link from then on.
+4. To enter a competition, open the **club link** the organiser gave you,
+   choose your club (or paste its club admin link, or your own if your
+   role can enter entries) and tap **Enter the club**. Members can then add
+   their entries.
 
 Your club page is in four sections, in a menu at the top: **Competitions**,
-**Members**, **Coaches** and **Settings**. It opens on **Competitions**, a
+**Members**, **Coaches** and **Settings** (only with the club admin link, or
+a role with **Club settings**). A link with a role shows only what it can
+do: without **Send entries** there's no **Send**, without **Manage members**
+no **Remove**, and so on; under the menu it says whose link it is. It opens on **Competitions**, a
 row for each competition your club is in, saying how many entries it has,
 how many are still to send or have problems, and whether the timetable is
 published or there's a message from the organisers. Tap one to open its
@@ -586,7 +634,7 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   coaches**. Each shows whether the organiser has approved them, with their
   note. If you change a coach's qualifications, send them again for the
   organiser to approve again.
-- **Judging and helping** lists what each member offers; **Change** corrects
+- **Judging and helping** lists what each member offers to do; **Change** corrects
   it, and **Add an offer** adds one for a member who told you rather than
   adding it themselves.
 - **Fees** says what's left to pay and how to pay first, then the invoice's
@@ -598,7 +646,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   **More** beside them, give a member who lost their link a **New link**: the
   page asks first, as their old one stops working wherever it's saved, and
   then shows the new one, once, to send them (it opens only their pages at
-  your club: they add their other links again), or **Remove** them. A member who also coaches needs no coach link:
+  your club: they add their other links again), or **Remove** them (asked
+  first, as their entries go with them). A member who also coaches needs no coach link:
   tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
@@ -612,7 +661,7 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   and who has qualifications): tap **Add a coach**, type a name and tap
   **Add coach**, then send them the coach link shown (it's shown only then;
   **More**, **New link** makes another, asking first as the old one stops
-  working, and **Remove** takes them off). How
+  working, and **Remove** takes them off, asking first too). How
   many members chose each coach links to those members. **Who
   coaches see**, **Change**: tick **Every coach sees every member** if your
   coaches share everyone. Untick a coach's
@@ -622,17 +671,59 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   certificate (up to 3 MB, four per coach, and 60 MB for the whole club), for competitions that ask for
   qualified coaches. Only you, and organisers you send the coach to, can
   open it; it's kept until you remove it or the coach.
-- **Settings** (its own section): a row for each setting, with its button at
-  the right. **Members' skills**, **Change**: **Let every member see
+- **Tell the organiser**: at the foot of a competition's **Entries**, to send
+  its organiser a message from the club, about any of the club's entries,
+  whole events, or the competition generally ([how](#tell-the-organiser)).
+- **Settings** (its own section, for the club admin and a role with **Club
+  settings**): the club admin's **Roles** and **Links** first (see
+  [Roles and links](#roles-and-links)), then a row for each setting, with its
+  button at the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
-  each member's are seen by them, their coaches and you). **Admin link**,
-  **Replace**, and **Delete the club**, **Delete**, open to do it; replacing
-  the admin link asks first, as the old one stops working for everyone who has it. A
+  each member's are seen by them, their coaches and you). **History**,
+  **Show**: what was changed through the club's links, when and by whom.
+  **Club admin link**, **Replace**, and **Delete the club**, **Delete**, open
+  to do it; replacing the club admin link asks first, as the old one stops
+  working for everyone who has it (links with a role keep working), and
+  deleting the club needs the word **delete** typed in a box. A
   club is deleted 13 months after anyone last used it (you, a coach or a
   member opening their page); Settings says when. **Opened from people's own
-  links** lists anyone who added the admin link to their own page (see
+  links** lists anyone who added the club admin link to their own page (see
   [One link for all your roles](#6-one-link-for-all-your-roles)), with
-  **Remove**; replacing the admin link ends it for all of them.
+  **Remove**; replacing the club admin link ends it for all of them.
+
+## Roles and links
+
+The club admin link can do everything, so it's for setting the club up.
+For every day, each person who helps the club (you too) gets a link of
+their own with a **role**, which says what it can do; the history says who
+did what.
+
+1. On **Settings**, under **Roles**, tap **Make a role**. Name it (for
+   example **Comp sec**, **Treasurer** or **Team manager**), tick what it can
+   do and tap **Make the role**. Every role sees the club: its competitions
+   and entries, the members and coaches, timetables and the organisers'
+   messages. Tick what else: **Enter and change entries**, **Send entries**,
+   **Fees**, **Manage members**, **Manage coaches**, **Certificates** (tick
+   it only for someone who needs coaches' and judges' certificates), **Talk
+   to the organiser** and **Club settings**. A club can have 10 roles.
+2. Under **Links**, tap **Make a link**, type who it's for, choose their
+   role and tap **Make the link**. Copy the link and send it to them: it's
+   shown only this once. A club can have 30 links.
+3. A link's pages show only what its role can do. If someone needs more,
+   open their role's **Change**, tick it and tap **Save**: it counts at once
+   for everyone with that role. Or give them another role: tap **Change**
+   beside their link, choose the role and tap **Change role**.
+4. **Remove**, under a link's **Change**, stops it working at once (the page
+   asks first).
+   If it's lost, remove it and make another. A role can be removed once no
+   link has it.
+
+What's sent from a link says who sent it: feedback and messages to the
+organiser say "Mary (Treasurer), UCD", or "Club admin, UCD" from the club
+admin link. The club's messages to an organiser are seen and answered by
+every link that can talk to the organiser. Anyone can add their link to
+their own page (see [One link for all your roles](#6-one-link-for-all-your-roles)),
+and it opens the club as their role there.
 
 # 3. Enter through your club (members)
 
@@ -669,8 +760,10 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
    can, to ask your comp sec to add one.
 
 Under **Judging and helping**, say what you can do at the competition: judge a
-discipline (up to a level, and whether you can chair), or help as a recorder
-or marshal. Your comp sec can correct it, and sends it with the entries.
+discipline, or help as a recorder or marshal. Ticking **Judge** a discipline
+offers its HD (and in synchro, synchronisation) at any level; for
+**Execution**, **Difficulty** and **Chair**, choose no, any level, or up to a
+level, each on its own. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
 Below it, **Your judging qualifications**: tap **Add a judging
 qualification**, choose it and add a photo or PDF of its certificate. They're
 kept with you at the club for every competition; the organiser sees them with
@@ -680,7 +773,7 @@ To change it, open the discipline's row, then **Change your entry**, above
 its card. To pull out of one discipline, tap
 **Withdraw** under the card, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
-timetable, your flight, area and warm-up time, and under **Officiating**
+timetable, your flight, area and warm-up time, and under **Your duties**
 when and where you judge or help.
 
 **My competition** (the one link on the competition's page) is the page for
@@ -721,6 +814,36 @@ To see it all, open your page from the link you saved: messages don't
 carry your link, so they can't be used to open your page. Tapping one
 opens **Competitions**, which lists the links saved on that phone.
 
+## Tell the organiser
+
+To tell the competition's organiser something (a question, or something to
+put right), tap **Write** beside **Tell the organiser** at the foot of your
+page for the competition or of **My competition**. It says who it's from,
+as the organiser will see it ("Ann Ryan, a member of UCD"): your name comes
+from your link, so there's nothing to type. Under **About**, tick any of
+your entries it's about, or none for the competition generally; write your
+message and tap **Send to the organiser**. The page says it's sent. You can
+send 10 a day; the organiser may also turn messages off.
+
+Your messages are listed beneath, under **Your messages to the organiser**:
+each says **Sent**, then **Received** once the organiser has it, then
+**Resolved**, with their replies. **Add to this** answers them or adds
+more. If you've turned on **Tell me about changes**, you hear of their
+answers by push or email too.
+
+It goes to the organiser only. Something wrong with the app itself? Use the
+**Feedback** tab at the right edge of the screen instead: that goes to the
+people who make the app.
+
+Comp secs, coaches and gymnasts on their own have the same form: a comp sec
+at the foot of the competition's **Entries** (about any of the club's
+entries), a coach under each competition on **Entries** (about the gymnasts
+they see), and a gymnast on their own on their page for the competition and
+**My competition** (about any of their disciplines). A comp sec's and
+coach's list is grouped by event: tick an event's first box for all of the
+club's entries in it, or search for a gymnast or event when the list is
+long.
+
 ## Mark your skills
 
 Your page's **Skills** tab keeps track of the skills you're **Learning** and
@@ -758,8 +881,8 @@ change an entry for you.
   and are yours to rename or delete.
 - Tap a routine to see it checked, with any note from your coach. **Open in
   the Routine Builder** adds a copy to the builder on the phone you're using,
-  to change and save again. **Rename** or **Delete from your page** (the
-  builder's copy stays).
+  to change and save again. **Rename** or **Delete from your page** (asked
+  first; the builder's copy stays).
 
 You can keep up to 30 routines.
 
@@ -846,7 +969,7 @@ under **Name a skill**, type the name (say *Swivel Hips*) and tap **Save
 name**: your club's pages then show that name. For anything else you track,
 like a drill, give it a name (and a note if you like) under **Something else
 to track** and tap **Add**. Removing something to track removes its marks
-too.
+too, so **Remove** asks first.
 
 **Levels** (the fourth section) holds your club's levels, such as *Club
 Grade 1*, in order. Tap **New level** and write it there, as you would any
@@ -875,6 +998,9 @@ they've marked that you haven't marked the same has **Confirm**: tap it once
 you've seen it, and you mark it the same. Gymnasts lists how many each has to
 confirm.
 
+To send a competition's organiser a message, use **Tell the organiser**
+under the competition on **Entries** ([how](#tell-the-organiser)).
+
 # 5. Enter on your own
 
 1. Open the competition's **link for entering on your own** from the organiser.
@@ -896,7 +1022,7 @@ confirm.
    **Withdrawn**: **Put it back** enters it again, until entries close. On an
    entry, under **Judging and helping**, say what you can judge or help with:
    it's one offer for the competition, the same on each of your entries. Once the timetable is published, your entry
-   shows your flight and, under **Officiating**, when and where you judge or
+   shows your flight and, under **Your duties**, when and where you judge or
    help. **My competition** gathers all your entries (each discipline),
    times, your flights and panels, your timetable and calendar on one page (the whole timetable a tap away).
 
@@ -913,6 +1039,9 @@ confirm.
    decision and any note. Changing your coach sends them to be approved
    again.
 
+To send the organiser a message, use **Tell the organiser** at the foot of
+your page for the competition ([how](#tell-the-organiser)).
+
 # 6. One link for all your roles
 
 If you're a member who also coaches, your club's comp sec, entering some
@@ -920,32 +1049,41 @@ competitions on your own, or helping run one, you can open all of it from
 one link. On your page's **Your details**, under **Your other links**, tap **Add a link**, paste another of your
 links and tap **Add**. Add only your own links: if the name on the link
 isn't yours (your coach's, say), the page asks first, as adding it makes you
-and them one person. Then tabs at the top (Member, Coach, Competition secretary, On your own, or the
+and them one person. Then tabs at the top (Member, Coach, Club admin or your club role, such as Treasurer, On your own, or the
 competition's) switch between them, whichever of your links you open. Each
 link listed has **Undo**.
 
 - Only add links that are yours. Pasting a link is how you show it's yours,
   so there's nothing to approve.
-- A shared link, such as your club's comp sec link or a link the organiser
+- A shared link, such as your club's club admin link or a link the organiser
   gave a panel, opens from your page, but never opens your page: everyone
-  else who has it sees only what it always showed. The comp sec or organiser
+  else who has it sees only what it always showed. The club admin or organiser
   sees who added it, and can remove it; replacing it ends it for everyone.
-- If your comp sec makes you a coach too, there's no coach link: your member
+- A link your club admin made for you with a role (Treasurer, say) opens
+  the club as that role from your page, with a tab named for it, until the
+  club admin removes the link.
+- If your club makes you a coach too, there's no coach link: your member
   link opens your coach's page.
-- If your comp sec gives you a **New link**, it opens only your pages at
-  that club: add your other links to it again. The comp sec sees the links
-  they make, so a link they make never opens your roles elsewhere.
+- If your club gives you a **New link**, it opens only your pages at that
+  club: add your other links to it again. Whoever makes it sees it, so a
+  link they make never opens your roles elsewhere.
 
 # What's kept
 
 Only names, clubs, levels and events, men or women where asked, synchro
 partners, routines (with entries, and those members keep on their page),
 the skills members and coaches mark, with who marked them and when,
-the club's own skills and the coach who added each,
-video links, and the organiser's and coaches' notes, and
-coaches' qualifications with their certificates where the club adds them. No
-emails, birthdays or contact details. Videos are never uploaded: only their
-links.
+the club's own skills and levels and the coach who added each,
+video links, the organiser's and coaches' notes, messages to the organiser
+and their replies, the names on a club's links with a role and the club's
+history of changes, and coaches' and judges' qualifications with their
+certificates where they're added. No birthdays or contact details; an email
+address only if you ask to hear about changes by email, until you stop
+them. Videos are never uploaded: only their links.
+
+Feedback sent with the **Feedback** tab goes to the people who make the
+app, with the page it was sent from; while the app is being tried out, a
+picture of the screen and a copy of the page go with it, kept for 90 days.
 
 # Keeping your links safe
 

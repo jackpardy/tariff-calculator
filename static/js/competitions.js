@@ -532,17 +532,24 @@
         update();
     }
 
-    // menuInView scrolls each row of the page's menu sideways so its current
-    // tab shows: on a phone the rows are wider than the screen.
-    function menuInView() {
-        document.querySelectorAll('.comp-menu .tabs').forEach((row) => {
-            const active = row.querySelector('li.is-active');
-            if (active && row.scrollWidth > row.clientWidth) {
-                const a = active.getBoundingClientRect();
-                const r = row.getBoundingClientRect();
-                row.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
-            }
+    // expandAll is the entries page's one button opening every level, or,
+    // once they're all open, closing them: its words say which it does.
+    function expandAll() {
+        const button = document.querySelector('[data-expand-all]');
+        if (!button) { return; }
+        const levels = () => [...document.querySelectorAll('details.comp-dash-level')];
+        const sync = () => {
+            const open = levels().every((d) => d.open);
+            button.textContent = open ? 'Collapse all' : 'Expand all';
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        button.addEventListener('click', () => {
+            const open = !levels().every((d) => d.open);
+            levels().forEach((d) => { d.open = open; });
+            sync();
         });
+        document.addEventListener('toggle', (e) => { if (e.target.matches?.('details.comp-dash-level')) { sync(); } }, true);
+        sync();
     }
 
     // dayPage keeps the On the day page where it is when a button on it is
@@ -696,7 +703,14 @@
         const say = (notices) => {
             const box = document.getElementById('day-notice');
             if (!box || notices.length === 0) { return; }
-            box.replaceChildren(...[...new Set(notices)].map((n) => Object.assign(document.createElement('div'), { className: 'notification is-info is-light', textContent: n })));
+            // As views.notice: green, with × to put it away.
+            box.replaceChildren(...[...new Set(notices)].map((n) => {
+                const note = Object.assign(document.createElement('div'), { className: 'notification is-success is-light comp-notice', role: 'status' });
+                const close = Object.assign(document.createElement('button'), { className: 'delete', type: 'button', onclick: () => note.remove() });
+                close.setAttribute('aria-label', 'Dismiss');
+                note.append(close, n);
+                return note;
+            }));
         };
         const sendTaps = () => {
             if (!taps) { return; }
@@ -817,41 +831,113 @@
 
     // listTools searches and filters each list of people (views/lists.templ):
     // a row shows when its name has every word searched for and it matches
-    // every filter chosen. The search and filters are kept for the tab, so a
-    // page that reloads after a change comes back the same. A list the server
-    // filters (data-form, the dashboard) sends its filters to the server
-    // instead; its search narrows the rows here as it's typed, and the page's
-    // address and links marked data-list-carry follow it.
+    // every filter chosen. Each choice says how many it would leave, given
+    // the search and the other filters, greyed out when that's nobody (unless
+    // chosen, so it can be seen and taken off), and each filter chosen is a
+    // chip under the search that takes it off. The search and filters are
+    // kept for the tab, so a page that reloads after a change comes back the
+    // same. A list the server filters (data-form, the dashboard) sends its
+    // filters to the server instead, and every row's values for the counts
+    // (listAll); its search narrows the rows here as it's typed, and the
+    // page's address and links marked data-list-carry follow it.
     function listTools() {
         for (const tools of document.querySelectorAll('[data-list-tools]')) {
             if (!document.getElementById(tools.dataset.listTools)) { continue; }
             const form = tools.hasAttribute('data-form');
             // The list and its rows are read afresh each time, as the On the
             // day page swaps in new copies of them (dayPage).
-            const readRows = (list) => [...list.querySelectorAll('[data-list-row]')].map((el) => {
+            const readRow = (el) => {
                 let values = {};
                 try { values = JSON.parse(el.dataset.values || '{}'); } catch (e) { /* no values: matches no filter */ }
-                return { el, name: fold(el.dataset.name || ''), values };
-            });
+                return { el, name: fold(el.dataset.name || ''), values, counted: !('listUncounted' in el.dataset) };
+            };
+            const readRows = (list) => [...list.querySelectorAll('[data-list-row]')].map(readRow);
             const search = tools.querySelector('[data-list-search]');
             const filters = [...tools.querySelectorAll('[data-list-filter]')];
-            const count = tools.querySelector('[data-list-count]');
+            const shownCount = tools.querySelector('[data-list-count]');
             const clear = tools.querySelector('[data-list-clear]');
             const none = tools.querySelector('[data-list-none]');
             const noun = tools.dataset.noun;
+            const chips = tools.querySelector('[data-list-chips]');
             const stateKey = 'trampolineList:' + location.pathname + ':' + tools.dataset.listTools;
+            // Each choice's label, before its count is put on it.
+            for (const o of tools.querySelectorAll('[data-list-filter] option')) { o.dataset.label = o.textContent; }
 
-            // matches says whether a row has a filter's chosen value: for an
-            // "at least" filter, a value with the same prefix and as high a number.
-            // The server has already filtered a form's rows.
-            const matches = (row, filter) => {
-                if (form) { return true; }
+            // has says whether a row has a filter's value: for an "at least"
+            // filter, a value with the same prefix and as high a number.
+            const has = (row, filter, value) => {
                 const have = row.values[filter.dataset.listFilter] || [];
-                if (!filter.hasAttribute('data-at-least')) { return have.includes(filter.value); }
-                const at = filter.value.lastIndexOf(':');
-                const prefix = filter.value.slice(0, at + 1);
-                const need = Number(filter.value.slice(at + 1));
+                if (!filter.hasAttribute('data-at-least')) { return have.includes(value); }
+                const at = value.lastIndexOf(':');
+                const prefix = value.slice(0, at + 1);
+                const need = Number(value.slice(at + 1));
                 return have.some((v) => v.startsWith(prefix) && Number(v.slice(prefix.length)) >= need);
+            };
+            // matches says whether a row has a filter's chosen value. The
+            // server has already filtered a form's rows.
+            const matches = (row, filter) => form || has(row, filter, filter.value);
+
+            // every is each row of the list, to count the choices by: a form
+            // sends them all (listAll); otherwise the rows in the page and
+            // those still folded away (lazyRows), read without putting them in.
+            let sent = null;
+            const every = (list) => {
+                if (!form) {
+                    const waiting = [...list.querySelectorAll('template[data-lazy]')].flatMap((t) => [...t.content.querySelectorAll('[data-list-row]')]);
+                    return [...readRows(list), ...waiting.map(readRow)].filter((row) => row.counted);
+                }
+                if (sent) { return sent; }
+                sent = [];
+                const all = document.getElementById(tools.dataset.listTools + '-all');
+                try {
+                    const { keys, values, rows } = JSON.parse(all ? all.textContent : '{}');
+                    sent = (rows || []).map(([name, ...at]) => {
+                        const row = { name: fold(name), values: {} };
+                        keys.forEach((k, i) => {
+                            row.values[k] = (Array.isArray(at[i]) ? at[i] : at[i] < 0 ? [] : [at[i]]).map((n) => values[i][n]);
+                        });
+                        return row;
+                    });
+                } catch (e) { /* no counts */ }
+                return sent;
+            };
+
+            // count puts on each choice how many rows it would leave, given
+            // the search and the other filters chosen, and greys out those
+            // that would leave nobody, but the one chosen.
+            const count = (rows, words) => {
+                if (rows.length === 0) { return; }
+                const found = rows.filter((row) => words.every((w) => row.name.includes(w)));
+                for (const f of filters) {
+                    const others = filters.filter((g) => g !== f && g.value !== '');
+                    const left = found.filter((row) => others.every((g) => has(row, g, g.value)));
+                    for (const o of f.options) {
+                        const n = o.value === '' ? left.length : left.filter((row) => has(row, f, o.value)).length;
+                        o.textContent = `${o.dataset.label} (${n})`;
+                        o.disabled = n === 0 && o.value !== '' && o.value !== f.value;
+                    }
+                }
+            };
+
+            // chip is a chosen filter's chip: "Club: UCD", or for a plain
+            // filter the choice alone ("Not checked").
+            const chipText = (f) => {
+                const label = f.selectedOptions[0]?.dataset.label || f.value;
+                return f.hasAttribute('data-plain') ? label : `${f.getAttribute('aria-label')}: ${label}`;
+            };
+            const drawChips = (chosen) => {
+                chips.replaceChildren(...chosen.map((f) => {
+                    const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'tag is-link is-light comp-list-chip' });
+                    chip.setAttribute('aria-label', 'Take off ' + chipText(f));
+                    chip.append(chipText(f), Object.assign(document.createElement('span'), { className: 'delete is-small' }));
+                    chip.lastChild.setAttribute('aria-hidden', 'true');
+                    chip.addEventListener('click', () => {
+                        f.value = '';
+                        apply();
+                        search.focus();
+                    });
+                    return chip;
+                }));
             };
 
             // carry puts the search in a URL's q, for the server.
@@ -868,14 +954,18 @@
                 // A search looks through every row, folded ones too.
                 if (words.length > 0) { lazyRows(list); }
                 const rows = readRows(list);
-                let total = form ? Number(tools.dataset.total) : rows.length;
+                // A row listed but not counted (data-list-uncounted: a withdrawn
+                // entry) shows and filters, but isn't in "N of M".
+                let total = form ? Number(tools.dataset.total) : rows.filter((row) => row.counted).length;
                 const chosen = filters.filter((f) => f.value !== '');
                 let shown = 0;
                 for (const row of rows) {
                     const show = words.every((w) => row.name.includes(w)) && chosen.every((f) => matches(row, f));
                     row.el.hidden = !show;
-                    if (show) { shown++; }
+                    if (show && row.counted) { shown++; }
                 }
+                if (filters.length > 0) { count(every(list), words); }
+                if (!form) { drawChips(chosen); }
                 const filtered = words.length > 0 || chosen.length > 0;
                 // Rows still folded away (lazyRows) count, unfiltered.
                 if (!filtered && list.querySelector('template[data-lazy]')) { shown = total = Number(tools.dataset.total) || shown; }
@@ -888,7 +978,7 @@
                     const counted = group.querySelector(':scope > summary [data-group-count]');
                     if (counted) {
                         counted.dataset.shown ??= counted.textContent;
-                        const n = group.querySelectorAll('[data-list-row]:not([hidden])').length;
+                        const n = group.querySelectorAll('[data-list-row]:not([hidden]):not([data-list-uncounted])').length;
                         const of = counted.dataset.groupCount;
                         counted.textContent = words.length === 0 ? counted.dataset.shown : String(n) === of ? of : `${n} of ${of}`;
                     }
@@ -902,7 +992,7 @@
                         group.open = false;
                     }
                 }
-                count.textContent = shown !== total ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
+                shownCount.textContent = shown !== total ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
                 const on = tools.querySelector('[data-list-filters-on]');
                 if (on) {
                     on.textContent = String(chosen.length);
@@ -1082,7 +1172,7 @@
         listTools();
         offlineBanner();
         openLevels();
-        menuInView();
+        expandAll();
         tickBar();
         dayPick();
         dayPage();

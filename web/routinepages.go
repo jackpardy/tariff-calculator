@@ -60,6 +60,12 @@ func (p *competitionPages) memberRoutines(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
+	p.renderMemberRoutines(w, r, m, nil)
+}
+
+// renderMemberRoutines shows a member's Routines tab, asking before a change
+// (ask).
+func (p *competitionPages) renderMemberRoutines(w http.ResponseWriter, r *http.Request, m store.Member, ask *views.Ask) {
 	page, _, ok := p.memberPage(w, r, m, memberRoutinesTab)
 	if !ok {
 		return
@@ -79,6 +85,7 @@ func (p *competitionPages) memberRoutines(w http.ResponseWriter, r *http.Request
 		v.Rename, v.Delete = base+"/"+v.ID+"/rename", base+"/"+v.ID+"/delete"
 	})
 	page.Routines.Add = base
+	page.Ask = ask
 	render(w, r, views.MemberRoutines(page))
 }
 
@@ -228,6 +235,25 @@ func (p *competitionPages) deleteRoutine(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	if !asked(r) {
+		list, err := p.st.MemberRoutines(r.Context(), m.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		i := slices.IndexFunc(list, func(k store.Routine) bool { return k.ID == r.PathValue("routine") })
+		if i < 0 {
+			failed(w, r, store.ErrNotFound)
+			return
+		}
+		p.renderMemberRoutines(w, r, m, inPlace(r, views.Ask{
+			Remove: true, // takes something away: red
+			Title:  "Delete " + list[i].Name + " from your page?",
+			Text:   "Your coaches and comp sec stop seeing it, with any coach's note on it. A copy saved in this browser stays, to add again.",
+			Button: "Delete it", Back: memberRoutinesPath(r.PathValue("token")),
+		}))
+		return
+	}
 	if err := p.st.DeleteRoutine(r.Context(), m.ID, r.PathValue("routine")); err != nil {
 		failed(w, r, err)
 		return
@@ -235,9 +261,10 @@ func (p *competitionPages) deleteRoutine(w http.ResponseWriter, r *http.Request)
 	seeOther(w, r, memberRoutinesPath(r.PathValue("token")), "Deleted from your page.")
 }
 
-// coachFrame is the top of a coach's page, with the section shown current.
-func coachFrame(r *http.Request, coach store.Coach, club, section string) views.CoachFrame {
-	return views.CoachFrame{Club: club, Coach: coach.Name, Notice: r.URL.Query().Get("notice"), Menu: coachMenu(r.PathValue("token"), section)}
+// coachFrame is the top of a coach's page, with the section shown current,
+// asking before a change (ask) if there's one to ask about.
+func coachFrame(r *http.Request, coach store.Coach, club, section string, ask *views.Ask) views.CoachFrame {
+	return views.CoachFrame{Club: club, Coach: coach.Name, Notice: r.URL.Query().Get("notice"), Ask: ask, Menu: coachMenu(r.PathValue("token"), section)}
 }
 
 // coachGymnasts lists the gymnasts a coach sees, with how many routines each keeps.
@@ -280,7 +307,7 @@ func (p *competitionPages) coachGymnasts(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	base := coachGymnastsPath(r.PathValue("token"))
-	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), SeesAll: seesAll}
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab, nil), SeesAll: seesAll}
 	for _, m := range members {
 		page.Gymnasts = append(page.Gymnasts, views.CoachGymnast{Name: m.Name, Routines: counts[m.ID], Can: can[m.ID], ToConfirm: toConfirm[m.ID], Open: base + "/" + m.ID,
 			List: views.ListRow{Name: m.Name, Values: map[string][]string{"routines": {hasValue(counts[m.ID] > 0)}, "mine": {hasValue(m.CoachID == coach.ID)},
@@ -352,7 +379,7 @@ func (p *competitionPages) coachGymnast(w http.ResponseWriter, r *http.Request) 
 		chosen = ""
 	}
 	base := coachGymnastsPath(r.PathValue("token"))
-	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab), Gymnast: m.Name, Back: base, Skills: base + "/" + m.ID + "/skills"}
+	page := views.CoachGymnastsPage{Frame: coachFrame(r, coach, club, coachGymnastsTab, nil), Gymnast: m.Name, Back: base, Skills: base + "/" + m.ID + "/skills"}
 	page.Routines = routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", func(v *views.RoutineView) {
 		v.NoteAction = base + "/" + m.ID + "/routines/" + v.ID + "/note"
 		v.NotCan, v.SkillsLink = notCan[v.ID], page.Skills
@@ -471,7 +498,7 @@ func (p *competitionPages) clubMemberRoutines(w http.ResponseWriter, r *http.Req
 	}
 	token := r.PathValue("token")
 	page := views.ClubMemberRoutinesPage{
-		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(token, clubMembers)},
+		Club:   views.ClubPage{Base: clubPath(token), Name: club.Name, Menu: clubMenu(r, clubMembers)},
 		Member: m.Name, Back: clubMembersPath(token),
 		Routines: routinesPart(list, named, m.Name+" hasn't kept any routines on their page yet.", nil),
 	}

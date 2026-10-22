@@ -117,7 +117,7 @@ templ routinesList(p RoutinesPart) {
 									<input type="hidden" name="skill" value={ r.NotCanSkills[i] }/>
 									<input type="hidden" name="state" value="can"/>
 									<input type="hidden" name="back" value={ "routine-" + r.ID }/>
-									<button class="button is-light" type="submit">✓ { name }</button>
+									<button class="button" type="submit">✓ { name }</button>
 								</form>
 							}
 						</div>
@@ -157,7 +157,7 @@ templ routinesList(p RoutinesPart) {
 				if r.Broken != "" {
 					<p>@StateChip(Attention, r.Broken)</p>
 				} else {
-					@exerciseCard(r.Card)
+					@exerciseCard(r.Card, 3)
 				}
 				<div class="buttons mt-3">
 					if r.Open != "" {
@@ -183,7 +183,7 @@ templ routinesList(p RoutinesPart) {
 					</form>
 				}
 				if r.Delete != "" {
-					<form method="post" action={ templ.SafeURL(r.Delete) } onsubmit={ confirmDelete(r.Name) }>
+					<form method="post" action={ templ.SafeURL(r.Delete) }>
 						<button class="button is-small is-text has-text-danger" type="submit">Delete from your page</button>
 					</form>
 				}
@@ -202,14 +202,9 @@ templ keepRoutinesForm(p RoutinesPart, button string, unticked bool) {
 			<div class="comp-keep-list mb-3"></div>
 			<input type="hidden" name="routines"/>
 			<p class="help mb-2">{ fmt.Sprintf("Up to %d routines on a page. One added already from this browser is changed to match.", p.Max) }</p>
-			<button class="button is-primary is-small" type="submit">{ button }</button>
+			<button class="button is-small is-primary" type="submit">{ button }</button>
 		</form>
 	}
-}
-
-// confirmDelete asks before a routine is deleted from a member's page.
-script confirmDelete(name string) {
-	if (!confirm('Delete ' + name + ' from your page? The routines saved in this browser stay.')) { event.preventDefault(); }
 }
 
 // MemberRoutines is a member's Routines tab: their kept routines, and adding
@@ -230,6 +225,7 @@ templ MemberRoutines(p MemberPage) {
 type CoachFrame struct {
 	Club, Coach string
 	Notice      string
+	Ask         *Ask // asking before a club skill or level is removed
 	Menu        []MenuSection
 }
 
@@ -238,8 +234,9 @@ templ coachFrame(f CoachFrame) {
 	<h1 class="title is-4">{ f.Coach }</h1>
 	@pageMenu(f.Menu)
 	if f.Notice != "" {
-		<div class="notification is-success is-light">{ f.Notice }</div>
+		@notice(f.Notice)
 	}
+	@askBox(f.Ask)
 }
 
 // CoachGymnast is a gymnast a coach sees, in their Gymnasts list.
@@ -285,7 +282,7 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 			}
 		</p>
 		if len(p.Gymnasts) == 0 {
-			<p class="has-text-grey">No members yet.</p>
+			@emptyLine("No members yet.")
 		} else {
 			@listTools(p.Tools)
 			<div class="table-container">
@@ -313,7 +310,7 @@ templ CoachGymnasts(p CoachGymnastsPage) {
 templ CoachGymnastPage(p CoachGymnastsPage) {
 	@competitionLayout(p.Gymnast + " · " + p.Frame.Coach) {
 		@coachFrame(p.Frame)
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Gymnasts</a></p>
+		@backLink(p.Back, "Gymnasts")
 		<h2 class="title is-5">{ p.Gymnast }</h2>
 		<p class="mb-3"><a class="button is-small" href={ templ.SafeURL(p.Skills) }>Skills: what they're learning and can do →</a></p>
 		if len(p.Entries) > 0 {
@@ -346,7 +343,7 @@ type ClubMemberRoutinesPage struct {
 // ClubMemberRoutines shows the comp sec a member's routines.
 templ ClubMemberRoutines(p ClubMemberRoutinesPage) {
 	@clubFrame(p.Club) {
-		<p class="mb-3"><a href={ templ.SafeURL(p.Back) }>← Members</a></p>
+		@backLink(p.Back, "Members")
 		<h2 class="title is-5">{ p.Member }</h2>
 		@routinesList(p.Routines)
 	}

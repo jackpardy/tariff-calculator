@@ -107,8 +107,16 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 			email = &subs[i]
 		}
 	}
-	page := views.NotifyPage{Competition: summary(t.c, p.now()), Back: t.back, Action: r.URL.Path, For: t.who,
-		EmailOn: p.notify != nil && p.notify.mail != nil, Notice: r.URL.Query().Get("notice")}
+	backTo := t.backTo()
+	if t.back == t.day {
+		backTo = "My competition"
+	}
+	page := views.NotifyPage{Competition: summary(t.c, p.now()), Back: t.back, BackTo: backTo, Action: r.URL.Path, For: t.who,
+		EmailOn: p.notify != nil && p.notify.mail != nil && p.sandbox == nil, Notice: r.URL.Query().Get("notice")}
+	if r.Method == http.MethodPost && p.sandbox != nil {
+		seeOther(w, r, r.URL.Path, views.NotificationsOff+" Nothing was saved.")
+		return
+	}
 	if r.Method == http.MethodPost {
 		switch r.FormValue("action") {
 		case "remove":
@@ -151,7 +159,9 @@ func (p *competitionPages) notifyPage(w http.ResponseWriter, r *http.Request) {
 	if email != nil {
 		page.Email = views.NotifyEmail{Address: email.Address, Confirmed: email.Confirmed, Remove: email.ID}
 	}
-	page.PushKey = p.notify.pushPublicKey(ctx)
+	if p.sandbox == nil {
+		page.PushKey = p.notify.pushPublicKey(ctx)
+	}
 	for _, topic := range store.Topics {
 		page.PushTopics = append(page.PushTopics, views.NotifyTopic{Value: topic, Label: labels[topic], On: true})
 	}

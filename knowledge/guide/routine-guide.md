@@ -21,8 +21,16 @@ The **Add a skill** box is at the top, with your routine under it.
 1. **Find the skill**, in one of three ways:
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
      Doubles and Triples. **Body landings** are the seat, back and front drops
-     and their twists. **Singles** are every single somersault, twisting or
-     not, including those landing on the body (Crash Dive, Back s/s To Seat,
+     and their twists: first **From feet** (Seat Drop, Back Drop, Front Drop
+     and their ½ twists), then **From a body landing**, in one group by where
+     they land (To Feet, ½ Twist To Feet, To Seat…). Those take off from where
+     the skill before them lands, so
+     after a seat drop, **½ Twist To Seat** gives a swivel hips (Seat Half
+     Twist To Seat), and after a back drop, **To Feet** gives Back To Feet.
+     The skill card shows which one, its tariff, and why ("From seat, after
+     Seat Drop · also called Swivel Hips"). The first skill takes off from
+     feet. **Singles** are every single somersault, twisting or not,
+     including those landing on the body (Crash Dive, Back s/s To Seat,
      Ball-Out).
    - **Search** in the box above the picker by name ("barani", "back s/s",
      "½ twist jump", "piked back", "full in rudy out", "swivel hips") or by
@@ -71,7 +79,8 @@ Your routine is under **Your routine**, below the skill box. Make sure **Routine
   so its difficulty doesn't count again." They cover repeated skills, a
   take-off that doesn't match the last landing, a straight jump or impossible
   landing that ends the routine, a tenth skill that doesn't land on feet, and
-  more than ten skills.
+  more than ten skills. Straight jumps before the first other skill are
+  preparation jumps: the routine starts after them, so they don't interrupt it.
 
 **More than one routine.** The menu at the top lists your routines with their
 number of skills ("Ciara voluntary · 10 skills").
@@ -262,6 +271,13 @@ requirements it uses).
 Everything is saved only in this browser on this device. Clearing the
 browser's data, or using a private window, loses it. To keep a copy or move to
 another phone, share your routines and requirements to yourself by link, or
-export your requirements.
+export your requirements. A club member can keep routines on their club
+page (**More → Save to my page**), and members, coaches and gymnasts entering
+on their own can keep requirements on their page (**Save to my page** on the
+requirements page): they then open on any phone (see the [competitions
+guide](competition-guide.md#keep-your-routines-on-your-page)).
 
 If a bar says **The app has been updated**, tap **Refresh**.
+
+Something confusing, wrong or missing? The **Feedback** tab at the right edge
+of the screen sends it to the people who make the app.
