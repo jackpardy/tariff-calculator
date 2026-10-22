@@ -127,6 +127,11 @@ templ calculator(groups []requirements.BuiltinGroup) {
 							</template>
 						</select>
 					</div>
+					// Sometimes two routines are just up together: the shading can go.
+					<label class="checkbox compare-shade" x-show="compareId" x-cloak>
+						<input type="checkbox" x-model="shadeDiffs"/>
+						Shade skills that differ from the first
+					</label>
 				</div>
 			</div>
 			@levelsBar(groups)
@@ -137,7 +142,7 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					<li x-bind:class="mobileTab === 'b' && 'is-active'"><a x-on:click="mobileTab = 'b'" x-text="columnTitle('b')"></a></li>
 				</ul>
 			</div>
-			<div class="builder-columns" x-show="mode === 'routines' || entry()" x-bind:class="{ 'is-comparing': twoColumns(), 'shows-b': mobileTab === 'b' }">
+			<div class="builder-columns" x-show="mode === 'routines' || entry()" x-bind:class="{ 'is-comparing': twoColumns(), 'shows-b': mobileTab === 'b', 'shades-diffs': shadeDiffs }">
 				<div class="builder-column">
 					<div class="column-head" x-show="twoColumns() && mode === 'routines'" x-cloak>
 						<strong x-text="columnTitle('a')"></strong>
@@ -170,7 +175,6 @@ templ calculator(groups []requirements.BuiltinGroup) {
 					<div id="routine-view-b" hx-sync="this:replace"></div>
 				</div>
 			</div>
-			<p class="compare-legend" x-show="mode === 'routines' && compareId" x-cloak>Shaded skills differ from the other routine's skill at the same number.</p>
 		</section>
 		// What just happened, for a few seconds; Undo where it can be taken back
 		// (toast.undo is a function: compared, as Alpine would call it if shown).

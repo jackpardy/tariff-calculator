@@ -23,6 +23,7 @@ function tariffCalculatorStore() {
         levelState: { current: null, entries: [] }, // the levels being worked on (LevelEntries)
         expanded: [], // per-card expanded state, parallel to routine
         compareId: null, // the routine shown beside the current one, if any
+        shadeDiffs: true, // shade the second routine's skills that differ from the first's (kept in the browser)
         beside: null,    // in Routines mode, the routine side by side, remembered (so the view's back arrow, a reload or Levels and back keep it)
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
@@ -69,6 +70,8 @@ function tariffCalculatorStore() {
             });
             this.levelState = LevelEntries.load();
             try { this.mode = localStorage.getItem('builderMode') === 'levels' ? 'levels' : 'routines'; } catch (e) { /* routines */ }
+            try { this.shadeDiffs = localStorage.getItem('builderShadeDiffs') !== 'off'; } catch (e) { /* shaded */ }
+            this.$watch('shadeDiffs', (on) => { try { localStorage.setItem('builderShadeDiffs', on ? 'on' : 'off'); } catch (e) { /* this visit only */ } });
             // Sets and levels edited in another tab (the requirements page) are picked up here.
             window.addEventListener('storage', (event) => {
                 if (event.key === 'trampolineRequirementSets' || event.key === LevelStore.key) {

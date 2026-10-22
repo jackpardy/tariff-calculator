@@ -139,7 +139,11 @@ some elements score, the coach can tick which ones.
 # Side by side
 
 A second saved routine can be shown beside the current one. Both columns can be
-edited, and the cards mark where the two differ. On a phone the columns become
+edited. The second routine's cards that differ from the first's at the same
+number are shaded (only the second's: shading the same row in both said
+nothing more, the owner, 2026-10-22), unless **Shade skills that differ from
+the first**, beside Side by side with, is unticked, for when two routines are
+just up together; that's kept in the browser (`builderShadeDiffs`). On a phone the columns become
 tabs. The routine side by side is remembered with the routines (`beside` in
 `trampolineRoutines`), so coming back from the view screen, a reload, or
 Levels mode and back keeps it. The standalone [compare page](compare.md) does

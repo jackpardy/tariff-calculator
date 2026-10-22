@@ -145,3 +145,39 @@ func TestDeleteAsksOnTheRowInABrowser(t *testing.T) {
 		t.Errorf("asked %q; kept %d, then %d left", asked, kept, left)
 	}
 }
+
+// Side by side, only the second routine's differing skills are shaded, and a
+// checkbox takes the shading away.
+func TestSideBySideShadesTheSecondInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	const two = `{"current":"r1","beside":"r2","routines":[` +
+		`{"id":"r1","name":"First","skills":[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]},` +
+		`{"id":"r2","name":"Second","skills":[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Pike"}]}]}`
+	const shaded = `(id) => [...document.querySelectorAll('#' + id + ' .routine-skill')].map((c) => getComputedStyle(c).backgroundColor === 'rgb(255, 246, 217)' ? 'S' : '-').join('')`
+	var on, off, again string
+	step(t, ctx, "two routines side by side, then the shading off and on",
+		chromedp.EmulateViewport(1300, 900),
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+two+"`"+`)`, nil),
+		chromedp.Reload(),
+		chromedp.WaitVisible(`#routine-view-b .routine-skill`, chromedp.ByQuery),
+		chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`(`+shaded+`)('routine-view') + '|' + (`+shaded+`)('routine-view-b')`, &on),
+		chromedp.Click(`.compare-shade input`, chromedp.ByQuery),
+		chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`(`+shaded+`)('routine-view') + '|' + (`+shaded+`)('routine-view-b')`, &off),
+		chromedp.Reload(),
+		chromedp.WaitVisible(`#routine-view-b .routine-skill`, chromedp.ByQuery),
+		chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(`(`+shaded+`)('routine-view') + '|' + (`+shaded+`)('routine-view-b')`, &again),
+	)
+	if on != "--|-S" {
+		t.Errorf("only the second routine's second skill should be shaded: %s", on)
+	}
+	if off != "--|--" || again != "--|--" {
+		t.Errorf("unticked, nothing is shaded, after a reload too: %s, then %s", off, again)
+	}
+}

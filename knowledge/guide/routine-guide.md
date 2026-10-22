@@ -81,7 +81,9 @@ number of skills ("Ciara voluntary · 10 skills").
   **Expand all** or **Collapse all** the skill cards, **Clear skills** or
   **Delete routine**.
 - **Side by side with** shows a second routine beside this one. You can edit
-  both, and skills that differ are shaded. On a phone they become two tabs.
+  both. In the second routine, skills that differ from the first one's are
+  shaded; untick **Shade skills that differ from the first** if you just want
+  the two up together. On a phone they become two tabs.
   Use ⇄ to swap the columns and ✕ to stop.
 
 # 3. Check a routine against a competition
