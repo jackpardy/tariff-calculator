@@ -104,3 +104,34 @@ func TestSynchroEvents(t *testing.T) {
 		t.Errorf("a level in synchro twice: %v", err)
 	}
 }
+
+// Trampoline's judges judge synchro, an event by the hardest level it
+// pairs: chairing up to BUCS L2 is chairing "BUCS L3" but not "BUCS
+// L1/L2"; HD and synchronisation at any.
+func TestSynchroJudgedByTrampolineLevels(t *testing.T) {
+	ref := func(id string) Level { return Level{Ref: requirements.BuiltinLevelPrefix + id} }
+	c := competition(t)
+	c.Levels = OrderLevels(nil, []Level{ref("bucs-l1"), ref("bucs-l2"), ref("bucs-l3"), ref("bucs-l4")})
+	paired, err := PairLevels([]Level{ref("bucs-l1"), ref("bucs-l2"), ref("bucs-l3")}, [][]string{{"BUCS L1", "BUCS L2"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Synchro = paired
+	upToL2 := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: map[string]string{RoleChair: "BUCS L2", RoleExecution: ""}}}}
+	if !c.CanJudge(upToL2, false, Synchro, "BUCS L3", RoleChair) || c.CanJudge(upToL2, false, Synchro, "BUCS L1/L2", RoleChair) {
+		t.Error("chair up to BUCS L2: BUCS L3's synchro, not BUCS L1/L2's")
+	}
+	if !c.CanJudge(upToL2, false, Synchro, "BUCS L1/L2", RoleExecution) || c.CanJudge(upToL2, false, Synchro, "BUCS L3", RoleDifficulty) {
+		t.Error("execution at any level; no difficulty")
+	}
+	if !c.CanJudge(upToL2, false, Synchro, "BUCS L1/L2", RoleSync) || !c.CanJudge(upToL2, false, Synchro, "BUCS L1/L2", RoleHD) {
+		t.Error("synchronisation and HD at any level")
+	}
+	upToL1 := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: map[string]string{RoleChair: "BUCS L1"}}}}
+	if !c.CanJudge(upToL1, false, Synchro, "BUCS L1/L2", RoleChair) {
+		t.Error("chair up to BUCS L1 takes in BUCS L1/L2")
+	}
+	if c.CanJudge(Offer{Judge: map[string]JudgeOffer{Synchro: {UpTo: map[string]string{RoleChair: ""}}}}, false, Synchro, "BUCS L3", RoleChair) {
+		t.Error("an offer from before for synchro alone counts for nothing")
+	}
+}

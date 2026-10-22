@@ -48,6 +48,14 @@ can't be hd judge at ISTO Elite-Pro").
    their offer: Judge Trampoline (execution up to BUCS L3, and HD)", or "they
    aren't marked qualified".
 
+8. **Synchro is judged by trampoline's judges** (added 2026-10-22, at the
+   owner's ask: few could chair synchro, which was offered on its own).
+   There's no synchro row to offer; trampoline's, named "Trampoline and
+   synchro" where the competition has synchro, takes in each synchro event
+   by the hardest trampoline level it pairs: chairing up to ISTO Advanced is
+   chairing "ISTO Intervanced/Advanced". Synchronisation, like HD, at any
+   level. Offers from before for synchro alone count for nothing.
+
 ## Consequences
 
 - The rota can put anyone who judges a discipline on its HD seats, so it

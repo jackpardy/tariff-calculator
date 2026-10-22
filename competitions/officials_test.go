@@ -54,8 +54,11 @@ func TestOffers(t *testing.T) {
 	if got := o.Describe(); got != "Judge Trampoline (execution and difficulty up to FIG AG3 (17–21), chair at any level, and HD) and Tumbling (difficulty at any level); Recorder" {
 		t.Errorf("described as %q", got)
 	}
-	if got := (Offer{Judge: map[string]JudgeOffer{Synchro: {}}}).Describe(); got != "Judge Synchro (HD and synchronisation only)" {
+	if got := (Offer{Judge: map[string]JudgeOffer{Trampoline: {}}}).Describe(); got != "Judge Trampoline (HD only)" {
 		t.Errorf("HD only, described as %q", got)
+	}
+	if got := (Offer{Judge: map[string]JudgeOffer{Synchro: {}}}).Describe(); got != "" {
+		t.Errorf("an offer from before for synchro counts for nothing: %q", got)
 	}
 	if (Offer{}).Describe() != "" || !(Offer{}).Empty() || o.Empty() {
 		t.Error("empty offers")
@@ -65,6 +68,7 @@ func TestOffers(t *testing.T) {
 		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleExecution: "Master"}}}},
 		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleHD: ""}}}},
 		{Judge: map[string]JudgeOffer{Tumbling: {}}}, // nothing to judge: tumbling has no HD
+		{Judge: map[string]JudgeOffer{Synchro: {}}},  // trampoline's judges judge it
 	} {
 		if c.ValidateOffer(bad) == nil {
 			t.Errorf("%+v should be refused", bad)
