@@ -60,10 +60,12 @@ func (p Panel) Seats() []string {
 }
 
 // Duty is one seat on a flight's panel and who has it; Person is "" for a
-// seat no one could take.
+// seat no one could take. Name is who has it as they were named when given
+// it, to name them once they've gone from the officials (withdrawn, say).
 type Duty struct {
 	Role   string `json:"role"`
 	Person string `json:"person,omitempty"` // their key
+	Name   string `json:"name,omitempty"`
 }
 
 // RotaPerson is someone who can officiate, as the rota needs them: their key
@@ -370,6 +372,9 @@ func (r *rota) staff(i int, seats []string) {
 	taken := map[string]bool{}
 	take := func(k int, key string, cost float64) {
 		duties[k].Person = key
+		if p, ok := r.byKey[key]; ok {
+			duties[k].Name = r.people[p].Name
+		}
 		taken[key] = true
 		iv := interval{f.Day, f.Start, f.End}
 		r.duties[key] = append(r.duties[key], iv)
@@ -555,11 +560,12 @@ type ClubCount struct {
 	Times int
 }
 
-// Workload is a person's officiating.
+// Workload is a person's officiating; Name is as their seat names them
+// (Duty.Name).
 type Workload struct {
-	Person  string
-	Duties  int
-	Minutes int
+	Person, Name string
+	Duties       int
+	Minutes      int
 }
 
 // RotaReport reports on the rota, a seat at a time over the flights one
@@ -579,7 +585,8 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 	}
 	var shorts []*seats
 	shortAt := map[string]*seats{}
-	held := func(person, role, label string, minutes int, in map[string]bool) {
+	held := func(d Duty, label string, minutes int, in map[string]bool) {
+		person, role := d.Person, d.Role
 		if person == "" {
 			if shortAt[label] == nil {
 				shortAt[label] = &seats{label: label, short: map[string]int{}}
@@ -594,6 +601,7 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 			w = &Workload{Person: person}
 			work[person] = w
 		}
+		w.Name = cmp.Or(w.Name, d.Name)
 		w.Duties++
 		w.Minutes += minutes
 		if c := clubOf[person]; c != "" && in[c] && isJudge(role) {
@@ -609,11 +617,11 @@ func (s Schedule) RotaReport(clubs map[string]string, officials []RotaPerson) Ro
 			}
 		}
 		d := s.Flights[st.flights[0]].Officials[st.seat]
-		held(d.Person, d.Role, s.label(st), iv.end-iv.start, in)
+		held(d, s.label(st), iv.end-iv.start, in)
 	}
 	for _, b := range s.Blocks {
 		for _, d := range b.Officials {
-			held(d.Person, d.Role, b.Name+" on "+strings.Join(b.Areas, ", "), b.End-b.Start, nil)
+			held(d, b.Name+" on "+strings.Join(b.Areas, ", "), b.End-b.Start, nil)
 		}
 	}
 	for _, sh := range shorts {
@@ -672,7 +680,7 @@ func (s Schedule) seatStretches() []stretch {
 	var out []stretch
 	for i, f := range s.Flights {
 		for seat := range f.Officials {
-			if prev := s.before(i); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == f.Officials[seat] {
+			if prev := s.before(i); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat].same(f.Officials[seat]) {
 				continue // in the stretch that starts earlier
 			}
 			out = append(out, s.stretchFrom(i, seat))
@@ -688,27 +696,40 @@ func plural(n int) string {
 	return "s"
 }
 
-// SetBlockDuty gives a seat on blocked time's panel to a person ("" to empty it).
-func (s *Schedule) SetBlockDuty(block, seat int, person string) bool {
+// SetBlockDuty gives a seat on blocked time's panel to a person, by key and
+// name ("" to empty it).
+func (s *Schedule) SetBlockDuty(block, seat int, person, name string) bool {
 	if block < 0 || block >= len(s.Blocks) || seat < 0 || seat >= len(s.Blocks[block].Officials) {
 		return false
 	}
-	s.Blocks[block].Officials[seat].Person = person
+	s.Blocks[block].Officials[seat].give(person, name)
 	return true
 }
 
-// SetDuty gives a seat on a flight's panel to a person ("" to empty it), for
-// all the flights of its event whoever has it now holds it for.
-func (s *Schedule) SetDuty(flight, seat int, person string) bool {
+// same says whether two seats are the same role held by the same person.
+func (d Duty) same(o Duty) bool { return d.Role == o.Role && d.Person == o.Person }
+
+// give gives the seat to a person, by key and name ("" to empty it).
+func (d *Duty) give(person, name string) {
+	if person == "" {
+		name = ""
+	}
+	d.Person, d.Name = person, name
+}
+
+// SetDuty gives a seat on a flight's panel to a person, by key and name (""
+// to empty it), for all the flights of its event whoever has it now holds
+// it for.
+func (s *Schedule) SetDuty(flight, seat int, person, name string) bool {
 	if flight < 0 || flight >= len(s.Flights) || seat < 0 || seat >= len(s.Flights[flight].Officials) {
 		return false
 	}
 	start := flight
-	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == s.Flights[flight].Officials[seat]; prev = s.before(start) {
+	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat].same(s.Flights[flight].Officials[seat]); prev = s.before(start) {
 		start = prev
 	}
 	for _, i := range s.stretchFrom(start, seat).flights {
-		s.Flights[i].Officials[seat].Person = person
+		s.Flights[i].Officials[seat].give(person, name)
 	}
 	return true
 }
@@ -726,18 +747,11 @@ func (s Schedule) RotaProblems(people map[string][]string, officials []RotaPerso
 
 // RotaBreaks are RotaProblems as breaks, for Breaks' company.
 func (s Schedule) RotaBreaks(people map[string][]string, officials []RotaPerson, names map[string]string) []Break {
-	byKey := map[string]RotaPerson{}
-	for _, p := range officials {
-		byKey[p.Key] = p
-	}
-	name := func(key string) string {
-		if n := names[key]; n != "" {
-			return n
-		}
-		return byKey[key].Name
-	}
-	var out []Break
+	out, name := s.holderBreaks(officials, names)
 	seen := map[string]bool{}
+	for _, b := range out {
+		seen[b.Line] = true
+	}
 	add := func(person string, rank int, msg string) {
 		if !seen[msg] {
 			seen[msg] = true
@@ -753,27 +767,22 @@ func (s Schedule) RotaBreaks(people map[string][]string, officials []RotaPerson,
 				continue
 			}
 			if seated[d.Person] {
-				add(d.Person, TwoPlaces, fmt.Sprintf("%s has two seats on %s's panel", name(d.Person), f.Name()))
+				add(d.Person, TwoPlaces, fmt.Sprintf("%s has two seats on %s's panel", name(d), f.Name()))
 			}
 			seated[d.Person] = true
-			if p, ok := byKey[d.Person]; !ok {
-				add(d.Person, MustBreak, fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d.Person), strings.ToLower(roleNames[d.Role]), f.Name()))
-			} else if (i < len(s.Flights) && !p.Can(d.Role, f.Event)) || (i >= len(s.Flights) && !p.CanAny(d.Role)) {
-				add(d.Person, MustBreak, fmt.Sprintf("%s can't take the %s seat at %s: %s", name(d.Person), RoleWord(d.Role), f.Event, p.whyNot(d.Role)))
-			}
 			for j, g := range jobs {
 				if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
 					continue
 				}
 				for _, id := range g.Entries {
 					if slices.Contains(people[id], d.Person) {
-						add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s while competing in %s", name(d.Person), f.Name(), g.Name()))
+						add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s while competing in %s", name(d), f.Name(), g.Name()))
 					}
 				}
 				if j > i {
 					for _, e := range g.Officials {
 						if e.Person == d.Person {
-							add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s and %s at once", name(d.Person), f.Name(), g.Name()))
+							add(d.Person, TwoPlaces, fmt.Sprintf("%s officiates %s and %s at once", name(d), f.Name(), g.Name()))
 						}
 					}
 				}
@@ -781,6 +790,56 @@ func (s Schedule) RotaBreaks(people map[string][]string, officials []RotaPerson,
 		}
 	}
 	return out
+}
+
+// HolderBreaks are the seats whose holders can't have them any more: gone
+// from the officials (they withdrew, their entry was removed, their club
+// stopped sending their offer), or no longer offering, or qualified for,
+// the seat's role. A seat is given to someone who can take it, so these are
+// changes since, for the organiser to see to. names names people by key.
+func (s Schedule) HolderBreaks(officials []RotaPerson, names map[string]string) []Break {
+	out, _ := s.holderBreaks(officials, names)
+	return out
+}
+
+// holderBreaks are HolderBreaks, and how they name a seat's holder: as the
+// officials or names have them, else as named when given the seat.
+func (s Schedule) holderBreaks(officials []RotaPerson, names map[string]string) ([]Break, func(Duty) string) {
+	byKey := map[string]RotaPerson{}
+	for _, p := range officials {
+		byKey[p.Key] = p
+	}
+	name := func(d Duty) string {
+		return cmp.Or(names[d.Person], byKey[d.Person].Name, d.Name, "Someone")
+	}
+	var out []Break
+	seen := map[string]bool{}
+	add := func(person string, msg string) {
+		if !seen[msg] {
+			seen[msg] = true
+			out = append(out, Break{Line: msg, Person: person, Rank: MustBreak})
+		}
+	}
+	check := func(d Duty, where, event string, block bool) {
+		if d.Person == "" {
+			return
+		}
+		if p, ok := byKey[d.Person]; !ok {
+			add(d.Person, fmt.Sprintf("%s isn't an official any more (%s, %s)", name(d), RoleWord(d.Role), where))
+		} else if (!block && !p.Can(d.Role, event)) || (block && !p.CanAny(d.Role)) {
+			add(d.Person, fmt.Sprintf("%s can't take the %s seat at %s: %s", name(d), RoleWord(d.Role), event, p.whyNot(d.Role)))
+		}
+	}
+	for _, st := range s.seatStretches() { // a line for the flights they hold it for, not each
+		f := s.Flights[st.flights[0]]
+		check(f.Officials[st.seat], s.stretchName(st), f.Event, false)
+	}
+	for _, b := range s.Blocks {
+		for _, d := range b.Officials {
+			check(d, b.Name, b.Name, true)
+		}
+	}
+	return out, name
 }
 
 // RoleWord is a role's name inside a sentence: lower case, but where it

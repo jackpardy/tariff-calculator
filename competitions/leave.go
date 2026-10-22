@@ -98,7 +98,7 @@ func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPers
 			}
 			st := out.stretchFrom(i, seat) // the rest of the event, one fill
 			for _, j := range st.flights {
-				out.Flights[j].Officials[seat].Person = ""
+				out.Flights[j].Officials[seat].give("", "")
 			}
 			iv := out.span(st)
 			fill := SeatFill{Flight: out.stretchName(st), Area: out.Flights[i].Area, Day: iv.day, Start: iv.start, End: iv.end, Role: d.Role}
@@ -109,7 +109,7 @@ func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPers
 				fill.Steps, fill.Others = plan.steps, others
 				for _, mv := range plan.moves {
 					for _, j := range mv.at.flights {
-						out.Flights[j].Officials[mv.at.seat].Person = mv.person
+						out.Flights[j].Officials[mv.at.seat].give(mv.person, byKey[mv.person].Name)
 					}
 				}
 			}

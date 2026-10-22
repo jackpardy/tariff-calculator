@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -170,7 +171,7 @@ func TestRotaRules(t *testing.T) {
 	// Broken by hand: the report says so.
 	for k, d := range s.Flights[1].Officials {
 		if d.Role == RoleChair {
-			s.SetDuty(1, k, "J-0")
+			s.SetDuty(1, k, "J-0", "")
 		}
 	}
 	if r := s.RotaReport(clubsOf(entries), officials); len(r.Broken) != 1 {
@@ -270,7 +271,7 @@ func TestRotaStaffsBlocks(t *testing.T) {
 		t.Errorf("problems: %v", p)
 	}
 	// By hand, a clash with the flight is reported.
-	s.SetBlockDuty(0, 0, s.Flights[0].Officials[0].Person)
+	s.SetBlockDuty(0, 0, s.Flights[0].Officials[0].Person, "")
 	if p := s.RotaProblems(peopleOfEntries(entries), officials, nil); len(p) != 1 || !strings.Contains(p[0], "officiates") {
 		t.Errorf("problems: %v", p)
 	}
@@ -295,5 +296,49 @@ func TestRotaHDJudges(t *testing.T) {
 	}
 	if hd != 2 || RoleName(RoleHD) != "HD judge" {
 		t.Errorf("HD judges: %d", hd)
+	}
+}
+
+// A seat whose holder has gone from the officials names them as the seat
+// had them, once for all the flights they hold it for; one whose holder no
+// longer offers its role says so.
+func TestHolderBreaks(t *testing.T) {
+	entries := people("BUCS L3", Trampoline, 30)
+	s := PlanSchedule(entries, []string{"BUCS L3"}, venue(), 1)
+	officials := judges("J", 12, "BUCS L3")
+	s.Rota(entries, officials, OfficialSettings{}, 1)
+	if len(s.Flights) < 2 {
+		t.Fatalf("flights: %d", len(s.Flights))
+	}
+	chair := s.Flights[0].Officials[0]
+	if chair.Role != RoleChair || chair.Person == "" || chair.Name == "" {
+		t.Fatalf("the chair's seat names them: %+v", chair)
+	}
+	if bs := s.HolderBreaks(officials, nil); len(bs) > 0 {
+		t.Errorf("no problems: %v", bs)
+	}
+	var left []RotaPerson
+	for _, o := range officials {
+		if o.Key == chair.Person {
+			o.Chair = nil // they no longer chair
+		}
+		left = append(left, o)
+	}
+	if bs := s.HolderBreaks(left, nil); len(bs) != 1 || bs[0].Line != chair.Name+" can't take the chair of judges seat at BUCS L3: they offer nothing" {
+		t.Errorf("no longer chairing: %v", bs)
+	}
+	left = slices.DeleteFunc(left, func(o RotaPerson) bool { return o.Key == chair.Person })
+	want := chair.Name + " isn't an official any more (chair of judges, BUCS L3)"
+	n := 0
+	for _, b := range s.HolderBreaks(left, nil) {
+		if strings.HasPrefix(b.Line, chair.Name+" ") {
+			n++
+			if b.Line != want || b.Person != chair.Person {
+				t.Errorf("gone: %+v", b)
+			}
+		}
+	}
+	if n != 1 {
+		t.Errorf("one line for the chair gone, not a flight each: %d", n)
 	}
 }

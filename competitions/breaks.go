@@ -225,7 +225,7 @@ func (s Schedule) FreeForSeat(flight, seat int, people map[string][]string, offi
 		return nil
 	}
 	start := flight
-	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == s.Flights[flight].Officials[seat]; prev = s.before(start) {
+	for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat].same(s.Flights[flight].Officials[seat]); prev = s.before(start) {
 		start = prev
 	}
 	st := s.stretchFrom(start, seat)

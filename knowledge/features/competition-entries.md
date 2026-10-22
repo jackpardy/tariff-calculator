@@ -583,7 +583,10 @@ the page's address so a view can be kept or shared:
   checked, and for a link with the sheets but no timetable page the
   timetable's sheets) and **Download CSV**, above the search; the cards and
   the CSV take the same filters, and each open level has **Print this
-  level's cards**.
+  level's cards**. A level where men and women rank apart is two sections,
+  "BUCS L7 · Men" and "BUCS L7 · Women" (2026-10-22), each with **Print
+  these cards** (that category, `part=`), its rows without the category tag
+  the heading gives; a limit on the level shows on both, for the level.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
@@ -826,12 +829,20 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   from before (one level and "can chair") read as HD only; tumbling and DMT
   have no HD, so there they read "Judge Tumbling (no role chosen yet)" and
   give no seat: not Judge under Can do, not under Can judge, not counted in
-  the panel's cover, until the judge picks a role. The organiser's
+  the panel's cover, until the judge picks a role. Synchro has no
+  row of its own: trampoline's judges judge it ("Trampoline and synchro"),
+  each synchro event by the hardest trampoline level it pairs, so chairing
+  up to ISTO Advanced is chairing ISTO Intervanced/Advanced's synchro, and
+  synchronisation, like HD, at any level (`Offer.For`). The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
   (`store.sameGymnast`), and withdrawing one entry moves it to another.
+  When their last entry is withdrawn, or the organiser removes all their
+  entries, the offer goes (a removed entry's comes back if it's put back;
+  one held for changes keeps it). A club member's offer is the club's, sent
+  apart from their entries, so removing their entry doesn't touch it.
 - **Judging qualifications** ([ADR 0014](../../docs/adr/0014-judges-qualifications.md)):
   beside the offer, **Your judging qualifications** lists a judge's, each
   with its certificate, with **Add a judging qualification** (one from the
@@ -893,10 +904,23 @@ are then filled flight by flight.
   time. Changing these rules asks you to **Assign officials again**, not to
   plan again.
 - **The report:** seats no one could take, a seat for the whole event it's
-  on (counted, with the panels they're on: "11, on 3 panels"), manual changes that break the rota
-  (someone officiating while competing, in two places, or in a role they
-  can't take), rules not kept, times each club judged its own, and the
-  busiest officials.
+  on (counted, with the panels they're on: "11, on 3 panels"), **seat
+  problems** (an amber chip on the Officials line, "1 seat problem", and the
+  list **Problems with the seats** open below it): manual changes that break
+  the rota (someone officiating while competing, in two places, or in a role
+  they can't take), and seats whose holders can't have them any more
+  (`Schedule.HolderBreaks`): gone from the officials ("Chloe Clarke isn't an
+  official any more (HD judge, BUCS L6 Women)": they withdrew, the organiser
+  removed their entry, or their club stopped sending their offer), or no
+  longer offering the seat's role ("…: their offer: …"), a line for the
+  flights they hold it for. Then rules not kept, times each club judged its
+  own, and the busiest officials. A seat keeps the name its holder had when
+  given it (`Duty.Name`), so they're named after they've gone, here, on the
+  panel (an amber "Not an official any more" or "Can't take this seat" by
+  their name, and "1 seat problem" on the folded panel), and on the
+  published timetable's pages until it's published again. The organiser's
+  **Entries** page lists the same holders gone or changed, under "1 seat
+  problem on the timetable", linking to the timetable's Officials check.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for. The
   dropdown lists first those who can take the seat chosen beside it (by role

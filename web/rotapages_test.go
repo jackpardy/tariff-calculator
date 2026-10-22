@@ -78,7 +78,7 @@ func TestOfficialsRota(t *testing.T) {
 	// Each says who fills it, linking to their page, with no chip.
 	for _, who := range [][2]string{{"Chair of judges", "Mary"}, {"Execution judge", "Dara"}, {"Execution judge", "Tom"}} {
 		seat := regexp.QuoteMeta(who[0]+": <a href=\"") + `[^"]*/people/[^"]+">` + regexp.QuoteMeta(who[1]+"</a>")
-		if !regexp.MustCompile(seat + ` <span class="has-text-grey">[^<]*</span></li>`).MatchString(l3) {
+		if !regexp.MustCompile(seat + ` <span class="has-text-grey">[^<]*</span> ?</li>`).MatchString(l3) {
 			t.Errorf("BUCS L3's panel has %s: %s", who, l3)
 		}
 	}
@@ -193,5 +193,74 @@ func TestDutiesByEvent(t *testing.T) {
 	s.Flights[2].Officials[0].Person = "m:2"
 	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–11:30 · Panel 2 · BUCS L7 Men · flights 1–2 of 3 · Execution judge" {
 		t.Errorf("two of its flights: %q", got)
+	}
+}
+
+// A seat whose holder can't have it any more (they withdrew, or the
+// organiser removed their entry) names them, is counted on the Officials
+// line and the panel, and is on the entries page, linking to the timetable.
+// A held entry keeps its seat; put back, a removed one's seat is fine again.
+func TestStaleSeats(t *testing.T) {
+	for _, how := range []string{"withdrawn", "removed"} {
+		t.Run(how, func(t *testing.T) {
+			h := competitionServer(t)
+			form := newCompetition()
+			form.Set("tumbling", "Novice")
+			admin := created(t, h, form)
+			redirected(t, h, admin+"/officials/settings", url.Values{
+				"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
+				"panel-tumbling-chair": {"0"}, "panel-tumbling-execution": {"0"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}})
+			redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
+			redirected(t, h, admin+"/officials/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
+			enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
+			redirected(t, h, enter, bucsEntry("Eve"))
+			dara := withoutQuery(redirected(t, h, enter, url.Values{"gymnast": {"Dara"}, "discipline": {"tumbling"}, "level": {"Novice"}}))
+			redirected(t, h, dara+"/offer", url.Values{"judge-trampoline": {"1"}})
+			tt := admin + "/timetable"
+			redirected(t, h, tt+"/setup/rules", url.Values{"add": {"1"}, "kind": {"before"}, "must": {"1"}, "event": {"Tumbling Novice"}, "event2": {"BUCS L3"}})
+			page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
+			if !strings.Contains(page, chip(t, views.Attention, "No one")) && !strings.Contains(page, chip(t, views.Done, "Every seat filled")) || strings.Contains(page, "seat problem") {
+				t.Fatalf("planned with Dara on BUCS L3's panel, no problems: %s", page)
+			}
+			id := regexp.MustCompile(`data-entry="([^"]+)" data-list-row="" data-name="Dara"`).FindStringSubmatch(page)
+			if id == nil {
+				t.Fatal("Dara's entry in Tumbling Novice")
+			}
+			remove := func(action string) {
+				t.Helper()
+				redirected(t, h, admin+"/remove", url.Values{"entry": {id[1]}, "action": {action}})
+			}
+			if how == "withdrawn" {
+				redirected(t, h, dara+"/withdraw", url.Values{"confirm": {"1"}})
+			} else {
+				remove("hold")
+				if page := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(page, "seat problem") {
+					t.Error("a held entry keeps its seat")
+				}
+				redirected(t, h, admin+"/entries/"+id[1]+"/restore", url.Values{})
+				remove("remove")
+			}
+
+			page = do(t, h, http.MethodGet, tt, nil).Body.String()
+			line := "Dara isn&#39;t an official any more (execution judge, BUCS L3)"
+			for _, want := range []string{chip(t, views.Attention, "1 seat problem"), line, chip(t, views.Attention, "Not an official any more"), "Dara: 1,"} {
+				if !strings.Contains(page, want) {
+					t.Errorf("the timetable has %q: %s", want, page)
+				}
+			}
+			if strings.Contains(page, chip(t, views.Done, "Every seat filled")) {
+				t.Error("not every seat is well filled")
+			}
+			entries := do(t, h, http.MethodGet, admin, nil).Body.String()
+			if !strings.Contains(entries, chip(t, views.Attention, "1 seat problem on the timetable")) || !strings.Contains(entries, line) || !strings.Contains(entries, `href="`+tt+`#officials-check"`) {
+				t.Errorf("the entries page has the seat problem, linking to the timetable: %s", entries)
+			}
+			if how == "removed" {
+				redirected(t, h, admin+"/entries/"+id[1]+"/restore", url.Values{})
+				if page := do(t, h, http.MethodGet, tt, nil).Body.String(); strings.Contains(page, "seat problem") {
+					t.Error("put back, Dara's seat is hers again")
+				}
+			}
+		})
 	}
 }

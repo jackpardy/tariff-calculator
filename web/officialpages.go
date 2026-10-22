@@ -41,12 +41,21 @@ func offerKey(d string) string {
 func offerForm(c competitions.Competition, o competitions.Offer, action string) views.OfferForm {
 	f := views.OfferForm{Action: action, Recorder: o.Recorder, Marshal: o.Marshal, Summary: o.Describe(), Organiser: c.Officials.Note}
 	for _, d := range c.Disciplines() {
+		if d == competitions.Synchro {
+			continue // judged by trampoline's judges, at its levels
+		}
 		j, judges := o.Judge[d]
 		var measured []string
 		for _, role := range competitions.Measured(d) {
 			measured = append(measured, competitions.JudgingWord(role))
 		}
+		if d == competitions.Trampoline && slices.Contains(c.Disciplines(), competitions.Synchro) {
+			measured = append(measured, competitions.JudgingWord(competitions.RoleSync))
+		}
 		od := views.OfferDiscipline{Key: offerKey(d), Name: competitions.DisciplineName(d), Levels: c.LevelNames(d), Judge: judges, Measured: competitions.JoinList(measured)}
+		if d == competitions.Trampoline && slices.Contains(c.Disciplines(), competitions.Synchro) {
+			od.Name, od.Note = "Trampoline and synchro", "A synchro event goes by its hardest level: up to a level takes in the synchro events no harder."
+		}
 		for _, role := range competitions.LevelRoles {
 			upTo, on := j.UpTo[role]
 			if !judges {
@@ -75,7 +84,7 @@ func postedOffer(r *http.Request, c competitions.Competition) competitions.Offer
 	o := competitions.Offer{Recorder: r.FormValue("recorder") == "1", Marshal: r.FormValue("marshal") == "1"}
 	for _, d := range c.Disciplines() {
 		key := offerKey(d)
-		if r.FormValue("judge-"+key) != "1" {
+		if d == competitions.Synchro || r.FormValue("judge-"+key) != "1" {
 			continue
 		}
 		if o.Judge == nil {
@@ -239,11 +248,12 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		})
 		cover := views.Cover{Name: competitions.DisciplineName(d), PanelJudges: panel.Judges(), PanelChairs: panel.Chair}
 		for _, o := range people {
+			j, _ := o.Offer.For(d)
 			if !o.Offer.Judges(d) || (c.Officials.Judge == competitions.JudgeQualified && !o.Qualified) {
 				continue
 			}
 			cover.Judges++
-			if o.Offer.Judge[d].Takes(competitions.RoleChair) {
+			if j.Takes(competitions.RoleChair) {
 				cover.Chairs++
 			}
 		}
