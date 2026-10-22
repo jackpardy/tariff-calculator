@@ -23,6 +23,7 @@ type TimetablePage struct {
 	Published   bool
 	Changes     bool // the draft differs from what's published
 	Unpublished []ChangeGroup // what it changes, kind by kind
+	SeatBusy    map[string][]int // by a seat's Span, who isn't free for it, as places in Rota.Options
 	Begun       bool // the competition has begun (something's marked on the day), so it isn't planned again
 	Report      ReportView
 	Days        []DayView
@@ -52,6 +53,7 @@ type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
 	Need                     string // what the seat needs, for its people who can take it to be listed first (web.seatNeed)
+	Span                     string // the flights it runs across, a key of TimetablePage.SeatBusy; "" for blocked time's
 	Here                     bool   // checked in for the panel on the day
 	Missing                  bool   // marked missing for it
 }
@@ -205,6 +207,9 @@ templ CompetitionTimetable(p TimetablePage) {
 	@competitionLayout("Timetable · " + p.Competition.Name) {
 		@fillOptions("move-options", p.Moves)
 		@fillOptions("seat-options", p.Rota.Options)
+		if len(p.SeatBusy) > 0 {
+			@templ.JSONScript("seat-busy", p.SeatBusy)
+		}
 		@fillOptions("place-options", p.Places)
 		<script defer src={ static.URL("js/fill.js") }></script>
 		<script defer src={ static.URL("js/selectsearch.js") }></script>
@@ -971,7 +976,7 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 			<div class="select is-small">
 				<select name="seat" aria-label={ "Seat on " + it.Name }>
 					for i, s := range it.Seats {
-						<option value={ strconv.Itoa(i) } data-need={ s.Need }>{ s.Label }</option>
+						<option value={ strconv.Itoa(i) } data-need={ s.Need } data-span={ s.Span } data-holder={ s.Person }>{ s.Label }</option>
 					}
 				</select>
 			</div>

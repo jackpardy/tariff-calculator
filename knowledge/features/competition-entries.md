@@ -583,7 +583,10 @@ the page's address so a view can be kept or shared:
   checked, and for a link with the sheets but no timetable page the
   timetable's sheets) and **Download CSV**, above the search; the cards and
   the CSV take the same filters, and each open level has **Print this
-  level's cards**.
+  level's cards**. A level where men and women rank apart is two sections,
+  "BUCS L7 · Men" and "BUCS L7 · Women" (2026-10-22), each with **Print
+  these cards** (that category, `part=`), its rows without the category tag
+  the heading gives; a limit on the level shows on both, for the level.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
@@ -901,9 +904,14 @@ are then filled flight by flight.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for. The
   dropdown lists first those who can take the seat chosen beside it (by role
-  and level: "Can take this seat"), then the rest ("Can't take this seat"),
-  to choose anyway (in the dropdown's search, a green ✓ or amber ✗ beside
-  each name, with "Can take" or "Can't" where the list is wide enough); the
+  and level) and are free for the flights it runs across ("Can take this
+  seat, free then"), then those who can but are busy then, competing, on
+  another panel, kept off by a must or short of must rest ("Can take this
+  seat, but busy then"; `Schedule.SeatsBusy`, worked out once for each run
+  of flights, sent as `#seat-busy`), then the rest ("Can't take this seat"),
+  to choose anyway. In the dropdown's search, a green ✓ Free, amber ◷ Busy
+  or grey ✗ Can't beside each name (the word only where the list is wide
+  enough); the seat's own holder counts as free. The
   ask then says why ("Ann can't take the execution
   judge seat at FIG AG3: their offer: Judge Trampoline (execution up to BUCS
   L3, and HD)", or "they aren't marked qualified").

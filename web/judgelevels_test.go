@@ -58,6 +58,13 @@ func TestJudgeLevelsByRole(t *testing.T) {
 	if !strings.Contains(page, `data-need="`+hard+`:e"`) || !strings.Contains(page, `data-need="`+hard+`:h"`) {
 		t.Error("each seat says what it needs")
 	}
+	// And the flights it runs across, with who's busy for them by place in
+	// the people's list (Fay competes; Ann and Bob are on the panel).
+	span := regexp.MustCompile(`data-need="` + hard + `:e" data-span="([^"]+)" data-holder="`).FindStringSubmatch(page)
+	busy := regexp.MustCompile(`<script id="seat-busy" type="application/json">([^<]+)</script>`).FindStringSubmatch(page)
+	if span == nil || busy == nil || !strings.Contains(busy[1], `"`+span[1]+`":[`) {
+		t.Errorf("who's busy for each seat's flights is on the page: %v %v", span, busy)
+	}
 	flight := regexp.MustCompile(`name="flight" value="(\d+)">\s*<div class="select is-small"><select name="seat" aria-label="Seat on ` + regexp.QuoteMeta("FIG AG3 (17–21)")).FindStringSubmatch(page)
 	if flight == nil {
 		t.Fatal("FIG AG3's seat form")
