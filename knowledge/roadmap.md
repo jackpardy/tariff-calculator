@@ -950,7 +950,7 @@ decisions.
 [^club-software]: Gymnastics club management software round-up (2026)
 [^generators]: Vincent Beaulieu's trampoline routine generator
 
-**A sandbox (decided 2026-10-21; built 2026-10-21, alongside club roles: [Sandbox](features/sandbox.md)).** A
+**A sandbox (decided 2026-10-21; built 2026-10-21, alongside club roles; live 2026-10-22 at <https://sandbox.tariff.pardy.ie/sandbox>: [Sandbox](features/sandbox.md)).** A
 separate instance of the app at `sandbox.tariff.pardy.ie` with ISTO-sized
 made-up competitions (one with entries open; one on the day, which rolls
 back to day 1 every fourth day), messages at every stage, a "Try it as…"

@@ -16,7 +16,8 @@ sources:
 The sandbox is the same app run a second time with `SANDBOX=1`, its own
 `DATA_DIR` and its own address, `sandbox.tariff.pardy.ie` ([ADR
 0016](../../docs/adr/0016-sandbox.md); setting it up:
-[deploy](../operations/deploy.md#sandbox-sandboxtariffpardyie)). It's for
+[deploy](../operations/deploy.md#sandbox-sandboxtariffpardyie)). **Live
+since 2026-10-22** at <https://sandbox.tariff.pardy.ie/sandbox>. It's for
 ISTO's organisers, and anyone else, to click everything, break things and send
 messages with nothing real at stake, before the dry run. Their confusions
 reach the maintainer through the Feedback tab, on the sandbox's own
