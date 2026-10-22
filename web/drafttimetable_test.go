@@ -40,6 +40,8 @@ func TestDraftTimetable(t *testing.T) {
 	redirected(t, h, tt+"/flight", url.Values{"flight": {flight}, "action": {"move"}, "to": {"0:" + other}})
 	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published") || !strings.Contains(page, "Publish changes") {
 		t.Error("the organiser sees changes not published")
+	} else if !regexp.MustCompile(`<details class="comp-tt-changes mt-2" open><summary class="is-size-7"><strong>What's changed since you published</strong> \(1\)</summary>\s*<details class="comp-tt-change-group" open><summary class="is-size-7">Flights \(1\)</summary><ul class="is-size-7"><li>BUCS L3: now Day 1 [0-9:]+, ` + other + ` \(was Day 1 [0-9:]+, ` + first + `\)</li>`).MatchString(page) {
+		t.Errorf("it says what changed, open while there are few: %s", page[strings.Index(page, "Marshal sheets"):][:1500])
 	}
 	if where() != first {
 		t.Error("Ann still sees the published timetable")
@@ -69,6 +71,8 @@ func TestDraftTimetable(t *testing.T) {
 	}
 	if page := do(t, h, http.MethodGet, tt, nil).Body.String(); !strings.Contains(page, "Changes not published") {
 		t.Error("the delay is a change to publish")
+	} else if !strings.Contains(page, `<details class="comp-tt-changes mt-2"><summary`) && !strings.Contains(page, `<details class="comp-tt-changes mt-2" open><summary`) {
+		t.Errorf("a delay's changes are listed: %s", page[strings.Index(page, "comp-tt-status"):][:200])
 	}
 
 	// Unpublished: Ann sees nothing.

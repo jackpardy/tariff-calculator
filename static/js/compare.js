@@ -9,7 +9,7 @@
 
         for (const select of selects) {
             for (const r of state.routines) {
-                select.append(new Option(`${r.name} (${r.skills.length})`, r.id));
+                select.append(new Option(RoutineStore.label(r), r.id));
             }
         }
         const currentIndex = state.routines.findIndex((r) => r.id === state.current);

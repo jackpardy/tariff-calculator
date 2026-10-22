@@ -7,6 +7,18 @@ tags: [feature, routine, calculator, ui]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 ---
 
+# The page
+
+The builder is one of the routine tools (with the Requirements and compare
+pages), which share the competition pages' look: their text sizes, light
+buttons with colour only for the main action, notices and state chips, under
+a slim banner (`views/tool.templ`) naming the app, with **Routine Builder**
+and **Requirements** as links. **Add a skill** is above **Your routine** at
+every width, as before the look-and-feel pass (the owner kept that layout,
+2026-10-22; the layout is being redesigned separately). The page uses
+Bulma's container width (1,152 px at 1,216 px, 1,344 px at 1,408 px); the
+Requirements and compare pages are the competition pages' 60rem.
+
 # Adding a skill
 
 The "Add a skill" card shows one skill with a live summary: its name, FIG
@@ -62,15 +74,35 @@ Routines are kept in the browser, in `localStorage['trampolineRoutines']` as
 tariffs are re-derived by the server on every render, so routines saved by
 older versions show corrected names.
 
-The cards can be reordered by drag (SortableJS) or with the ↑/↓ buttons. Every change
-posts the routine to `POST /routine`, which re-renders the cards, flags,
-messages and total.
+Each card's head is a button that opens its details (so it works from the
+keyboard): the number and name, the FIG notation, a **!** while a problem is
+folded away, and the tariff. **↑**, **↓**, **Edit** and a red **✕** (Remove)
+sit at the right, 34 px tall (36 px on a phone). Remove is in sight, not in
+the opened card, and a ✕ at every width (the owner, 2026-10-22); it doesn't
+ask first, but the message
+saying so has **Undo** (for 6 seconds), which puts the skill back where it was,
+in its own routine even if another is now on screen. The cards can be
+reordered by drag (SortableJS) or with ↑/↓. Every change posts the routine to
+`POST /routine`, which re-renders the cards, flags, messages and total.
+
+Every tariff is shown to one decimal place, as the Code of Points' values
+are: on the cards, in the details, the total ("Total tariff 5.8") and the
+line saying what everything would add up to ("Counting every element: 6.5").
+A card's message, and the list of the routine's problems under the total,
+are in the same words as the tariff sheet and the competition pages
+(`skills.ElementNote`, `skills.RoutineNotes`), e.g. "Element 10 repeats an
+earlier element, so its difficulty doesn't count again."; problems are in the
+attention state's colours. Routine lists name each routine "Ciara voluntary ·
+10 skills" (`RoutineStore.label`), so a name like "Copy (2)" doesn't read
+"(2) (10)".
 
 # Requirements and checks
 
 A routine can be checked against built-in or custom
-[requirements](../requirements/framework.md). The results show under the
-routine, and the elements involved are highlighted. "Check against" is a
+[requirements](../requirements/framework.md). How many are met shows straight
+under Check against, as a state chip ("1 of 7 met", done when all are), with
+**See which** jumping to the list under the total, where each says ✓ or ✗;
+the elements involved are highlighted. "Check against" is a
 button showing what's chosen; it opens a panel under it with a search
 (by organisation, level or name, ignoring case and accents; Enter takes the
 first match), **Yours** (those kept on your page first, then this browser's),
@@ -98,7 +130,9 @@ beside "+ New", the same kind of chooser, uses one as a starting point
 set routine by an earlier version stop being checked.
 
 [Levels](../requirements/levels.md) have their own mode (Routines | Levels at
-the top of the builder): pick a level to see its set routines as prescribed,
+the top of the builder): pick a level under **+ New level**, a chooser like
+Check against's (search, Yours, then each organisation's; Enter takes the
+first match), to see its set routines as prescribed,
 and link a routine to its voluntary (new, already built, or started from a
 set). Side by side works for a level's tabs too.
 
@@ -115,7 +149,11 @@ some elements score, the coach can tick which ones.
 # Side by side
 
 A second saved routine can be shown beside the current one. Both columns can be
-edited, and the cards mark where the two differ. On a phone the columns become
+edited. The second routine's cards that differ from the first's at the same
+number are shaded (only the second's: shading the same row in both said
+nothing more, the owner, 2026-10-22), unless **Shade skills that differ from
+the first**, beside Side by side with, is unticked, for when two routines are
+just up together; that's kept in the browser (`builderShadeDiffs`). On a phone the columns become
 tabs. The routine side by side is remembered with the routines (`beside` in
 `trampolineRoutines`), so coming back from the view screen, a reload, or
 Levels mode and back keeps it. The standalone [compare page](compare.md) does

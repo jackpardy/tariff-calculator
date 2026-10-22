@@ -914,9 +914,14 @@ are then filled flight by flight.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
   goes on the event's other flights the same person had that seat for. The
   dropdown lists first those who can take the seat chosen beside it (by role
-  and level: "Can take this seat"), then the rest ("Can't take this seat"),
-  to choose anyway (in the dropdown's search, a green ✓ or amber ✗ beside
-  each name, with "Can take" or "Can't" where the list is wide enough); the
+  and level) and are free for the flights it runs across ("Can take this
+  seat, free then"), then those who can but are busy then, competing, on
+  another panel, kept off by a must or short of must rest ("Can take this
+  seat, but busy then"; `Schedule.SeatsBusy`, worked out once for each run
+  of flights, sent as `#seat-busy`), then the rest ("Can't take this seat"),
+  to choose anyway. In the dropdown's search, a green ✓ Free, amber ◷ Busy
+  or grey ✗ Can't beside each name (the word only where the list is wide
+  enough); the seat's own holder counts as free. The
   ask then says why ("Ann can't take the execution
   judge seat at FIG AG3: their offer: Judge Trampoline (execution up to BUCS
   L3, and HD)", or "they aren't marked qualified").
@@ -1097,7 +1102,13 @@ are then filled flight by flight.
   kept "what if"), and the **published** copy (`published_timetable`),
   which every attendee page reads (placements, duties, "My competition",
   personal and club timetables). With changes not published, the page says
-  so: **Publish changes** copies the draft over, **Discard changes** copies
+  so, and **What's changed since you published** lists them by kind
+  (`Schedule.ChangesFrom`, 2026-10-22): **Flights** added, moved, finishing
+  later or taken out, and running orders redrawn; **Gymnasts** moved to
+  another flight, added or taken out; **Panels**, a seat given to someone
+  else (once for its event); **Breaks** moved, added or taken out; and
+  **Setup** changed. It's open while there are 10 or fewer, folded once
+  there are more, and each kind folds on its own. **Publish changes** copies the draft over, **Discard changes** copies
   the published one back, **Unpublish** takes it down. Discarding and
   unpublishing ask first, on **Before you change it**, never in a browser
   pop-up ([asking first](../architecture/ui.md#asking-first)). Timetables published

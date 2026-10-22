@@ -381,7 +381,9 @@ a **Change** button to open it.
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
-   for (the people who can take the seat you chose are listed first); **Assign officials again** redoes every panel and keeps the flights
+   for (the people who can take the seat you chose and are free then are
+   listed first, marked ✓; those who could but are busy then, ◷; the rest,
+   ✗); **Assign officials again** redoes every panel and keeps the flights
    (it asks first, as your changes to the panels are lost).
    If someone with a seat withdraws, has their entry removed or changes
    their offer so they can't take it, the Officials line says so in amber
@@ -423,7 +425,9 @@ a **Change** button to open it.
    anything you change (planning again, moving flights or gymnasts, giving
    seats to officials, keeping a "what if") is a **draft**: everyone else
    still sees what you published until you tap **Publish changes**. The page
-   says when there are changes not published yet; **Discard changes** goes
+   says when there are changes not published yet, and **What's changed since
+   you published** lists them (flights, gymnasts, panels, breaks), folded
+   when there are many; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down. Each asks
    first, on a page saying what it does, as does **Plan again** once the
    timetable is planned.

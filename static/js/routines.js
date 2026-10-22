@@ -23,6 +23,13 @@ const RoutineStore = (() => {
         }
     }
 
+    // label is a routine as every list of them names it: "Ciara voluntary ·
+    // 10 skills" (not in brackets, which a name like "Copy (2)" has already).
+    function label(r) {
+        const n = r.skills.length;
+        return `${r.name} · ${n === 0 ? 'empty' : n === 1 ? '1 skill' : `${n} skills`}`;
+    }
+
     // load returns the saved routines, always with at least one, and a valid current id.
     function load() {
         let state = read(key);
@@ -100,5 +107,5 @@ const RoutineStore = (() => {
     // pages: coaches' own, and members' who coach too (ADR 0010).
     const coachLinks = () => [...savedLinks('trampolineCoachLinks', '/clubs/coach/'), ...memberLinks().filter((l) => l.coach)];
 
-    return { load, save, current, newId, nextName, keepable, keep, memberLinks, coachLinks };
+    return { load, save, current, newId, nextName, label, keepable, keep, memberLinks, coachLinks };
 })();

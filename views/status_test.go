@@ -15,8 +15,11 @@ import (
 // chips (the cleanup audit's roll-out, step 2): On the day, the dashboard,
 // the club's pages, the timetable's rota and the officials; then a coach's
 // entries, My competition and hearing about changes; then an entry's
-// sign-off and late changes, and an individual's pages (step 3).
-var paletteOnly = []string{"day.templ", "dashboard.templ", "clubs.templ", "timetable.templ", "officials.templ", "coaches.templ", "my.templ", "notify.templ", "late.templ", "entry.templ", "gymnast.templ"}
+// sign-off and late changes, and an individual's pages (step 3); then the
+// routine tools: the builder, its cards, Requirements and compare (the
+// look-and-feel pass, 2026-10-19).
+var paletteOnly = []string{"day.templ", "dashboard.templ", "clubs.templ", "timetable.templ", "officials.templ", "coaches.templ", "my.templ", "notify.templ", "late.templ", "entry.templ", "gymnast.templ",
+	"page.templ", "routine.templ", "form.templ", "chooser.templ", "sets.templ", "levels.templ", "compare.templ", "tool.templ"}
 
 // bulmaState is Bulma colour used to show a state: a coloured tag, or
 // coloured text.

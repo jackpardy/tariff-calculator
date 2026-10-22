@@ -23,6 +23,7 @@ function tariffCalculatorStore() {
         levelState: { current: null, entries: [] }, // the levels being worked on (LevelEntries)
         expanded: [], // per-card expanded state, parallel to routine
         compareId: null, // the routine shown beside the current one, if any
+        shadeDiffs: true, // shade the second routine's skills that differ from the first's (kept in the browser)
         beside: null,    // in Routines mode, the routine side by side, remembered (so the view's back arrow, a reload or Levels and back keep it)
         routineB: [],    // its skills (the same array as in routines)
         expandedB: [],   // per-card expanded state, parallel to routineB
@@ -35,9 +36,9 @@ function tariffCalculatorStore() {
         picked: null,       // the picker entry last chosen (catalog.Entry ID)
         pickedShape: null,  // the shape it was chosen in
         query: '',          // the picker's search text; results replace the tabs while it's set
-        toast: { show: false, message: '', type: 'info' },
+        toast: { show: false, message: '', type: 'info', undo: null },
         memberLinks: [], // club member pages saved in this browser, to keep routines on (ADR 0011)
-        chooser: { open: '', q: '' }, // the open chooser ('check-a', 'check-b' or 'set') and its search
+        chooser: { open: '', q: '' }, // the open chooser ('check-a', 'check-b', 'set' or 'level') and its search
         recent: { check: [], set: [] }, // the built-in requirements and set routines chosen lately, latest first
         // ask is a question on the page, in place of the browser's prompt and
         // confirm: {title, text, value (a name to type, or null), buttons}.
@@ -69,6 +70,8 @@ function tariffCalculatorStore() {
             });
             this.levelState = LevelEntries.load();
             try { this.mode = localStorage.getItem('builderMode') === 'levels' ? 'levels' : 'routines'; } catch (e) { /* routines */ }
+            try { this.shadeDiffs = localStorage.getItem('builderShadeDiffs') !== 'off'; } catch (e) { /* shaded */ }
+            this.$watch('shadeDiffs', (on) => { try { localStorage.setItem('builderShadeDiffs', on ? 'on' : 'off'); } catch (e) { /* this visit only */ } });
             // Sets and levels edited in another tab (the requirements page) are picked up here.
             window.addEventListener('storage', (event) => {
                 if (event.key === 'trampolineRequirementSets' || event.key === LevelStore.key) {
@@ -376,9 +379,14 @@ function tariffCalculatorStore() {
             if (!ref) { return 'No requirements'; }
             return this.customSets.find((s) => s.id === ref)?.set.name || Exercises.requirementName(ref);
         },
-        // yourChoices are your own requirements or set routines (kind 'check'
-        // or 'set'): those kept on your page first.
+        // yourChoices are your own requirements, set routines or levels (kind
+        // 'check', 'set' or 'level'): those kept on your page first.
         yourChoices(kind) {
+            if (kind === 'level') {
+                return this.customLevels
+                    .map((l) => ({ ref: l.id, name: l.level.name, kept: !!l.kept, search: `${l.level.name} ${l.kept ? 'on your page' : ''}` }))
+                    .sort((a, b) => Number(b.kept) - Number(a.kept));
+            }
             return this.customSets
                 .filter((s) => this.isSetRoutine(s.set) === (kind === 'set') && !s.inLevel) // a level's own are its
                 .map((s) => ({ ref: s.id, name: s.set.name, kept: !!s.kept, search: `${s.set.name} ${s.kept ? 'on your page' : ''}` }))
@@ -390,9 +398,10 @@ function tariffCalculatorStore() {
             return (this.recent[kind] || []).filter((ref) => names[ref]).map((ref) => ({ ref, name: names[ref] }));
         },
         // choose takes a chooser's option: requirements for its column to be
-        // checked against, or a set routine to start from.
+        // checked against, a set routine to start from, or a level to start.
         choose(key, ref) {
             this.chooser = { open: '', q: '' };
+            if (key === 'level') { this.newEntry(ref); return; }
             const kind = key === 'set' ? 'set' : 'check';
             if (ref.startsWith('builtin:')) {
                 this.recent[kind] = [ref, ...(this.recent[kind] || []).filter((r) => r !== ref)].slice(0, 4);
@@ -522,7 +531,7 @@ function tariffCalculatorStore() {
             const tab = this.columnTab(side);
             if (tab) { return tab.label; }
             const routine = this.routineFor(side);
-            return routine ? `${routine.name} (${routine.skills.length})` : '';
+            return routine ? RoutineStore.label(routine) : '';
         },
         isChosenTab(tab) {
             const entry = this.entry();
@@ -809,7 +818,7 @@ function tariffCalculatorStore() {
             return response.json();
         },
         // addTargets are the routines Add can put a skill in, for the "Add to" list.
-        addTargets() { return this.routines.map((r) => ({ value: r.id, label: `${r.name} (${r.skills.length})` })); },
+        addTargets() { return this.routines.map((r) => ({ value: r.id, label: RoutineStore.label(r) })); },
         // addToValue is the routine Add will put a skill in: the one chosen, or the
         // one on screen (in Levels mode, a voluntary shown or the level's first).
         addToValue() {
@@ -925,14 +934,31 @@ function tariffCalculatorStore() {
         clearScores(side) { this.skillsOf(side).forEach((s) => { delete s.scores; }); },
 
         // --- Changing the routine ---
+        // removeSkill takes a skill out of its routine, with Undo on the
+        // message, in place of asking first.
         removeSkill(index, side = 'a') {
             const skills = this.skillsOf(side);
             if (index < 0 || index >= skills.length) { return; }
             this.expandedOf(side).splice(index, 1);
-            skills.splice(index, 1);
+            const [skill] = skills.splice(index, 1);
+            this.showToast(`Removed ${skill.custom_name || skill.name}.`, 'info', () => this.restoreSkill(skills, index, skill, side));
             if (this.editingSide !== side) { return; }
             if (this.editingIndex === index) { this.cancelEdit(); }
             else if (this.editingIndex > index) { this.editingIndex--; }
+        },
+        // restoreSkill puts a removed skill back where it was in its routine
+        // (skills), whether or not that routine is still on screen.
+        restoreSkill(skills, index, skill, side) {
+            index = Math.min(index, skills.length);
+            if (this.skillsOf(side) !== skills) {
+                skills.splice(index, 0, skill);
+                this.persist();
+                this.renderRoutines();
+                return;
+            }
+            this.expandedOf(side).splice(index, 0, false);
+            skills.splice(index, 0, skill);
+            if (this.editingSide === side && this.editingIndex !== null && this.editingIndex >= index) { this.editingIndex++; }
         },
         moveSkillUp(index, side = 'a') { if (index > 0) { this.moveSkill(index, index - 1, side); } },
         moveSkillDown(index, side = 'a') { if (index < this.skillsOf(side).length - 1) { this.moveSkill(index, index + 1, side); } },
@@ -962,7 +988,7 @@ function tariffCalculatorStore() {
             if (!list || !window.Sortable || 'readOnly' in list.dataset) { return; } // a prescribed set routine stays as it is
             Sortable.create(list, {
                 draggable: '.routine-skill-container',
-                filter: 'button', preventOnFilter: false, // the card's buttons stay clickable
+                filter: 'button:not(.card-toggle)', preventOnFilter: false, // the card's buttons stay clickable; its head (a button too) still drags, and a tap on it still opens it
                 delay: 200, delayOnTouchOnly: true,       // on touch, press and hold so the page still scrolls
                 animation: 150,
                 onEnd: (event) => {
@@ -997,10 +1023,17 @@ function tariffCalculatorStore() {
             resolve?.(value);
         },
 
-        showToast(message, type = 'info') {
-            this.toast = { show: true, message, type };
+        // showToast says what just happened, for a few seconds; undo, given,
+        // puts an Undo button on it, and a little longer to reach it.
+        showToast(message, type = 'info', undo = null) {
+            this.toast = { show: true, message, type, undo };
             clearTimeout(this._toastTimer);
-            this._toastTimer = setTimeout(() => this.toast.show = false, 3000);
+            this._toastTimer = setTimeout(() => this.toast.show = false, undo ? 6000 : 3000);
+        },
+        undoToast() {
+            const undo = this.toast.undo;
+            this.toast = { ...this.toast, show: false, undo: null };
+            undo?.();
         },
     }
 }

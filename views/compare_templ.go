@@ -150,7 +150,7 @@ func ComparePage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"></script></head><body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"></script></head><body class=\"tool-page\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -158,7 +158,11 @@ func ComparePage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section class=\"section\"><div class=\"container\"><p class=\"mb-3 compare-back\"><a href=\"/\">← Routine Builder</a></p><h1 class=\"title is-4\">Compare routines</h1><div class=\"compare-choices\"><div class=\"field\"><label class=\"label is-small\" for=\"compare-a\">Routine A</label><div class=\"select is-fullwidth\"><select id=\"compare-a\"></select></div></div><div class=\"field\"><label class=\"label is-small\" for=\"compare-b\">Routine B</label><div class=\"select is-fullwidth\"><select id=\"compare-b\"></select></div></div></div><div id=\"comparison\" hx-sync=\"this:replace\"><p class=\"has-text-grey\">Loading the routines saved in this browser...</p></div></div></section>")
+		templ_7745c5c3_Err = toolBanner("/compare", false).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<main class=\"section tool-section\"><div class=\"container is-narrow-tool\"><h1 class=\"title is-4\">Compare routines</h1><div class=\"compare-choices\"><div class=\"field\"><label class=\"label is-small\" for=\"compare-a\">Routine A</label><div class=\"select is-fullwidth\"><select id=\"compare-a\"></select></div></div><div class=\"field\"><label class=\"label is-small\" for=\"compare-b\">Routine B</label><div class=\"select is-fullwidth\"><select id=\"compare-b\"></select></div></div></div><div id=\"comparison\" hx-sync=\"this:replace\"><p class=\"has-text-grey\">Loading the routines saved in this browser...</p></div></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -522,17 +526,17 @@ func compareIssues(side CompareSide) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if issues := sheetIssues(side.Validation); len(issues) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<p class=\"is-size-7 has-text-success\">No problems found.</p>")
+			templ_7745c5c3_Err = StateChip(Done, "No problems").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<ul class=\"compare-issues\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<ul class=\"compare-issues\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, issue := range issues {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -545,17 +549,17 @@ func compareIssues(side CompareSide) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</ul>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
