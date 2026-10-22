@@ -1029,6 +1029,34 @@ func TestOfficials(t *testing.T) {
 	}
 	must(t, s.RemoveOfficial(ctx, c.ID, added.ID))
 
+	// The organiser removing one of the individual's entries keeps their
+	// offer, with its entry's person key; removing both takes it, until one
+	// is put back. One held for changes keeps it.
+	removeEntry := func(id, removal string) {
+		t.Helper()
+		_, err := s.RemoveEntries(ctx, c.ID, []string{id}, removal, "", "")
+		must(t, err)
+	}
+	removeEntry(other.ID, Removed)
+	list, _ = s.Officials(ctx, c.ID)
+	if len(list) != 2 || list[1].EntryID != other.ID || list[1].EntryKey == "" || list[1].EntryKey != ind.Key() {
+		t.Errorf("I's offer stays while they've an entry, keyed as them: %+v", list)
+	}
+	removeEntry(ind.ID, Removed)
+	if list, _ := s.Officials(ctx, c.ID); len(list) != 1 {
+		t.Errorf("only A while both of I's entries are removed: %+v", list)
+	}
+	must(t, s.RestoreEntry(ctx, c.ID, ind.ID))
+	if list, _ := s.Officials(ctx, c.ID); len(list) != 2 {
+		t.Errorf("I's offer is back with an entry put back: %+v", list)
+	}
+	removeEntry(ind.ID, Held)
+	if list, _ := s.Officials(ctx, c.ID); len(list) != 2 {
+		t.Errorf("I's held entry keeps their offer: %+v", list)
+	}
+	must(t, s.RestoreEntry(ctx, c.ID, ind.ID))
+	must(t, s.RestoreEntry(ctx, c.ID, other.ID))
+
 	// Withdrawing one of the individual's entries keeps their offer, on the
 	// other; withdrawing the other too takes it.
 	must(t, s.WithdrawIndividualEntry(ctx, token))

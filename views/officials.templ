@@ -48,6 +48,7 @@ type OfferDiscipline struct {
 	Levels   []string
 	Judge    bool
 	Measured string // e.g. "HD and synchronisation": any of its judges, at any level; "" for none
+	Note     string // under it, e.g. how trampoline's levels take in synchro's
 	Roles    []OfferRole
 }
 
@@ -117,6 +118,9 @@ templ offerDisciplineRow(d OfferDiscipline) {
 				</label>
 			}
 		</span>
+		if d.Note != "" {
+			<span class="help comp-offer-note">{ d.Note }</span>
+		}
 	</fieldset>
 }
 

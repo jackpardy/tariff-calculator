@@ -48,6 +48,14 @@ can't be hd judge at ISTO Elite-Pro").
    their offer: Judge Trampoline (execution up to BUCS L3, and HD)", or "they
    aren't marked qualified".
 
+8. **Synchro is judged by trampoline's judges** (added 2026-10-22, at the
+   owner's ask: few could chair synchro, which was offered on its own).
+   There's no synchro row to offer; trampoline's, named "Trampoline and
+   synchro" where the competition has synchro, takes in each synchro event
+   by the hardest trampoline level it pairs: chairing up to ISTO Advanced is
+   chairing "ISTO Intervanced/Advanced". Synchronisation, like HD, at any
+   level. Offers from before for synchro alone count for nothing.
+
 ## Consequences
 
 - The rota can put anyone who judges a discipline on its HD seats, so it
@@ -58,3 +66,7 @@ can't be hd judge at ISTO Elite-Pro").
 - The "Can judge" filter on Officials goes by the hardest level someone takes
   execution, difficulty or chair at; someone offering HD only shows under
   "any level".
+- Tumbling and DMT have no HD, so an offer from before gives no seat there.
+  It reads "Judge Tumbling (no role chosen yet)", and isn't counted as
+  judging that discipline (Can do, Can judge, the panel's cover, the
+  qualification flag) until the judge picks a role (2026-10-22).

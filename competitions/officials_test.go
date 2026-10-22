@@ -54,8 +54,23 @@ func TestOffers(t *testing.T) {
 	if got := o.Describe(); got != "Judge Trampoline (execution and difficulty up to FIG AG3 (17–21), chair at any level, and HD) and Tumbling (difficulty at any level); Recorder" {
 		t.Errorf("described as %q", got)
 	}
-	if got := (Offer{Judge: map[string]JudgeOffer{Synchro: {}}}).Describe(); got != "Judge Synchro (HD and synchronisation only)" {
+	if got := (Offer{Judge: map[string]JudgeOffer{Trampoline: {}}}).Describe(); got != "Judge Trampoline (HD only)" {
 		t.Errorf("HD only, described as %q", got)
+	}
+	if got := (Offer{Judge: map[string]JudgeOffer{Synchro: {}}}).Describe(); got != "" {
+		t.Errorf("an offer from before for synchro counts for nothing: %q", got)
+	}
+	// Tumbling and DMT have no HD, so an offer from before levels were by
+	// role offers no seat there: said, not empty brackets.
+	old := Offer{Judge: map[string]JudgeOffer{Trampoline: {}, Tumbling: {}, DMT: {}}, Marshal: true}
+	if got := old.Describe(); got != "Judge Trampoline (HD only), Tumbling (no role chosen yet) and DMT (no role chosen yet); Marshal" {
+		t.Errorf("no role, described as %q", got)
+	}
+	if !old.Judges(Trampoline) || old.Judges(Tumbling) || old.Judges(DMT) || !old.Judges(Synchro) || !old.JudgesAny() {
+		t.Error("a seat only where judging has HD or a role")
+	}
+	if (Offer{Judge: map[string]JudgeOffer{DMT: {}, Synchro: {}}}).JudgesAny() || !(Offer{Judge: map[string]JudgeOffer{DMT: {UpTo: map[string]string{RoleChair: ""}}}}).JudgesAny() {
+		t.Error("DMT with no role, or synchro alone, judges nothing; DMT with a role does")
 	}
 	if (Offer{}).Describe() != "" || !(Offer{}).Empty() || o.Empty() {
 		t.Error("empty offers")
@@ -65,6 +80,7 @@ func TestOffers(t *testing.T) {
 		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleExecution: "Master"}}}},
 		{Judge: map[string]JudgeOffer{Tumbling: {UpTo: map[string]string{RoleHD: ""}}}},
 		{Judge: map[string]JudgeOffer{Tumbling: {}}}, // nothing to judge: tumbling has no HD
+		{Judge: map[string]JudgeOffer{Synchro: {}}},  // trampoline's judges judge it
 	} {
 		if c.ValidateOffer(bad) == nil {
 			t.Errorf("%+v should be refused", bad)

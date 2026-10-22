@@ -808,6 +808,7 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 .comp-offer-roles { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; width: 100%; padding-left: 1.5rem; }
 .comp-offer-role { display: inline-flex; align-items: center; gap: 0.35rem; }
 .comp-offer-role select { max-width: 13rem; }
+.comp-offer-note { width: 100%; margin: 0; padding-left: 1.5rem; }
 @media screen and (max-width: 480px) {
   .comp-offer-role-name { min-width: 4.8rem; }
 }
