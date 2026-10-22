@@ -64,7 +64,7 @@ func panelOf(f competitions.ScheduledFlight, day int, names func(string) string,
 		}
 		c := checks[d.Person]
 		seat := views.DaySeat{
-			Person: d.Person, Name: names(d.Person), Role: competitions.RoleName(d.Role), State: c.Status, Who: c.Who,
+			Person: d.Person, Name: holderName(names, d), Role: competitions.RoleName(d.Role), State: c.Status, Who: c.Who,
 			CanHere: c.Status != store.OfficialHere, CanMissing: c.Status != store.OfficialMissing, CanClear: c.Status != "",
 		}
 		if c.Status == store.OfficialMissing && whatIf != "" {

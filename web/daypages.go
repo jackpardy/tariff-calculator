@@ -359,7 +359,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			br := views.DayBreak{Name: b.Name, Times: competitions.Clock(b.Start) + "–" + competitions.Clock(b.End)}
 			for _, d := range b.Officials {
 				if d.Person != "" {
-					br.Officials = append(br.Officials, nameOf(d.Person)+" ("+competitions.RoleWord(d.Role)+")")
+					br.Officials = append(br.Officials, holderName(nameOf, d)+" ("+competitions.RoleWord(d.Role)+")")
 				}
 			}
 			area.Breaks = append(area.Breaks, br)

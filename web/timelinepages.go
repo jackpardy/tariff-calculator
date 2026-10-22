@@ -261,7 +261,7 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 					if !ok {
 						continue
 					}
-					who := name(duty.Person)
+					who := holderName(name, duty)
 					if duty.Person == "" {
 						who = "—"
 					}
@@ -418,7 +418,7 @@ func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
 		for _, d := range it.officials {
 			who := "—"
 			if d.Person != "" {
-				who = name(d.Person)
+				who = holderName(name, d)
 			}
 			byRole[d.Role] = append(byRole[d.Role], who)
 		}

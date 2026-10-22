@@ -43,7 +43,7 @@ type RotaView struct {
 	OwnClub  []string       // e.g. "UCD 4"
 	Busiest  []string
 	Broken   []string // the organiser's rules about people not kept
-	Problems []string // what manual changes broke
+	Problems []string // what manual changes, and changes to who officiates, broke
 }
 
 // SeatView is one seat on a flight's panel.
@@ -51,6 +51,7 @@ type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
 	Need                     string // what the seat needs, for its people who can take it to be listed first (web.seatNeed)
+	Problem                  string // why its holder can't have it any more, e.g. "Not an official any more"; "" for none
 	Here                     bool   // checked in for the panel on the day
 	Missing                  bool   // marked missing for it
 }
@@ -691,16 +692,23 @@ templ setupSections(p TimetablePage) {
 
 // rotaReport is how the officials rota went.
 templ rotaReport(p TimetablePage) {
-	<div class="comp-tt-check">
+	<div class="comp-tt-check" id="officials-check">
 		<div class="comp-tt-check-row">
 			<p class="comp-tt-check-head">
 				<strong>Officials</strong>
+				// A seat problem (its holder withdrew, say) is as plain as an
+				// empty seat, not left to the folded list.
+				if len(p.Rota.Problems) > 0 {
+					@StateChip(Attention, Count(len(p.Rota.Problems), "seat problem", "seat problems"))
+				}
 				if p.Rota.People == 0 {
-					@StateChip(NotYet, "No one has offered yet")
-				} else if len(p.Rota.Short) == 0 {
-					@StateChip(Done, "Every seat filled")
-				} else {
+					if len(p.Rota.Problems) == 0 {
+						@StateChip(NotYet, "No one has offered yet")
+					}
+				} else if len(p.Rota.Short) > 0 {
 					@StateChip(Attention, Count(p.Rota.Empty, "seat empty", "seats empty")+", on "+Count(len(p.Rota.Short), "panel", "panels"))
+				} else if len(p.Rota.Problems) == 0 {
+					@StateChip(Done, "Every seat filled")
 				}
 				<span class="comp-tt-note">{ strconv.Itoa(p.Rota.People) } can officiate</span>
 			</p>
@@ -713,7 +721,8 @@ templ rotaReport(p TimetablePage) {
 			<p class="help">Clubs send their members' offers with their entries, and you can add people on the Officials page.</p>
 		}
 		@problemsList("Seats no one could take", p.Rota.Short)
-		@problemsList("Problems with the seats", p.Rota.Problems)
+		// Open: each is a seat to give to someone else.
+		@problemsListOpen("Problems with the seats", p.Rota.Problems, true)
 		@problemsList("Your rules about officials not kept", p.Rota.Broken)
 		@problemsList("Judging their own club's gymnasts, times by club", p.Rota.OwnClub)
 		@problemsList("Busiest officials", p.Rota.Busiest)
@@ -803,8 +812,13 @@ templ newBreaks(items []string) {
 }
 
 templ problemsList(title string, items []string) {
+	@problemsListOpen(title, items, false)
+}
+
+// problemsListOpen is problemsList, open to begin with if open.
+templ problemsListOpen(title string, items []string, open bool) {
 	if len(items) > 0 {
-		<details class="mt-2">
+		<details class="mt-2" open?={ open }>
 			<summary class="is-size-7"><strong>{ title }</strong> ({ strconv.Itoa(len(items)) })</summary>
 			<ul class="is-size-7 mt-1">
 				for _, it := range items {
@@ -905,7 +919,12 @@ templ blockBox(p TimetablePage, b ItemView) {
 // seatsEditor lists a panel's seats, with a form to give one to someone.
 templ seatsEditor(p TimetablePage, it ItemView, field string) {
 	<details class="comp-panel mt-2" data-list-group>
-		<summary class="is-size-7"><strong>Panel</strong> { seatsSummary(it.Seats) }</summary>
+		<summary class="is-size-7">
+			<strong>Panel</strong> { seatsSummary(it.Seats) }
+			if n := seatProblems(it.Seats); n > 0 {
+				@StateChip(Attention, Count(n, "seat problem", "seat problems"))
+			}
+		</summary>
 		<ul class="is-size-7 mt-1">
 			for _, s := range it.Seats {
 				<li { seatRow(s)... }>
@@ -916,6 +935,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 						// Their page says who they are and what they do; a chip
 						// on every seat crowded the panel.
 						<a href={ templ.SafeURL(p.Base + "/people/" + url.PathEscape(s.Person)) }>{ s.Name }</a> <span class="has-text-grey">{ s.Club }</span>
+						if s.Problem != "" {
+							@StateChip(Attention, s.Problem)
+						}
 					}
 				</li>
 			}
@@ -1023,6 +1045,17 @@ func seatsSummary(seats []SeatView) string {
 		}
 	}
 	return fmt.Sprintf("· %d of %d seats filled", n, len(seats))
+}
+
+// seatProblems counts a panel's seats whose holders can't have them any more.
+func seatProblems(seats []SeatView) int {
+	n := 0
+	for _, s := range seats {
+		if s.Problem != "" {
+			n++
+		}
+	}
+	return n
 }
 
 // panelLine lists a panel for a sheet, e.g. "Chair of judges: Mary (UCD) ·
