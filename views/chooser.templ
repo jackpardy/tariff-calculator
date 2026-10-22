@@ -8,17 +8,18 @@ import (
 )
 
 // The builder's choosers (roadmap's requirements workflow, step 5): Check
-// against and Start from a set, each a button that opens a panel under it
+// against, Start from a set and Levels mode's New level, each a button that opens a panel under it
 // with a search, your own first (those kept on your page before those in this
 // browser), the ones you used lately, then each organisation's, opened one at
 // a time or all at once while searching. The page's Alpine component keeps
 // which is open and the search (chooser in static/js/app.js).
 
-// Chooser kinds: requirements to check a routine against, or a set routine
-// to start one from.
+// Chooser kinds: requirements to check a routine against, a set routine
+// to start one from, or a level to start working on (Levels mode).
 const (
 	chooseCheck = "check"
 	chooseSet   = "set"
+	chooseLevel = "level"
 )
 
 // chooserKey is the open chooser's key in the page's component: the kind,
@@ -69,6 +70,9 @@ templ chooserPanel(kind, side string, groups []chooserGroup) {
 			if kind == chooseCheck {
 				placeholder="Find requirements, e.g. BUCS L7 or novice"
 				aria-label="Find requirements"
+			} else if kind == chooseLevel {
+				placeholder="Find a level, e.g. BUCS L7 or AG3"
+				aria-label="Find a level"
 			} else {
 				placeholder="Find a set routine, e.g. BG Club L2"
 				aria-label="Find a set routine"
@@ -156,6 +160,21 @@ func checkGroups(groups []requirements.BuiltinGroup) []chooserGroup {
 		for _, o := range CheckOptions(g) {
 			set, _ := requirements.LookupBuiltin(o.Ref)
 			options = append(options, chooserOption{Ref: o.Ref, Label: o.Label, Name: set.Name})
+		}
+		if len(options) > 0 {
+			out = append(out, chooserGroup{Name: g.Name, Options: options})
+		}
+	}
+	return out
+}
+
+// levelChoices are each organisation's levels, for Levels mode's New level.
+func levelChoices(groups []requirements.BuiltinGroup) []chooserGroup {
+	var out []chooserGroup
+	for _, g := range groups {
+		var options []chooserOption
+		for _, l := range g.Levels {
+			options = append(options, chooserOption{Ref: requirements.BuiltinLevelPrefix + l.ID, Label: l.Level.Name, Name: l.Level.Name})
 		}
 		if len(options) > 0 {
 			out = append(out, chooserGroup{Name: g.Name, Options: options})

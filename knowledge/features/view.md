@@ -45,7 +45,12 @@ same number of rows, a full exercise (10) or more, and the same header
 height, so the columns line up. The rows
 share the column's height, and their text is sized with container query units
 (`static/css/view.css`), so 10 or 20 elements fill the screen at any size. Several
-columns are side by side on a landscape screen and stacked on a portrait one. It
+columns are side by side on a landscape screen and stacked on a portrait one;
+three or more (a level's sets and voluntary) stacked on a phone keep a readable
+height each (30rem) and the screen scrolls, rather than shrinking the text to
+about 11 px. A narrow column (a phone, or two side by side on a laptop, under
+42rem) puts each row's FIG notation under its name, so neither is cut; where
+anything must give way it ends in an ellipsis, never mid-character. It
 follows the device's light or dark mode.
 
 Each column has the routine's name, its level and exercise (leaving out

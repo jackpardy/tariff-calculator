@@ -25,7 +25,10 @@ requirements and checks, to `POST /tariff-sheet`, which renders the card (CoP
   first exercise must star.
 - Fill-in detail fields at the top, typed on the page before printing and never
   stored.
-- Warnings about the routine show on screen only, not in print.
+- Warnings about the routine show on screen only, not in print, under **Check
+  before printing**, in the same sentences as the builder and the competition
+  pages (`skills.RoutineNotes`): "Element 10 repeats an earlier element, so
+  its difficulty doesn't count again.", not the validation's labels.
 
 # Options
 

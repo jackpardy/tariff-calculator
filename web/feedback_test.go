@@ -442,7 +442,7 @@ func TestMaintainerPage(t *testing.T) {
 			t.Errorf("the copy has no %q: %s", gone, body)
 		}
 	}
-	for _, kept := range []string{`<a href="#">My day</a>`, "<style>/* General styles", `id="feedback-scroll"`, `top:1200px`, "Withdraw", "Hi {token}"} {
+	for _, kept := range []string{`<a href="#">My day</a>`, "<style>", ".routine-skill {", `id="feedback-scroll"`, `top:1200px`, "Withdraw", "Hi {token}"} {
 		if !strings.Contains(body, kept) {
 			t.Errorf("the copy has %q: %s", kept, body)
 		}

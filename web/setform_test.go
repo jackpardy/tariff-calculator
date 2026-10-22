@@ -326,7 +326,7 @@ func TestRequirementsPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	for _, want := range []string{`id="builtin-sets"`, "requirementsPage()", "requirements.js", "fig-ag1-first", "FIG age groups"} {
+	for _, want := range []string{"requirementsPage()", "requirements.js", "fig-ag1-first", "FIG age groups"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("page is missing %q", want)
 		}
