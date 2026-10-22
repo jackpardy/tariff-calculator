@@ -313,7 +313,9 @@ Settings switch are gone, and what had been sent moved to the maintainer
 (migration 47).
 
 **The button.** A **Feedback** tab sits at the right edge of the screen,
-half way down, on every page drawn with the app's layout: the calculator's
+half way down (on a phone a slimmer 20 px, with the page kept 8 px clear of
+it, so it covers nothing, such as a card's ✕; 2026-10-22), on every page
+drawn with the app's layout: the calculator's
 pages (Routine builder, Compare, View, Tariff sheet, Requirements), the
 competition and club pages of every link, home pages included, and the pages
 before a link (making a competition or a club, joining one). Not the venue
