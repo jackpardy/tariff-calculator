@@ -200,16 +200,14 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
     font-size: 0.8rem; font-weight: 700; color: var(--state-attention-ink); background: var(--state-attention-bg);
 }
 .card-buttons { flex: none; display: flex; gap: 0.35rem; }
-.card-buttons .button { height: 2.5rem; min-width: 2.5rem; padding: 0 0.65rem; }
-.card-remove-x { display: none; }
+/* ↑, ↓, Edit and ✕: 34 px on a laptop, 36 px on a phone, for a finger. */
+.card-buttons .button { height: 2.125rem; min-width: 2.125rem; padding: 0 0.55rem; font-size: 0.9rem; }
 @media screen and (max-width: 768px) {
-    .card-remove-word { display: none; }
-    .card-remove-x { display: inline; }
     /* Room for the name on a phone: the buttons still a finger wide. */
     .routine-skill { padding-right: 0.5rem; }
     .card-head, .card-toggle { gap: 0.4rem; }
     .card-buttons { gap: 0.25rem; }
-    .card-buttons .button { min-width: 2.25rem; padding: 0 0.5rem; }
+    .card-buttons .button { height: 2.25rem; min-width: 2.125rem; padding: 0 0.45rem; }
 }
 .card-details { padding: 0.15rem 0 0.5rem 1.1rem; cursor: auto; -webkit-user-select: text; user-select: text; }
 .card-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.35rem 1rem; margin: 0.25rem 0 0.6rem; }

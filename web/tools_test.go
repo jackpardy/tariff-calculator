@@ -37,14 +37,14 @@ func TestRoutineToolsHaveTheBanner(t *testing.T) {
 }
 
 // A card's head is a button that opens it; ↑, ↓ and Edit are at the right,
-// and Remove beside them in red (a ✕ on a phone), with the tariff shown to one place.
+// and Remove beside them, a red ✕, with the tariff shown to one place.
 func TestRoutineCardControls(t *testing.T) {
 	html := postRoutine(t, `[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true}]`).Body.String()
 	for _, want := range []string{
 		`<button type="button" class="card-toggle" x-on:click="toggleExpanded(0, &#39;a&#39;)"`,
 		`<span class="card-tariff">0.5</span>`,
 		`aria-label="Move element 1 up"`,
-		`class="button is-danger is-outlined card-remove" type="button" title="Remove" aria-label="Remove element 1" x-on:click="removeSkill(0, &#39;a&#39;)">`,
+		`class="button is-danger is-outlined card-remove" type="button" title="Remove" aria-label="Remove element 1" x-on:click="removeSkill(0, &#39;a&#39;)">✕</button>`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("the card is missing %s", want)
