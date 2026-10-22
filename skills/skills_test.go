@@ -443,6 +443,32 @@ func TestValidateRoutine(t *testing.T) {
 		}
 	})
 
+	// The routine starts with the first skill that isn't a straight jump, so
+	// straight jumps before it don't end it; one after it does.
+	t.Run("straight jumps before the routine starts don't interrupt it", func(t *testing.T) {
+		straightJump := skill(0, []int{0}, Feet, Straight, false, false)
+		tuckJump := skill(0, []int{0}, Feet, Tuck, false, false)
+		rv := ValidateRoutine([]TrampolineSkill{straightJump, straightJump, frontTuck, tuckJump, straightJump})
+		if rv.InterruptedAt != 4 {
+			t.Errorf("InterruptedAt = %d, want 4 (the straight jump after the front tuck)", rv.InterruptedAt)
+		}
+		if rv.Skills[0].Interrupts || rv.Skills[0].AfterInterruption || !rv.Skills[0].IntermediateJump {
+			t.Errorf("a leading straight jump should be an intermediate jump that doesn't interrupt")
+		}
+		if rv.Messages[0] != "Straight Jump" {
+			t.Errorf("message = %q", rv.Messages[0])
+		}
+		if !rv.Skills[2].Counted || !rv.Skills[3].Counted {
+			t.Errorf("the front tuck and tuck jump should count")
+		}
+		if rv.HasDuplicates {
+			t.Errorf("straight jumps aren't elements, so they shouldn't be repeats")
+		}
+		if want := rv.Skills[2].Skill.Tariff + rv.Skills[3].Skill.Tariff; want == 0 || math.Abs(rv.TotalTariff-want) > 1e-9 {
+			t.Errorf("TotalTariff = %.2f, want %.2f", rv.TotalTariff, want)
+		}
+	})
+
 	// §15.2-15.3: the interrupting skill gets no credit and later skills are not counted.
 	t.Run("skills after an interruption do not count", func(t *testing.T) {
 		barani := skill(4, []int{1}, Feet, Tuck, false, false)             // 0.6
