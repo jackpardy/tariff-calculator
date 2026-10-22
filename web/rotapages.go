@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"maps"
 	"net/http"
 	"slices"
@@ -35,26 +36,9 @@ func officialKey(o store.Official, keys map[string][]string) string {
 
 // rotaPeople are the people who can officiate, as the rota needs them: each
 // once (an individual offering on two entries is one person), with what they
-// may do at each event under the competition's judging rule, counting what
-// they compete in under any of their keys (groups, as store.PersonGroups).
-func rotaPeople(c competitions.Competition, officials []store.Official, entries []store.Entry, groups map[string]string) []competitions.RotaPerson {
+// may do at each event under the competition's judging rule.
+func rotaPeople(c competitions.Competition, officials []store.Official, entries []store.Entry) []competitions.RotaPerson {
 	keys := personKeys(entries)
-	person := func(k string) string {
-		if id, ok := groups[k]; ok {
-			return "person " + id
-		}
-		return k
-	}
-	competing := map[string]map[string]string{} // person → discipline → level
-	for _, e := range entries {
-		for _, k := range keys[e.ID] {
-			k = person(k)
-			if competing[k] == nil {
-				competing[k] = map[string]string{}
-			}
-			competing[k][e.Entry.Discipline] = e.Entry.Level
-		}
-	}
 	var out []competitions.RotaPerson
 	at := map[string]int{}
 	for _, o := range officials {
@@ -63,17 +47,24 @@ func rotaPeople(c competitions.Competition, officials []store.Official, entries 
 		if !seen {
 			at[key] = len(out)
 			i = len(out)
-			out = append(out, competitions.RotaPerson{Key: key, Name: o.Name, Club: o.ClubName, Judge: map[string]bool{}, Chair: map[string]bool{}})
+			out = append(out, competitions.RotaPerson{Key: key, Name: o.Name, Club: o.ClubName})
 		}
 		p := &out[i]
+		if words := o.Offer.Describe(); p.Offer == "" {
+			p.Offer = words
+		} else if words != "" && !strings.Contains(p.Offer, words) {
+			p.Offer += "; " + words
+		}
+		p.Unqualified = c.Officials.Judge == competitions.JudgeQualified && !o.Qualified && (!seen || p.Unqualified)
 		p.Recorder = p.Recorder || o.Offer.Recorder
 		p.Marshal = p.Marshal || o.Offer.Marshal
 		for _, d := range c.Disciplines() {
+			roles := append(slices.Clone(competitions.LevelRoles), competitions.Measured(d)...)
 			for _, l := range c.LevelNames(d) {
-				ev := competitions.EventName(d, l)
-				if c.CanJudge(o.Offer, o.Qualified, competing[person(key)], d, l) {
-					p.Judge[ev] = true
-					p.Chair[ev] = p.Chair[ev] || o.Offer.Judge[d].Chair
+				for _, role := range roles {
+					if c.CanJudge(o.Offer, o.Qualified, d, l, role) {
+						p.Allow(role, competitions.EventName(d, l))
+					}
 				}
 			}
 		}
@@ -157,7 +148,7 @@ func (p *competitionPages) rotaAndSame(ctx context.Context, c store.Competition,
 	if err != nil {
 		return nil, nil, err
 	}
-	rota := rotaPeople(c.Competition, officials, entries, groups)
+	rota := rotaPeople(c.Competition, officials, entries)
 	return rota, newSamePeople(groups, entries, rota), nil
 }
 
@@ -319,9 +310,70 @@ func rotaView(s competitions.Schedule, entries []store.Entry, people []competiti
 		if o.Club != "" {
 			label += " (" + o.Club + ")"
 		}
-		v.Options = append(v.Options, views.FlightOption{Value: o.Key, Label: label})
+		v.Options = append(v.Options, views.FlightOption{Value: o.Key, Label: label, Can: seatCan(o)})
 	}
 	return v
+}
+
+// The seat dropdown lists first those who can take the seat chosen beside it
+// (static/js/fill.js): each seat says what it needs (seatNeed) and each
+// person what they can take (seatCan), as an event's code (seatCode) and a
+// letter for the role, e.g. "1x2k9q:e" for an execution judge's seat.
+var seatLetters = map[string]string{
+	competitions.RoleChair: "c", competitions.RoleDifficulty: "d", competitions.RoleHD: "h", competitions.RoleSync: "s",
+	competitions.RoleExecution: "e", competitions.RoleRecorder: "r", competitions.RoleMarshal: "m",
+}
+
+// seatCode is an event's short name for the seat dropdown: "*" for blocked
+// time's (no event).
+func seatCode(event string) string {
+	if event == "" {
+		return "*"
+	}
+	h := fnv.New32a()
+	h.Write([]byte(event))
+	return strconv.FormatUint(uint64(h.Sum32()), 36)
+}
+
+// seatNeed is what a seat needs: "r" or "m" for a recorder's or marshal's,
+// otherwise its event's code and the role's letter.
+func seatNeed(role, event string) string {
+	if role == competitions.RoleRecorder || role == competitions.RoleMarshal {
+		return seatLetters[role]
+	}
+	return seatCode(event) + ":" + seatLetters[role]
+}
+
+// seatCan is what seats a person can take, space-separated: each event they
+// judge with the letters of its roles they may take (blocked time's, "*", as
+// they may take a role at anything), then "r" and "m".
+func seatCan(p competitions.RotaPerson) string {
+	var out []string
+	judging := []string{competitions.RoleChair, competitions.RoleDifficulty, competitions.RoleHD, competitions.RoleSync, competitions.RoleExecution}
+	letters := func(can func(role string) bool) string {
+		l := ""
+		for _, role := range judging {
+			if can(role) {
+				l += seatLetters[role]
+			}
+		}
+		return l
+	}
+	for _, ev := range slices.Sorted(maps.Keys(p.Judge)) {
+		if l := letters(func(role string) bool { return p.Can(role, ev) }); l != "" {
+			out = append(out, seatCode(ev)+":"+l)
+		}
+	}
+	if l := letters(p.CanAny); l != "" {
+		out = append(out, "*:"+l)
+	}
+	if p.Recorder {
+		out = append(out, "r")
+	}
+	if p.Marshal {
+		out = append(out, "m")
+	}
+	return strings.Join(out, " ")
 }
 
 func hoursWord(minutes int) string {
@@ -346,7 +398,7 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 	var out []views.SeatView
 	for _, d := range f.Officials {
 		n[d.Role]++
-		seat := views.SeatView{Role: competitions.RoleName(d.Role), Person: d.Person, Label: competitions.RoleName(d.Role)}
+		seat := views.SeatView{Role: competitions.RoleName(d.Role), Person: d.Person, Label: competitions.RoleName(d.Role), Need: seatNeed(d.Role, f.Event)}
 		if of[d.Role] > 1 {
 			seat.Label += " " + strconv.Itoa(n[d.Role])
 		}

@@ -961,14 +961,14 @@ func TestOfficials(t *testing.T) {
 	club, _, _ := s.CreateClub(ctx, "UCD")
 	a, _, _ := s.Join(ctx, club.ID, "A")
 	b, _, _ := s.Join(ctx, club.ID, "B")
-	judge := competitions.Offer{Judge: map[string]competitions.JudgeOffer{"": {UpTo: "BUCS L3", Chair: true}}}
+	judge := competitions.Offer{Judge: map[string]competitions.JudgeOffer{"": {UpTo: map[string]string{competitions.RoleExecution: "BUCS L3", competitions.RoleChair: ""}}}}
 	if err := s.SaveMemberOffer(ctx, a.ID, c.ID, judge); !errors.Is(err, ErrNotAttached) {
 		t.Errorf("only for a competition the club is in: %v", err)
 	}
 	must(t, s.AttachClub(ctx, club.ID, c.ID))
 	must(t, s.SaveMemberOffer(ctx, a.ID, c.ID, judge))
 	must(t, s.SaveMemberOffer(ctx, b.ID, c.ID, competitions.Offer{Marshal: true}))
-	if o, _ := s.MemberOffer(ctx, a.ID, c.ID); !o.Judge[""].Chair {
+	if o, _ := s.MemberOffer(ctx, a.ID, c.ID); !o.Judge[""].Takes(competitions.RoleChair) {
 		t.Errorf("A's offer: %+v", o)
 	}
 	if offers, _ := s.ClubOffers(ctx, club.ID, c.ID); len(offers) != 2 {
@@ -982,7 +982,7 @@ func TestOfficials(t *testing.T) {
 	_, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
 	list, _ := s.Officials(ctx, c.ID)
-	if len(list) != 2 || list[0].Name != "A" || list[0].ClubName != "UCD" || !list[0].Offer.Judge[""].Chair || list[1].Offer.Marshal != true {
+	if len(list) != 2 || list[0].Name != "A" || list[0].ClubName != "UCD" || !list[0].Offer.Judge[""].Takes(competitions.RoleChair) || list[1].Offer.Marshal != true {
 		t.Fatalf("the club's officials: %+v", list)
 	}
 	must(t, s.SetQualified(ctx, c.ID, list[0].ID, true))
@@ -1041,9 +1041,9 @@ func TestOfficials(t *testing.T) {
 	}
 
 	// The panels and judging rule.
-	settings := competitions.OfficialSettings{Judge: competitions.JudgeBelow, Panels: map[string]competitions.Panel{competitions.Synchro: {Chair: 1, Execution: 4}}}
+	settings := competitions.OfficialSettings{Judge: competitions.JudgeQualified, Note: "Short of difficulty judges", Panels: map[string]competitions.Panel{competitions.Synchro: {Chair: 1, Execution: 4}}}
 	must(t, s.SetOfficialSettings(ctx, c.ID, settings))
-	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Officials.Judge != competitions.JudgeBelow || got.Officials.Panel(competitions.Synchro).Execution != 4 {
+	if got, _ := s.CompetitionByAdmin(ctx, admin); got.Officials.Judge != competitions.JudgeQualified || got.Officials.Note != "Short of difficulty judges" || got.Officials.Panel(competitions.Synchro).Execution != 4 {
 		t.Errorf("settings kept: %+v", got.Officials)
 	}
 }

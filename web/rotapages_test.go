@@ -52,9 +52,9 @@ func TestOfficialsRota(t *testing.T) {
 	if page := do(t, h, http.MethodGet, officials, nil).Body.String(); strings.Contains(page, `name="recordersChange" value="1" checked`) || !strings.Contains(page, `name="marshalsChange" value="1" checked`) {
 		t.Error("each chosen on its own")
 	}
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {""}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, bucsEntry("Eve"))
 	// Dara competes in tumbling and judges trampoline: tumbling goes first.
@@ -85,7 +85,7 @@ func TestOfficialsRota(t *testing.T) {
 	}
 
 	// Tom mustn't officiate; assigning again leaves his seat empty.
-	tom := regexp.MustCompile(`<option value="([^"]+)">Tom</option>`).FindStringSubmatch(page)
+	tom := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Tom</option>`).FindStringSubmatch(page)
 	if tom == nil {
 		t.Fatal("Tom is in the rules form")
 	}
@@ -161,7 +161,7 @@ func TestOfficialsRota(t *testing.T) {
 func TestBlockOfficials(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	tt := admin + "/timetable"
 	loc := redirected(t, h, tt+"/setup/blocks", url.Values{"add": {"1"}, "name": {"Ad hoc"}, "minutes": {"30"}, "day": {"0"}, "at": {"10:00"}, "chair": {"1"}, "judges": {"1"}})
 	if !strings.Contains(loc, "needs+2+officials") {
@@ -171,7 +171,7 @@ func TestBlockOfficials(t *testing.T) {
 	if !strings.Contains(page, "· 1 of 2 seats filled") || !strings.Contains(page, "Ad hoc on Panel 1: no one for 1 execution judge") {
 		t.Fatalf("the block's panel: %s", page)
 	}
-	mary := regexp.MustCompile(`<option value="([^"]+)">Mary</option>`).FindStringSubmatch(page)
+	mary := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Mary</option>`).FindStringSubmatch(page)
 	redirected(t, h, tt+"/officials", url.Values{"action": {"seat"}, "block": {"0"}, "seat": {"1"}, "person": {mary[1]}})
 	page = do(t, h, http.MethodGet, tt, nil).Body.String()
 	if !strings.Contains(page, "Mary has two seats on Ad hoc&#39;s panel") || !strings.Contains(page, "· 2 of 2 seats filled") {

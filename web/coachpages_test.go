@@ -52,7 +52,7 @@ func TestCoachSignoff(t *testing.T) {
 	if !strings.Contains(page, "Your coach") || !strings.Contains(page, ">Ann</option>") {
 		t.Error("a member can choose their coach")
 	}
-	bobID := regexp.MustCompile(`<option value="([^"]+)">Bob</option>`).FindStringSubmatch(page)[1]
+	bobID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Bob</option>`).FindStringSubmatch(page)[1]
 	redirected(t, h, x+"/coach", url.Values{"coach": {bobID}})
 	if page := do(t, h, http.MethodGet, x+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+bobID+`" selected>Bob</option>`) {
 		t.Error("X's coach is Bob")
@@ -150,7 +150,7 @@ func TestCoachSignoff(t *testing.T) {
 	if len(assign) != 2 {
 		t.Fatalf("each member has a coach choice on the club page: %d", len(assign))
 	}
-	annID := regexp.MustCompile(`<option value="([^"]+)">Ann</option>`).FindStringSubmatch(clubPage)[1]
+	annID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>Ann</option>`).FindStringSubmatch(clubPage)[1]
 	redirected(t, h, assign[1][1], url.Values{"coach": {annID}}) // members are by name: X, then Y
 	if page := do(t, h, http.MethodGet, y+"/details", nil).Body.String(); !strings.Contains(page, `<option value="`+annID+`" selected>Ann</option>`) {
 		t.Error("Y's page shows the coach the comp sec assigned")

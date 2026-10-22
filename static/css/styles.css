@@ -826,15 +826,17 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 }
 
 /* --- Officials (views/officials.templ) --- */
-/* Judging and helping: the discipline, its level and "can chair" line up
-   down the rows (a grid), and stay on one line at phone width. */
-.comp-offer-row { display: grid; grid-template-columns: 11.5rem auto auto; justify-content: start; align-items: center; gap: 0.4rem 0.8rem; }
-.comp-offer-row > .select { justify-self: start; }
-.comp-offer .checkbox input { margin-right: 0.3rem; }
+/* Judging and helping: each discipline's tick and what it measures on a
+   line, then its execution, difficulty and chair levels under it, side by
+   side as they fit (one under another at phone width). */
+.comp-offer-row { border: 0; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.6rem; }
+.comp-offer-roles { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; width: 100%; padding-left: 1.5rem; }
+.comp-offer-role { display: inline-flex; align-items: center; gap: 0.35rem; }
+.comp-offer-role select { max-width: 13rem; }
 @media screen and (max-width: 480px) {
-  .comp-offer-row { grid-template-columns: auto auto; }
-  .comp-offer-row > .checkbox:first-child { grid-column: 1 / -1; }
+  .comp-offer-role-name { min-width: 4.8rem; }
 }
+.comp-offer .checkbox input { margin-right: 0.3rem; }
 .comp-num { width: 4.5rem; }
 .comp-offers td { vertical-align: middle; }
 /* A coach's qualification: its name and Remove on one line, centred; the

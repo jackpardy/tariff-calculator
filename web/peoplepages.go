@@ -210,7 +210,7 @@ func (dp *dirPerson) offered() (judge, chair, recorder, marshal bool) {
 	for _, o := range dp.officials {
 		judge = judge || len(o.Offer.Judge) > 0
 		for _, j := range o.Offer.Judge {
-			chair = chair || j.Chair
+			chair = chair || j.Takes(competitions.RoleChair)
 		}
 		recorder, marshal = recorder || o.Offer.Recorder, marshal || o.Offer.Marshal
 	}
@@ -399,13 +399,10 @@ func deskReach(dp *dirPerson) (people, clubs, staff []string) {
 
 // judgeRule says in words who may judge what, under a competition's rule.
 func judgeRule(rule string) string {
-	switch rule {
-	case competitions.JudgeBelow:
-		return "only levels below the one they compete at"
-	case competitions.JudgeQualified:
+	if rule == competitions.JudgeQualified {
 		return "only people you mark qualified"
 	}
-	return "anyone, up to the level they say"
+	return "anyone, as they offer"
 }
 
 // officiatingOf is what someone offered to officiate, which events they may
@@ -455,17 +452,26 @@ func (p *competitionPages) officiatingOf(c store.Competition, dp *dirPerson, f d
 			o.Qualified = "Marked qualified."
 		}
 	}
-	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries, groups) {
+	for _, rp := range rotaPeople(c.Competition, dp.officials, f.entries) {
 		if rp.Key != dp.key {
 			continue
 		}
+		// Each event with the roles they may take there, e.g. "BUCS L7
+		// (execution, chair and HD)".
 		var events []string
-		for _, ev := range c.EventNames() {
-			if rp.Judge[ev] {
-				if rp.Chair[ev] {
-					ev += " (can chair)"
+		for _, d := range c.Disciplines() {
+			for _, l := range c.LevelNames(d) {
+				ev := competitions.EventName(d, l)
+				if !rp.Judge[ev] {
+					continue
 				}
-				events = append(events, ev)
+				var roles []string
+				for _, role := range append(slices.Clone(competitions.LevelRoles), competitions.Measured(d)...) {
+					if rp.Can(role, ev) {
+						roles = append(roles, competitions.JudgingWord(role))
+					}
+				}
+				events = append(events, ev+" ("+competitions.JoinList(roles)+")")
 			}
 		}
 		o.Judges = strings.Join(events, ", ")

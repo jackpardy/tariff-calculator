@@ -560,10 +560,16 @@ func (s *seeder) run(out io.Writer) error {
 			// What they'll judge or help with.
 			offer := url.Values{}
 			if s.rng.IntN(100) < 55 {
+				// Execution up to their own level; difficulty too for most;
+				// HD at any level comes with judging.
 				offer.Set("judge-trampoline", "1")
-				offer.Set("upto-trampoline", m.level)
+				offer.Set("execution-trampoline", m.level)
+				offer.Set("difficulty-trampoline", "no")
+				if s.rng.IntN(100) < 60 {
+					offer.Set("difficulty-trampoline", m.level)
+				}
 				if slices.Contains(s.v.chairs, m.level) || s.rng.IntN(100) < 8 {
-					offer.Set("chair-trampoline", "1")
+					offer.Set("chair-trampoline", m.level)
 				}
 				if s.rng.IntN(100) < 40 {
 					offer.Set("judge-synchro", "1")
@@ -702,7 +708,7 @@ func (s *seeder) run(out io.Writer) error {
 			ownPage, ownSignoff, ownName = page, signoff, p.name
 		}
 		if i%2 == 0 {
-			s.post(own+"/offer", url.Values{"judge-trampoline": {"1"}, "upto-trampoline": {p.level}})
+			s.post(own+"/offer", url.Values{"judge-trampoline": {"1"}, "execution-trampoline": {p.level}, "difficulty-trampoline": {p.level}})
 		}
 		if s.v.open && i == 0 {
 			continue // their coach hasn't signed it off yet
@@ -715,12 +721,12 @@ func (s *seeder) run(out io.Writer) error {
 		name, club string
 		offer      url.Values
 	}{
-		{"Gráinne Walsh", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}, "judge-synchro": {"1"}, "chair-synchro": {"1"}}},
-		{"Michael Doyle", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}}},
-		{"Anne-Marie Keane", "Gymnastics Ireland", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {"1"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}}},
-		{"Pat Hennessy", "", url.Values{"judge-tumbling": {"1"}, "chair-tumbling": {"1"}, "judge-dmt": {"1"}, "chair-dmt": {"1"}}},
-		{"Joan Furlong", "", url.Values{"judge-dmt": {"1"}, "chair-dmt": {"1"}, "judge-trampoline": {"1"}}},
-		{"Kieran Tobin", "", url.Values{"judge-trampoline": {"1"}, "judge-synchro": {"1"}, "chair-synchro": {"1"}}},
+		{"Gráinne Walsh", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}, "judge-synchro": {"1"}, "chair-synchro": {""}}},
+		{"Michael Doyle", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}}},
+		{"Anne-Marie Keane", "Gymnastics Ireland", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}, "judge-tumbling": {"1"}, "chair-tumbling": {""}}},
+		{"Pat Hennessy", "", url.Values{"judge-tumbling": {"1"}, "chair-tumbling": {""}, "judge-dmt": {"1"}, "chair-dmt": {""}}},
+		{"Joan Furlong", "", url.Values{"judge-dmt": {"1"}, "chair-dmt": {""}, "judge-trampoline": {"1"}}},
+		{"Kieran Tobin", "", url.Values{"judge-trampoline": {"1"}, "judge-synchro": {"1"}, "chair-synchro": {""}}},
 		{"Deirdre Ní Bhriain", "", url.Values{"judge-tumbling": {"1"}, "judge-dmt": {"1"}, "recorder": {"1"}}},
 		{"Frank Lyons", "", url.Values{"recorder": {"1"}, "marshal": {"1"}}},
 	} {

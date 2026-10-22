@@ -50,6 +50,7 @@ type RotaView struct {
 type SeatView struct {
 	Role, Person, Name, Club string
 	Label                    string // e.g. "Execution judge 3", to choose it by
+	Need                     string // what the seat needs, for its people who can take it to be listed first (web.seatNeed)
 	Here                     bool   // checked in for the panel on the day
 	Missing                  bool   // marked missing for it
 	Who                      Role   // who fills it: a gymnast, a club's judge or the organiser's own
@@ -156,6 +157,7 @@ type TimetableGymnast struct {
 type FlightOption struct {
 	Value, Label string
 	Group        string // a flight's discipline, for a move to offer only its own
+	Can          string // a person's seats they can take, for a seat to list them first (web.seatCan)
 }
 
 // CompetitionTimetable is the organiser's timetable page.
@@ -780,7 +782,7 @@ templ reportView(r ReportView) {
 templ newBreaks(items []string) {
 	if len(items) > 0 {
 		<div class="notification is-warning is-light comp-new-breaks">
-			<p class="mb-1"><strong>This would break { Count(len(items), "thing", "things") } that hold now:</strong></p>
+			<p class="mb-1"><strong>This would break { Count(len(items), "thing that holds", "things that hold") } now:</strong></p>
 			<ul>
 				for _, it := range items[:min(len(items), 6)] {
 					<li>{ it }</li>
@@ -925,7 +927,7 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 			<div class="select is-small">
 				<select name="seat" aria-label={ "Seat on " + it.Name }>
 					for i, s := range it.Seats {
-						<option value={ strconv.Itoa(i) }>{ s.Label }</option>
+						<option value={ strconv.Itoa(i) } data-need={ s.Need }>{ s.Label }</option>
 					}
 				</select>
 			</div>
@@ -953,6 +955,8 @@ templ fillOptions(id string, options []FlightOption) {
 		for _, o := range options {
 			if id == "move-options" {
 				<option value={ o.Value } data-group={ o.Group }>{ o.Label }</option>
+			} else if o.Can != "" || id == "seat-options" {
+				<option value={ o.Value } data-can={ o.Can }>{ o.Label }</option>
 			} else {
 				<option value={ o.Value }>{ o.Label }</option>
 			}
