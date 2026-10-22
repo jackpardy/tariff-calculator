@@ -583,7 +583,10 @@ the page's address so a view can be kept or shared:
   checked, and for a link with the sheets but no timetable page the
   timetable's sheets) and **Download CSV**, above the search; the cards and
   the CSV take the same filters, and each open level has **Print this
-  level's cards**.
+  level's cards**. A level where men and women rank apart is two sections,
+  "BUCS L7 · Men" and "BUCS L7 · Women" (2026-10-22), each with **Print
+  these cards** (that category, `part=`), its rows without the category tag
+  the heading gives; a limit on the level shows on both, for the level.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
