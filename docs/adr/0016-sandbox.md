@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (2026-10-21, the owner's decisions at the end); built
   (2026-10-21), alongside club roles (ADR 0015), with the deviations in
-  "As built" at the end. Decision 7 is not built
+  "As built" at the end; live at sandbox.tariff.pardy.ie since 2026-10-22.
+  Decision 7 is not built
 - **Date:** 2026-10-21
 - **Deciders:** jackpardy (solo maintainer)
 

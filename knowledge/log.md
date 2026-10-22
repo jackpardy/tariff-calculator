@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-22
+* **Update**: [The sandbox](features/sandbox.md) is live at <https://sandbox.tariff.pardy.ie/sandbox>, with club roles on the live site ([deploy](operations/deploy.md#sandbox-sandboxtariffpardyie)): a `tariff-sandbox` service on the server, deployed with `tariff`, first reset in 19 seconds. Master's tests had failed after the sandbox merged, so neither had deployed: the start page's member could be at a level with no voluntary to keep, leaving them without routines. Each club's first member whose level has one now keeps it and marks skills, and the start page shows them.
 * **Fix**: [Straight jumps before the routine starts](domain/routine-validation.md) don't end it. The routine starts with the first skill that isn't a straight jump, so only a straight jump after that ends it; ones before are flagged "is a straight jump" and the elements after them count. Straight jumps aren't elements, so they're never flagged as repeats either. They can still go anywhere in the builder, for training routines.
 
 ## 2026-10-21
