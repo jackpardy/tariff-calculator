@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-22
+* **Update**: The user guides brought up to date and their PDFs rebuilt (last built 2026-10-09). [Competitions guide](guide/competition-guide.md): the sandbox's roles, "What's kept" (messages and replies, club role links and history, judges' qualifications, an email only if asked for, feedback pictures kept 90 days), and "your club" for what a comp sec alone did. [Routine builder guide](guide/routine-guide.md): preparation jumps don't interrupt a routine, keeping routines and requirements on your page, and the Feedback tab. [Features](guide/features.md): the sandbox, message replies, approved coaches, judges' qualifications, skills and club levels, routines on your page, the what-ifs and People.
 * **Fix**: [Straight jumps before the routine starts](domain/routine-validation.md) don't end it. The routine starts with the first skill that isn't a straight jump, so only a straight jump after that ends it; ones before are flagged "is a straight jump" and the elements after them count. Straight jumps aren't elements, so they're never flagged as repeats either. They can still go anywhere in the builder, for training routines.
 
 ## 2026-10-21

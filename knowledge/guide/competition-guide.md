@@ -27,9 +27,10 @@ link itself; copy it somewhere safe with **Copy** when you get it.
 **To try it first**, there's a sandbox at
 <https://sandbox.tariff.pardy.ie/sandbox>: a copy full of made-up clubs and
 gymnasts, with one competition open for entries and one on the day. Its start
-page, **Try it as…**, has a link for each role (organiser, helper, comp sec,
-coach, member, gymnast on their own, the venue screen). Change anything: it's
-all put back from time to time, and nothing in it is emailed or pushed.
+page, **Try it as…**, has a link for each role (organiser, helper, club
+admin, someone in a club with a role, coach, member, gymnast on their own,
+the venue screen). Change anything: it's all put back from time to time.
+Notifications don't work there: nothing in it is emailed or pushed.
 
 Who does what:
 
@@ -1056,22 +1057,28 @@ link listed has **Undo**.
 - A link your club admin made for you with a role (Treasurer, say) opens
   the club as that role from your page, with a tab named for it, until the
   club admin removes the link.
-- If your comp sec makes you a coach too, there's no coach link: your member
+- If your club makes you a coach too, there's no coach link: your member
   link opens your coach's page.
-- If your comp sec gives you a **New link**, it opens only your pages at
-  that club: add your other links to it again. The comp sec sees the links
-  they make, so a link they make never opens your roles elsewhere.
+- If your club gives you a **New link**, it opens only your pages at that
+  club: add your other links to it again. Whoever makes it sees it, so a
+  link they make never opens your roles elsewhere.
 
 # What's kept
 
 Only names, clubs, levels and events, men or women where asked, synchro
 partners, routines (with entries, and those members keep on their page),
 the skills members and coaches mark, with who marked them and when,
-the club's own skills and the coach who added each,
-video links, and the organiser's and coaches' notes, and
-coaches' qualifications with their certificates where the club adds them. No
-emails, birthdays or contact details. Videos are never uploaded: only their
-links.
+the club's own skills and levels and the coach who added each,
+video links, the organiser's and coaches' notes, messages to the organiser
+and their replies, the names on a club's links with a role and the club's
+history of changes, and coaches' and judges' qualifications with their
+certificates where they're added. No birthdays or contact details; an email
+address only if you ask to hear about changes by email, until you stop
+them. Videos are never uploaded: only their links.
+
+Feedback sent with the **Feedback** tab goes to the people who make the
+app, with the page it was sent from; while the app is being tried out, a
+picture of the screen and a copy of the page go with it, kept for 90 days.
 
 # Keeping your links safe
 
