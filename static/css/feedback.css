@@ -1,7 +1,8 @@
 /* feedback.css: the Feedback button on every page (views/feedback.templ),
    on its own so it looks the same on pages with Bulma and without (the
    routine view, the tariff sheet). A tab at the right edge, in the middle,
-   clear of the bars along the bottom; its form opens over the page. */
+   clear of the bars along the bottom, and on a phone clear of the page too;
+   its form opens over the page. */
 
 .site-feedback { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.4; color: #363636; }
 .site-feedback-box > summary { list-style: none; }
@@ -14,6 +15,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); opacity: 0.85;
 }
 .site-feedback-tab:hover, .site-feedback-box[open] > .site-feedback-tab { opacity: 1; }
+/* On a phone the page's edge is only 12px, and the tab covered whatever was
+   at the right (a card's ✕, a row's button): the tab is slimmer there, 20px,
+   and a page with it keeps 8px more at its right, so nothing is under it. */
+@media screen and (max-width: 768px) {
+  .site-feedback-tab { box-sizing: border-box; width: 1.25rem; padding: 0.6rem 0; font-size: 0.7rem; text-align: center; }
+  body:has(.site-feedback) { padding-right: 0.5rem; }
+  /* The bars across the top still reach the edge, behind the tab. */
+  body:has(.site-feedback) :is(.tool-banner, .sandbox-banner, .view-bar) { margin-right: -0.5rem; }
+}
 .site-feedback-tab:focus-visible { outline: 2px solid #363636; outline-offset: 2px; }
 .site-feedback-panel {
   position: fixed; right: calc(0.75rem + env(safe-area-inset-right, 0px)); bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1100;

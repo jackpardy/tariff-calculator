@@ -181,3 +181,38 @@ func TestSideBySideShadesTheSecondInABrowser(t *testing.T) {
 		t.Errorf("unticked, nothing is shaded, after a reload too: %s, then %s", off, again)
 	}
 }
+
+// On a phone the Feedback tab at the right edge covers nothing: a card's ✕
+// ends where the tab starts, the banner still reaches the edge, and nothing
+// scrolls sideways.
+func TestFeedbackTabClearOfThePageOnAPhoneInABrowser(t *testing.T) {
+	ctx := browser(t)
+	s := newTestServer(t) // the Feedback tab needs the storage it's kept in
+	srv := httptest.NewServer(s.h)
+	defer srv.Close()
+
+	var got struct {
+		Tab, Remove, Banner, Width float64
+		Sideways                   bool
+	}
+	step(t, ctx, "the builder on a phone",
+		chromedp.EmulateViewport(375, 812),
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+sheetRoutine+"`"+`)`, nil),
+		chromedp.Reload(),
+		chromedp.WaitVisible(`#routine-skills .card-remove`, chromedp.ByQuery),
+		chromedp.Evaluate(`({
+			Tab: document.querySelector('.site-feedback-tab').getBoundingClientRect().left,
+			Remove: Math.max(...[...document.querySelectorAll('#routine-skills .card-remove')].map((b) => b.getBoundingClientRect().right)),
+			Banner: document.querySelector('.tool-banner').getBoundingClientRect().right,
+			Width: innerWidth,
+			Sideways: document.documentElement.scrollWidth > innerWidth,
+		})`, &got),
+	)
+	if got.Remove > got.Tab {
+		t.Errorf("the Feedback tab (from %v px) covers a card's ✕ (to %v px)", got.Tab, got.Remove)
+	}
+	if got.Banner != got.Width || got.Sideways {
+		t.Errorf("the banner should reach the edge (%v of %v px), with nothing scrolling sideways (%v)", got.Banner, got.Width, got.Sideways)
+	}
+}
