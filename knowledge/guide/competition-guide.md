@@ -765,7 +765,9 @@ Under **Judging and helping**, say what you can do at the competition: judge a
 discipline, or help as a recorder or marshal. Ticking **Judge** a discipline
 offers its HD (and in synchro, synchronisation) at any level; for
 **Execution**, **Difficulty** and **Chair**, choose no, any level, or up to a
-level, each on its own. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
+level, each on its own. Synchro goes with trampoline (**Judge Trampoline and
+synchro**): a synchro event by its hardest level, so up to ISTO Advanced takes
+in ISTO Intervanced/Advanced. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
 Below it, **Your judging qualifications**: tap **Add a judging
 qualification**, choose it and add a photo or PDF of its certificate. They're
 kept with you at the club for every competition; the organiser sees them with
