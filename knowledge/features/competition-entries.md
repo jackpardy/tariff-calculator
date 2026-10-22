@@ -823,7 +823,10 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   chair are each **no**, **any level** or **up to** a level, so someone can
   judge difficulty at a level they don't judge execution at (a new offer
   starts as execution and difficulty at any level, not chairing). Offers
-  from before (one level and "can chair") read as HD only. The organiser's
+  from before (one level and "can chair") read as HD only; tumbling and DMT
+  have no HD, so there they read "Judge Tumbling (no role chosen yet)" and
+  give no seat: not Judge under Can do, not under Can judge, not counted in
+  the panel's cover, until the judge picks a role. The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   individual offers on their entry, one offer for the competition: made on

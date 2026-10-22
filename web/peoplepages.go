@@ -208,7 +208,7 @@ func (dp *dirPerson) events() []string {
 // whether they judge, can chair, and are a recorder or marshal.
 func (dp *dirPerson) offered() (judge, chair, recorder, marshal bool) {
 	for _, o := range dp.officials {
-		judge = judge || len(o.Offer.Judge) > 0
+		judge = judge || o.Offer.JudgesAny()
 		for _, j := range o.Offer.Judge {
 			chair = chair || j.Takes(competitions.RoleChair)
 		}
