@@ -111,7 +111,15 @@ level, so a gymnast's two exercises are checked together.
 
 The requirements page (`GET /requirements`) lists the built-in and saved
 requirements. A saved one can be opened, duplicated (including from a
-built-in), deleted, exported as JSON, imported, or shared. The editor follows
+built-in), deleted, exported as JSON, imported, or shared. Each saved row
+(levels, set routines, requirements) has the same buttons in the same order:
+**Edit**, **Share**, then **More** (Duplicate, Export, Save to club levels,
+Save to my page, and Delete last, after a rule). Delete asks on the row, in
+place of its buttons, saying what's lost: **Delete** or **Keep it**. Saving
+with problems still listed asks beside the Save pressed: **Save anyway** or
+**Keep editing**. No browser `confirm()`. A built-in is duplicated by the
+server (`copy`), so the page doesn't carry every built-in set (90 KB) on each
+load. The editor follows
 the skill editor's pattern ([rendering](../architecture/rendering.md)): the
 browser posts the form to `POST /requirements/editor`, the server parses and
 validates it into the model and re-renders the editor with any problems listed,

@@ -1,0 +1,28 @@
+package views
+
+// The routine tools (the Routine Builder, the Requirements page and the
+// compare page) are one family with the competition pages: the same text
+// sizes, buttons, notices and chips, under a slim banner of their own that
+// names the app and leads to the other tool. The tariff sheet and the view
+// screen are for paper and a big screen, and have their own looks.
+
+// toolBanner is the slim banner over a routine tool: the app's name, which
+// on the Routine Builder (here "/") is the page's heading, and a link to the
+// other tool. wide gives it the builder's width, so it lines up with what's
+// under it; the other pages are the competition pages' width.
+templ toolBanner(here string, wide bool) {
+	<header class="tool-banner">
+		<div class={ "container", templ.KV("is-narrow-tool", !wide) }>
+			if here == "/" {
+				<h1 class="tool-banner-name">Trampoline Tariff Calculator</h1>
+			} else {
+				<a class="tool-banner-name" href="/">Trampoline Tariff Calculator</a>
+			}
+			<span class="tool-banner-note">Difficulty per the FIG Code of Points 2025–2028</span>
+			<nav class="tool-banner-nav" aria-label="Routine tools">
+				<a href="/" aria-current?={ here == "/" }>Routine Builder</a>
+				<a href="/requirements" aria-current?={ here == "/requirements" }>Requirements</a>
+			</nav>
+		</div>
+	</header>
+}

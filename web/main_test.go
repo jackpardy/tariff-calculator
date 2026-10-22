@@ -53,10 +53,10 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 	}
 
 	want := []struct{ class, message string }{
-		{"invalid-transition", "Must Start From Feet"},
-		{"invalid-transition", "Straight Jump Interrupts Routine"},
-		{"", "Repeated later: this one counts"}, // the first of a repeat counts: a note, not a problem
-		{"duplicate-skill", "A repeat: it scores nothing"},
+		{"invalid-transition", "Must take off from feet."},
+		{"invalid-transition", "Is a straight jump, which ends the routine there."},
+		{"", "Is repeated later, so its difficulty counts once."}, // the first of a repeat counts: a note, not a problem
+		{"duplicate-skill", "Repeats an earlier element, so its difficulty doesn&#39;t count again."},
 		{"", ""},
 	}
 	for i, w := range want {
@@ -71,12 +71,12 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 		t.Error("the first of a repeat isn't marked as one")
 	}
 	for i := 2; i < 5; i++ {
-		if !strings.Contains(cards[i], "not-counted") || !strings.Contains(cards[i], "After Interruption (No Tariff)") {
+		if !strings.Contains(cards[i], "not-counted") || !strings.Contains(cards[i], "Comes after the routine ended") {
 			t.Errorf("card %d should be shown as not counted", i+1)
 		}
 	}
-	if !strings.Contains(cards[0], `aria-label="Issue: Must Start From Feet"`) {
-		t.Errorf("a card with a problem should show the ⚠️ marker in its header")
+	if !strings.Contains(cards[0], `aria-label="Problem: Must take off from feet."`) {
+		t.Errorf("a card with a problem should show the mark in its header")
 	}
 	if strings.Contains(cards[0], "not-counted") {
 		t.Errorf("card 1 comes before the interruption and should count")
@@ -95,12 +95,13 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 	}
 
 	for _, s := range []string{
-		"Total Tariff: 0.10", // the straight jump (skill 2) interrupts; only skill 1 counts
-		"(Raw Total: 1.40)",
+		`routine-total-value">0.1<`, // the straight jump (skill 2) interrupts; only skill 1 counts
+		"Counting every element: 1.4.",
 		"5 of 10 skills",
-		"A skill is repeated: the repeat scores nothing",
-		"Invalid transitions detected",
-		"Routine interrupted at skill 2",
+		// The routine's problems, in the tariff sheet's words.
+		"Element 1 must take off from feet.",
+		"Element 2 is a straight jump, which ends the routine there.",
+		"Elements 3 to 5 come after the routine ended",
 		"2. Straight Jump",
 		"3. Tuck Back",
 		"(4 - o)",
@@ -114,7 +115,7 @@ func TestRoutineViewFlagsSkills(t *testing.T) {
 
 func TestRoutineViewEmptyAndInvalid(t *testing.T) {
 	rec := postRoutine(t, `[]`)
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Add skills using the form above.") {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "No skills yet: add them under Add a skill.") {
 		t.Errorf("empty routine: status %d, body %s", rec.Code, rec.Body)
 	}
 
@@ -540,7 +541,7 @@ func TestTariffSheet(t *testing.T) {
 	for _, want := range []string{
 		`<td class="diff">1.1</td>`, // total: 0.5 + 0.6; the repeat is not counted
 		"Check before printing:",
-		"Element 3: Duplicate",
+		"Element 3 repeats an earlier element",
 		"The routine has 3 elements; an exercise has 10.",
 	} {
 		if !strings.Contains(html, want) {
@@ -802,7 +803,7 @@ func TestRoutineViewSideBySide(t *testing.T) {
 		}
 	}
 	// Skill 1 is the same in both; skill 2 differs; skill 3 has no partner.
-	cards := regexp.MustCompile(`class="routine-skill box mb-2[^"]*"`).FindAllString(html, -1)
+	cards := regexp.MustCompile(`class="routine-skill[ "][^"]*"?`).FindAllString(html, -1)
 	if len(cards) != 3 || strings.Contains(cards[0], "differs") || !strings.Contains(cards[1], "differs") || !strings.Contains(cards[2], "differs") {
 		t.Errorf("differing cards: %v", cards)
 	}
@@ -977,7 +978,7 @@ func TestRoutineChecks(t *testing.T) {
 	}
 
 	html := view("")
-	if strings.Contains(html, "Duplicate") || strings.Contains(html, "duplicate-skill") || !strings.Contains(html, "Difficulty not scored") || strings.Contains(html, "Total Tariff") {
+	if strings.Contains(html, "Duplicate") || strings.Contains(html, "duplicate-skill") || !strings.Contains(html, "Difficulty not scored") || strings.Contains(html, "Total tariff") {
 		t.Errorf("a set routine: no repeat warnings, difficulty not scored")
 	}
 	if got := boxes(html); got != "difficulty off, repeats off" {
@@ -985,7 +986,7 @@ func TestRoutineChecks(t *testing.T) {
 	}
 
 	html = view(`{"difficulty":true,"repeats":true}`)
-	if !strings.Contains(html, "Repeated later: this one counts") || !strings.Contains(html, "A repeat: it scores nothing") || !strings.Contains(html, "Total Tariff") {
+	if !strings.Contains(html, "Is repeated later, so its difficulty counts once.") || !strings.Contains(html, "Repeats an earlier element") || !strings.Contains(html, "Total tariff") {
 		t.Errorf("with both checks turned back on, repeats are flagged and difficulty scored")
 	}
 	if got := boxes(html); got != "difficulty on, repeats on" {
@@ -1016,18 +1017,18 @@ func TestScoredElements(t *testing.T) {
 		return url.Values{"routineData": {routine}, "requirementSet": {"builtin:fig-ag3-first"}, "checks": {checks}}
 	}
 	html := postForm(t, "/routine", values("")).Body.String()
-	if !strings.Contains(html, "Total Tariff: 1.50") || strings.Count(html, `class="scores-toggle is-scoring"`) != 2 || strings.Count(html, `class="scores-toggle`) != 4 ||
+	if !strings.Contains(html, `routine-total-value">1.5<`) || strings.Count(html, `class="scores-toggle is-scoring"`) != 2 || strings.Count(html, `class="scores-toggle`) != 4 ||
 		!strings.Contains(html, `<option value="2" selected>`) || !strings.Contains(html, `data-scoring="[2,3]"`) {
 		t.Errorf("AG3 first exercise: the full back and Rudi (1.5) score, ticked; every element can be ticked")
 	}
-	if html := postForm(t, "/routine", values(`{"scored":0}`)).Body.String(); !strings.Contains(html, "Total Tariff: 2.60") || strings.Contains(html, "scores-toggle") {
+	if html := postForm(t, "/routine", values(`{"scored":0}`)).Body.String(); !strings.Contains(html, `routine-total-value">2.6<`) || strings.Contains(html, "scores-toggle") {
 		t.Errorf("scoring every element: 2.6, no Scores boxes")
 	}
 
 	// The coach chose the back tuck and Barani instead.
 	chosen := strings.Replace(strings.Replace(routine, `"backward":true}`, `"backward":true,"scores":true}`, 1), `"shape":"Tuck"}`, `"shape":"Tuck","scores":true}`, 1)
 	html = postForm(t, "/routine", url.Values{"routineData": {chosen}, "requirementSet": {"builtin:fig-ag3-first"}}).Body.String()
-	if !strings.Contains(html, "Total Tariff: 1.10") || !strings.Contains(html, "From the elements you ticked") || !strings.Contains(html, "clearScores(&#39;a&#39;)") {
+	if !strings.Contains(html, `routine-total-value">1.1<`) || !strings.Contains(html, "From the elements you ticked") || !strings.Contains(html, "clearScores(&#39;a&#39;)") {
 		t.Errorf("the chosen back tuck and Barani (1.1) score")
 	}
 
@@ -1113,7 +1114,7 @@ func TestSetRoutinesListedApart(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	routes().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/requirements", nil))
-	if body := rec.Body.String(); !strings.Contains(body, `<h2 class="title is-5">Set routines</h2>`) || !strings.Contains(body, "<li>Back somersault (T)</li>") {
+	if body := rec.Body.String(); !strings.Contains(body, `<h2 class="title is-5">Built-in set routines</h2>`) || !strings.Contains(body, "<li>Back somersault (T)</li>") {
 		t.Errorf("the requirements page should list set routines on their own, element by element")
 	}
 }
@@ -1137,7 +1138,7 @@ func TestLevelPairs(t *testing.T) {
 	}
 
 	html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")).Body.String()
-	if !strings.Contains(html, "Total Tariff: 0.50") || !strings.Contains(html, "Can&#39;t Repeat: Scored In 1st Exercise") {
+	if !strings.Contains(html, `routine-total-value">0.5<`) || !strings.Contains(html, "Scored difficulty in the first exercise, so it doesn&#39;t count again.") {
 		t.Errorf("AG3 second exercise: the Rudi's difficulty carried over from the first, so it can't be repeated and only the back tuck (0.5) counts")
 	}
 	if !strings.Contains(html, `class="is-unmet"`) || !strings.Contains(html, "carried over: elements 3, 4 of the first exercise · repeated at element 1") {
@@ -1148,24 +1149,24 @@ func TestLevelPairs(t *testing.T) {
 	}
 
 	// Without the first exercise, or at a level without the rule, everything counts.
-	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", "", "")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") || !strings.Contains(html, "No routine for the first exercise yet") {
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", "", "")).Body.String(); !strings.Contains(html, `routine-total-value">1.3<`) || !strings.Contains(html, "No routine for the first exercise yet") {
 		t.Errorf("no first exercise: 1.3, and the panel says so")
 	}
-	if html := postForm(t, "/routine", values("builtin-level:fig-ag2-junior", "2", second, "builtin:fig-ag2-junior-second", first, "builtin:fig-ag2-junior-first")).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") || strings.Contains(html, "carried over") {
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag2-junior", "2", second, "builtin:fig-ag2-junior-second", first, "builtin:fig-ag2-junior-first")).Body.String(); !strings.Contains(html, `routine-total-value">1.3<`) || strings.Contains(html, "carried over") {
 		t.Errorf("AG2: no difficulty carries over from the first exercise, so elements may be repeated")
 	}
 	// It follows from the first exercise scoring only some elements, at any level.
-	if html := postForm(t, "/routine", values("builtin-level:bg-national-17-21", "2", second, "builtin:bg-national-17-21-second", first, "builtin:bg-national-17-21-first")).Body.String(); !strings.Contains(html, "Total Tariff: 0.50") {
+	if html := postForm(t, "/routine", values("builtin-level:bg-national-17-21", "2", second, "builtin:bg-national-17-21-second", first, "builtin:bg-national-17-21-first")).Body.String(); !strings.Contains(html, `routine-total-value">0.5<`) {
 		t.Errorf("BG 17–21: two elements carry over, as in AG3")
 	}
 	ownChecks := values("builtin-level:fig-ag3", "2", second, "builtin:fig-ag3-second", first, "builtin:fig-ag3-first")
 	ownChecks.Set("pairChecks", `{"scored":0}`)
-	if html := postForm(t, "/routine", ownChecks).Body.String(); !strings.Contains(html, "Total Tariff: 1.30") {
+	if html := postForm(t, "/routine", ownChecks).Body.String(); !strings.Contains(html, `routine-total-value">1.3<`) {
 		t.Errorf("when the coach scores every element of the first exercise, nothing carries over")
 	}
 
 	// The first exercise is unaffected by the second.
-	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "1", first, "builtin:fig-ag3-first", second, "builtin:fig-ag3-second")).Body.String(); !strings.Contains(html, "Total Tariff: 1.50") || !strings.Contains(html, "Second exercise: Partner") ||
+	if html := postForm(t, "/routine", values("builtin-level:fig-ag3", "1", first, "builtin:fig-ag3-first", second, "builtin:fig-ag3-second")).Body.String(); !strings.Contains(html, `routine-total-value">1.5<`) || !strings.Contains(html, "Second exercise: Partner") ||
 		!strings.Contains(html, "carried over: elements 3, 4 · the second exercise repeats them at element 1") {
 		t.Errorf("AG3 first exercise: the full back and Rudi score (1.5) and carry over; the second exercise repeats the Rudi")
 	}

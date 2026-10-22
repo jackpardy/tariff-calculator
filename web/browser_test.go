@@ -195,7 +195,7 @@ func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
 	if chips != "Not met,Not met,Not met" { // one skill: too few, too easy, and not the elements allowed
 		t.Errorf("each rule says whether the routine meets it: %q", chips)
 	}
-	if name != "BUCS L7 · second exercise (copy)" {
+	if name != "Copy of BUCS L7 · second exercise" {
 		t.Errorf("a copy, named so: %q", name)
 	}
 	if strings.HasPrefix(saved, "builtin:") || setName != "Our L7" {
@@ -442,5 +442,36 @@ func TestLandingSearchFollowsInABrowser(t *testing.T) {
 	)
 	if strings.TrimSpace(name) != "Back To Feet" || strings.TrimSpace(note) != "From back, after Back Drop" {
 		t.Errorf("searching to feet after a back drop: %q (%q), want Back To Feet (From back, after Back Drop)", name, note)
+	}
+}
+
+// A card is dragged into a new order by its head, which is a button (it
+// opens the card), so the drag mustn't ignore it as it does ↑, ↓ and Edit.
+func TestCardsDragByTheirHeadInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	const routine = `{"current":"r1","routines":[{"id":"r1","name":"Test","skills":[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]}]}`
+	var got struct{ Head, Up bool }
+	step(t, ctx, "opening the builder with two skills",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+routine+"`"+`)`, nil),
+		chromedp.Reload(),
+		chromedp.WaitReady(`#routine-skills .card-toggle`, chromedp.ByQuery),
+		chromedp.Poll(`!!Sortable.get(document.getElementById('routine-skills'))`, nil, chromedp.WithPollingInterval(50*time.Millisecond)),
+		chromedp.Evaluate(`(() => {
+			const list = document.getElementById('routine-skills');
+			const filter = Sortable.get(list).options.filter;
+			const card = list.querySelector('.routine-skill-container');
+			const ignored = (el) => !!Sortable.utils.closest(el, filter, list);
+			return {Head: !ignored(card.querySelector('.card-toggle')), Up: ignored(card.querySelector('button:not(.card-toggle)'))};
+		})()`, &got),
+	)
+	if !got.Head {
+		t.Error("a drag from the card's head is ignored, so cards can't be dragged by their name")
+	}
+	if !got.Up {
+		t.Error("a drag from ↑, ↓ or Edit should be ignored, so those stay clickable")
 	}
 }

@@ -1,59 +1,6 @@
-/* General styles for routine items */
-.routine-skill {
-    cursor: grab;
-    margin-bottom: 0.75rem;
-    transition: transform 0.1s ease;
-    position: relative; /* Needed for pseudo-elements like drag indicator */
-    transition: all 0.3s ease; /* Smooth transitions */
-    pointer-events: auto; /* Ensure the item itself is interactive */
-}
-
-/* Hover effect for routine items */
-.routine-skill:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* Style for validation messages within routine items */
-.transition-status {
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-}
-
-/* Style for indicating an item is being edited */
-.routine-skill.editing {
-    box-shadow: 0 0 0 2px #485fc7;
-}
-
-/* Minimum height for the routine builder container */
-.routine-skills {
-    min-height: 100px;
-    transition: background-color 0.2s;
-}
-
-/* General column padding within a routine skill */
-.routine-skill .columns {
-    padding: 0.25rem;
-}
-
-/* Styling for individual columns within a routine skill */
-.routine-skill .column {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex; /* Use flex for alignment within columns */
-    align-items: center; /* Vertically center content in columns */
-}
-
-/* --- Start Routine Button Fixes --- */
-
-/* Button column: Push right, don't shrink, give slightly more width on tablet+ */
-
-/* --- End Routine Button Fixes --- */
-
+[x-cloak] { display: none !important; }
 /* Toast notification styling (placed by .is-fixed-bottom-right) */
+.is-fixed-bottom-right { position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; }
 .notification.is-fixed-bottom-right {
     animation: slideIn 0.3s ease-out;
 }
@@ -98,19 +45,6 @@
 .checkbox.comp-check input { flex: none; margin-top: 0.3em; }
 .field .checkbox.comp-check { display: flex; }
 
-/* Styling for validation message area */
-.validation-messages {
-    border-top: 1px solid #eee;
-    padding-top: 0.75rem;
-    margin-top: 1rem;
-}
-
-/* Styling for individual validation messages */
-.transition-status {
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-}
-
 /* Gradient text for multiple warnings (example) */
 .has-text-danger.has-text-warning {
     background: linear-gradient(90deg, #ff3860 50%, #ffdd57 50%);
@@ -123,63 +57,12 @@
 .has-text-danger {
     color: #cc0f35 !important; /* Red for transitions; 5.7:1 on white */
 }
-.has-text-landing-warning {
-    color: #ff69b4 !important; /* Pink for landings */
-}
-.has-text-tenth-warning {
-    color: #ff851b !important; /* Orange for 10th skill */
-}
-
-/* Tariff difference subtitle */
-.subtitle.tariff-difference {
-    font-size: 0.9rem;
-    color: #666;
-}
 
 /* Icon margin for warnings */
 .has-text-warning .icon {
     margin-right: 0.5rem;
 }
 
-/* Dragging indicator text */
-.routine-skill::after {
-    content: "Drag to reorder";
-    position: absolute;
-    bottom: -20px; /* Position below the item */
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.8rem;
-    color: #666;
-    opacity: 0; /* Hidden by default */
-    transition: opacity 0.3s ease;
-    pointer-events: none; /* Prevent interference */
-}
-
-/* Ensure buttons inside draggable items remain clickable */
-.routine-skill .buttons * {
-    pointer-events: auto !important;
-}
-
-.routine-skills .routine-skill {
-    margin-bottom: 0; border-radius: 0; border-left: 4px solid #ddd;
-    cursor: grab; transition: border-left-color 0.3s ease, opacity 0.2s ease;
-    -webkit-user-select: none; user-select: none;
-}
-.routine-skill.invalid-transition { border-left-color: #ff3860 !important; }
-.routine-skill.invalid-landing { border-left-color: #ff69b4 !important; }
-.routine-skill.duplicate-skill { border-left-color: #ffdd57 !important; }
-.routine-skill-container.editing .routine-skill { box-shadow: 0 0 0 2px #485fc7 inset; }
-.is-fixed-bottom-right { position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; }
-[x-cloak] { display: none !important; }
-
-.routine-skill button, .routine-skill .delete { pointer-events: auto; }
-.transition-status { font-size: 0.8rem; margin-top: 0.25rem; }
-.routine-skills { min-height: 100px; transition: background-color 0.2s; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem; }
-/* A card's header: the name and FIG notation, then the button grid. */
-.card-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px 0; }
-.card-buttons { display: grid; grid-template-columns: 40px 45px; gap: 3px; flex-shrink: 0; }
-.card-buttons .button { height: 24px; }
-.card-buttons .card-text-button { font-size: 0.75rem; }
 
 /* --- Side by side: a second routine beside the current one (both editable) --- */
 .compare-with { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
@@ -193,9 +76,7 @@
 .is-comparing .requirement-picker .is-text { display: none; }
 .is-comparing .requirement-picker .select, .is-comparing .requirement-picker .select select { width: 100%; max-width: 100%; }
 .is-comparing .requirement-picker-row { flex-wrap: wrap; }
-.routine-skill.differs { background-color: #fff6d9; }
-.compare-difference { font-size: 0.9rem; color: #555; margin-top: -0.75rem; margin-bottom: 0.75rem; }
-.compare-legend { font-size: 0.8rem; color: #777; margin-top: 0.5rem; }
+.compare-shade { font-size: 0.85rem; color: #555; }
 .add-to { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .add-to-label { font-size: 0.85rem; font-weight: 600; }
 .add-to .select, .add-to .select select { max-width: 16rem; }
@@ -216,45 +97,14 @@
   .is-levels .level-tabs .tabs li.is-beside a { background: none; color: inherit; }
 }
 
-.subtitle.tariff-difference { font-size: 0.9rem; color: #666; }
 .has-text-danger { color: #cc0f35 !important; }
-.has-text-landing-warning { color: #ff69b4 !important; }
-.has-text-tenth-warning { color: #ff851b !important; }
-.validation-messages { border-top: 1px solid #eee; padding-top: 0.75rem; margin-top: 1rem; }
 
-/* --- Layout Styles --- */
-.routine-skill { padding: 0.75rem; }
-/* Name Block */
-.skill-name-block { margin-bottom: 0.5rem; /* Space below this block */ }
-.skill-name { font-size: 1rem; font-weight: 600; line-height: 1.2; }
-/* Details/Buttons Row */
-.skill-details-columns { align-items: center; /* Vertical alignment */ }
-.skill-details-columns .column { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.skill-details-columns p { font-size: 0.85rem; white-space: nowrap; }
-.skill-details-columns .buttons { margin-bottom: 0; } /* Remove button group margin */
-/* Define the margin utility for tablet and up */
-@media screen and (min-width: 769px) {
-
-    /* Ensure detail columns take up space */
-    .skill-details-columns .column:not(.is-narrow) {
-        flex-basis: 0; /* Allow columns to grow */
-        flex-grow: 1;  /* Allow columns to grow */
-        min-width: 50px; /* Adjust as needed */
-    }
-}
-
-.skill-validation-row { width: 100%; border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem; }
 
 /* --- Drag to reorder (SortableJS) --- */
 /* The placeholder showing where the dragged card will land. */
 .routine-skill-container.sortable-ghost .routine-skill { opacity: 0.4; }
 .routine-skill-container.sortable-chosen .routine-skill { cursor: grabbing; }
 
-/* Page header */
-.hero.is-primary { background-color: #485fc7; }
-
-/* Skills after an interruption (CoP §15.3) still show, but don't count. */
-.routine-skill.not-counted { opacity: 0.55; }
 
 /* Saved routines: the switcher above the routine. */
 .routine-switcher { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.4rem; margin-bottom: 1rem; }
@@ -275,6 +125,132 @@
     min-width: 10rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 0.3rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 .routine-menu-panel .button { justify-content: flex-start; }
+
+/* --- The routine tools (views/tool.templ): one family with the competition pages --- */
+/* A slim banner naming the app, with the other tool beside it. Its sides line
+   up with the page under it: the section's padding, then the same container. */
+.tool-page { background: #fff; }
+.tool-banner { background: #485fc7; color: #ffffff; padding: 0.55rem 1.5rem; }
+.tool-banner .container { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 1rem; }
+.tool-banner-name { margin: 0; font-size: 1.1rem; font-weight: 700; line-height: 1.3; color: #fff; }
+a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
+.tool-banner-note { font-size: 0.85rem; color: #fff; }
+.tool-banner-nav { display: flex; gap: 1.25rem; margin-left: auto; }
+.tool-banner-nav a { color: #fff; font-size: 0.95rem; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
+.tool-banner-nav a:hover { color: #fff; border-bottom-color: rgba(255, 255, 255, 0.6); }
+.tool-banner-nav a[aria-current] { font-weight: 600; border-bottom-color: #fff; }
+.tool-section { padding-top: 1.5rem; }
+/* The Requirements and compare pages are the competition pages' width. */
+.tool-page .container.is-narrow-tool { max-width: 60rem; }
+.tool-intro { max-width: 44rem; color: #4a4a4a; margin-bottom: 1.5rem; }
+@media screen and (max-width: 768px) {
+    .tool-banner { padding: 0.45rem 0.75rem; }
+    /* One line on a phone: the app's name, and the other tool. */
+    .tool-banner-note, .tool-banner-nav a[aria-current] { display: none; }
+    .tool-banner-name { font-size: 1rem; }
+    .tool-section { padding-top: 1rem; }
+}
+/* What just happened, with Undo where it can be taken back. */
+.tool-toast { display: flex; align-items: center; gap: 0.75rem; max-width: 28rem; padding: 0.75rem 2.5rem 0.75rem 1rem; }
+.tool-toast-undo { flex: none; }
+
+/* The builder: Add a skill above the routine, at every width, as before the
+   look-and-feel pass (the owner kept that layout, 2026-10-22). */
+.builder-add, .builder-routine { min-width: 0; }
+.builder-routine { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #ededed; }
+/* Each side's heading, on a row of the same height so the two line up. */
+.builder-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; min-height: 2.5rem; margin-bottom: 0.75rem; }
+.builder-head .title { margin-bottom: 0; }
+#skill-form-wrapper { scroll-margin-top: 1rem; }
+
+/* A routine's cards (views.skillCard): the head opens the details; ↑, ↓ and
+   Edit are full-size buttons at the right, and Remove waits in the details. */
+.routine-skills { min-height: 4rem; border: 1px solid #dbdbdb; border-radius: 6px; }
+.routine-empty { color: #555; padding: 1rem 0.75rem; }
+.routine-skill {
+    position: relative; padding: 0.35rem 0.75rem 0.35rem 0.6rem; border-left: 4px solid transparent; border-top: 1px solid #ededed; background: #fff;
+    cursor: grab; -webkit-user-select: none; user-select: none; transition: border-left-color 0.3s ease, opacity 0.2s ease;
+}
+.routine-skill-container:first-child .routine-skill { border-top-color: transparent; }
+.routine-skill.invalid-transition, .routine-skill.invalid-landing { border-left-color: var(--state-stopped-ink); }
+.routine-skill.duplicate-skill { border-left-color: var(--state-attention-ink); }
+/* Side by side, the second routine's skills that differ from the first's at
+   the same number are shaded, if the checkbox says so (only the second: the
+   same row shaded in both said nothing more, the owner, 2026-10-22). */
+.shades-diffs #routine-view-b .routine-skill.differs { background-color: #fff6d9; }
+/* Skills after an interruption (CoP §15.3) still show, but don't count. */
+.routine-skill.not-counted { opacity: 0.55; }
+.routine-skill-container.editing .routine-skill { box-shadow: inset 0 0 0 2px #485fc7; }
+.routine-skill-container.sortable-ghost .routine-skill { opacity: 0.4; }
+.routine-skill-container.sortable-chosen .routine-skill { cursor: grabbing; }
+.card-head { display: flex; align-items: center; gap: 0.5rem; }
+.card-toggle {
+    flex: 1 1 auto; min-width: 0; min-height: 2.75rem; display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0;
+    border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.card-toggle:focus-visible { outline: 2px solid #485fc7; outline-offset: 2px; border-radius: 4px; }
+/* The same arrow as every dropdown's (details > summary::before). */
+.card-arrow { flex: none; width: 0.6em; height: 0.6em; background: currentColor; clip-path: polygon(15% 0, 100% 50%, 15% 100%); transition: transform 0.15s ease; }
+.card-toggle[aria-expanded="true"] .card-arrow { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .card-arrow { transition: none; } }
+.card-title { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.6rem; }
+.skill-name { font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.card-official { font-weight: 400; color: #555; }
+.card-fig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; color: #555; white-space: nowrap; }
+.card-tariff { flex: none; min-width: 2.2em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card-problem {
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%;
+    font-size: 0.8rem; font-weight: 700; color: var(--state-attention-ink); background: var(--state-attention-bg);
+}
+.card-buttons { flex: none; display: flex; gap: 0.35rem; }
+/* ↑, ↓, Edit and ✕: 34 px on a laptop, 36 px on a phone, for a finger. */
+.card-buttons .button { height: 2.125rem; min-width: 2.125rem; padding: 0 0.55rem; font-size: 0.9rem; }
+@media screen and (max-width: 768px) {
+    /* Room for the name on a phone: the buttons still a finger wide. */
+    .routine-skill { padding-right: 0.5rem; }
+    .card-head, .card-toggle { gap: 0.4rem; }
+    .card-buttons { gap: 0.25rem; }
+    .card-buttons .button { height: 2.25rem; min-width: 2.125rem; padding: 0 0.45rem; }
+}
+.card-details { padding: 0.15rem 0 0.5rem 1.1rem; cursor: auto; -webkit-user-select: text; user-select: text; }
+.card-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.35rem 1rem; margin: 0.25rem 0 0.6rem; }
+.card-facts dt { font-size: 0.8rem; color: #555; }
+.card-facts dd { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.card-message { font-size: 0.9rem; color: #555; margin-bottom: 0.6rem; }
+.card-message.is-problem { color: var(--state-attention-ink); }
+.card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+/* Under the cards: the total, the routine's problems and its checks. */
+.routine-results { margin-top: 1rem; }
+.routine-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: 0.25rem; font-size: 1.1rem; font-weight: 600; }
+.routine-total-value { font-size: 1.75rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.routine-count { font-size: 0.9rem; font-weight: 400; color: #555; }
+.routine-total-note { font-size: 0.9rem; color: #555; margin-bottom: 0.25rem; }
+.routine-total-note.is-problem, .level-check .is-problem { color: var(--state-stopped-ink); }
+.routine-notes { margin: 0.75rem 0 0; padding: 0.5rem 0.75rem; border-left: 3px solid var(--state-attention-ink); background: var(--state-attention-bg); color: var(--state-attention-ink); font-size: 0.9rem; }
+.routine-notes li + li { margin-top: 0.2rem; }
+/* How it's doing against its requirements, by Check against, linking to the list. */
+.check-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; margin: -0.25rem 0 0.75rem; font-size: 0.9rem; }
+.requirements-results { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #ededed; scroll-margin-top: 1rem; }
+.requirements-title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600; }
+.level-check { margin-top: 1rem; padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
+.level-check p + p { margin-top: 0.15rem; }
+.routine-menu-rule { margin: 0.3rem 0; }
+
+/* The Requirements page's lists: a plain heading with its count and its one
+   button, as a competition page's lists have, then rows with the same
+   buttons in the same order (Edit, Share, More), Delete asked on the row. */
+.tool-list { margin-top: 2rem; }
+.tool-list-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.tool-list-head .title { margin-bottom: 0; }
+.tool-list-count { color: #7a7a7a; font-weight: 400; }
+.tool-list-empty, .tool-list-note { color: #555; font-size: 0.9rem; margin-bottom: 0.5rem; }
+.set-item { align-items: flex-start; }
+.set-what { flex: 1 1 20rem; min-width: 0; }
+.set-actions { flex: none; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.set-ask { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding: 0.5rem 0.75rem; border-left: 3px solid var(--state-stopped-ink); background: var(--state-stopped-bg); }
+.set-ask-text { flex: 1 1 16rem; font-size: 0.9rem; color: var(--state-stopped-ink); }
+.editor-ask { align-items: center; }
 
 /* Requirements: choosing a set, and the checklist under the totals. */
 .requirement-picker { margin-bottom: 1rem; }
@@ -305,7 +281,6 @@
 }
 .is-comparing .chooser-options { display: block; }
 .chooser-empty { color: #555; font-size: 0.9rem; padding: 0.25rem; }
-.requirements-title { font-weight: 700; margin-bottom: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .requirements-list li { display: flex; gap: 0.5rem; padding: 0.3rem 0; border-top: 1px solid #f0f0f0; }
 .requirement-mark { font-weight: 700; width: 1.2rem; flex-shrink: 0; }
 .is-met .requirement-mark { color: #257953; }
@@ -329,8 +304,6 @@
 .level-column-note { font-size: 0.85rem; color: #777; }
 .level-empty { padding: 1rem 0; }
 .routine-skills.is-read-only .routine-skill { background: #fafafa; }
-.level-check { padding: 0.5rem 0.75rem; border-left: 3px solid #485fc7; background: #f5f7ff; }
-.level-check p + p { margin-top: 0.15rem; }
 /* Level editor: the structure first, as cards to pick from. */
 .level-structure { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.5rem; border: none; padding: 0; margin-bottom: 1rem; }
 .level-structure legend { grid-column: 1 / -1; margin-bottom: 0.25rem; }
@@ -470,7 +443,7 @@
 .compare-empty { color: #bbb; }
 .compare-total { font-weight: 700; font-size: 1.2rem; color: #485fc7; }
 .compare-summary { font-weight: 600; }
-.compare-issues { font-size: 0.85rem; color: #8a2a00; padding-left: 1.1rem; list-style: disc; }
+.compare-issues { font-size: 0.85rem; color: var(--state-attention-ink); padding-left: 1.1rem; list-style: disc; }
 
 /* --- Requirement sets page and editor (views.RequirementsPage, views.SetEditor) --- */
 .box-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
@@ -547,17 +520,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 @media screen and (max-width: 768px) {
     /* Reclaim width from the nested boxes and a shorter header. */
     .section { padding: 1.25rem 0.75rem; }
-    .hero-body { padding: 1.25rem 1rem; }
-    .hero .title { font-size: 1.5rem; }
-    .hero .subtitle { font-size: 1rem; }
     .box { padding: 1rem; }
-    .routine-skills { padding: 0.25rem; }
-    .routine-skills .routine-skill { padding: 0.75rem; }
-
-    /* Card details sit two per row (see views.skillCard). */
-    .skill-details-columns .column { padding: 0.15rem 0.5rem; }
-    .skill-details-columns p { white-space: normal; }
-
     .is-fixed-bottom-right { left: 1rem; }
 
     /* Keep the skill card (and its Add button) on screen while choosing and adjusting,
@@ -579,7 +542,7 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .set-scoring .matcher-hint { flex-basis: 100%; margin: 0; }
 .scored-elements { display: inline-flex; align-items: center; gap: 0.35rem; }
 /* Whether an element scores, when only some do; the coach can tick to choose. */
-.scores-toggle { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.4rem; padding: 0.05rem 0.45rem; border: 1px solid #dbdbdb; border-radius: 999px; font-size: 0.72rem; color: #666; background: #fff; cursor: pointer; vertical-align: middle; }
+.scores-toggle { flex: none; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.45rem; border: 1px solid #dbdbdb; border-radius: 999px; font-size: 0.72rem; color: #666; background: #fff; cursor: pointer; vertical-align: middle; }
 .scores-toggle.is-scoring { border-color: #485fc7; background: #eef1fb; color: #3850b7; font-weight: 600; }
 .scores-toggle input { margin: 0; }
 .scored-input { width: 4.5rem; }
@@ -603,7 +566,6 @@ details > summary.button::before, .routine-menu > summary::before { content: non
 .share-note { text-align: center; font-size: 0.8rem; color: #777; margin-top: 0.25rem; }
 
 /* --- How a skill is judged (views/judging.templ, static/js/judging.js) --- */
-.judging-row { margin-top: 0.4rem; }
 /* How it's judged, on the skill card: a small link on the name's details line. */
 .judging-link { border: 0; padding: 0; background: none; font: inherit; color: #485fc7; cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
 .judging-link:hover { color: #3a4fb0; }
@@ -1248,7 +1210,6 @@ html:has(.set-editor) { overflow-anchor: none; }
 .set-routine-skills li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.2rem 0; }
 .set-routine-skills .buttons { margin-left: auto; }
 /* No messages: no box, so its line doesn't sit alone above the checks. */
-.validation-messages:not(:has(*)) { display: none; }
 /* The requirements editor under Check against: its dropdowns fill their fields
    (Check against's own are kept narrow), and its tick boxes have a gap. */
 .requirements-writer .select select, .requirements-writer .select.is-fullwidth select { max-width: none; }
@@ -1272,7 +1233,7 @@ input.input[type="date"], input.input[type="time"] { width: auto; max-width: 100
 
 /* Compare, printed: the two routines, not the choosers or the way back. */
 @media print {
-  .compare-choices, .compare-back { display: none; }
+  .compare-choices, .tool-banner { display: none; }
 }
 
 /* The set routine maker (Requirements page): Add as wide as its words, not
