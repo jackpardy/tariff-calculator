@@ -382,7 +382,9 @@ a **Change** button to open it.
    problem. Entries made after planning are listed for you to place.
    Changing the setup asks you to **Plan** again, on **Setup**. Open a flight's **Panel**
    to give a seat to someone else, for all the event's flights they had it
-   for (the people who can take the seat you chose are listed first); **Assign officials again** redoes every panel and keeps the flights
+   for (the people who can take the seat you chose and are free then are
+   listed first, marked ✓; those who could but are busy then, ◷; the rest,
+   ✗); **Assign officials again** redoes every panel and keeps the flights
    (it asks first, as your changes to the panels are lost).
    Moving an event or a gymnast, or giving someone a seat, that would break
    something that holds now (someone in two places, a flight past the end of

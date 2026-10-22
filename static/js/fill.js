@@ -40,25 +40,42 @@
         }
         fill(select);
     };
-    // A seat's people: first those who can take the seat chosen beside it,
-    // then the rest, to choose anyway (the change then says what it breaks).
-    // Each seat says what it needs (data-need: an event's code and a role's
-    // letter, or "r" or "m") and each person what they can take (data-can,
-    // web.seatCan).
+    // A seat's people: first those who can take the seat chosen beside it
+    // and are free then, then those who can but are busy, then the rest, to
+    // choose anyway (the change then says what it breaks). Each seat says
+    // what it needs (data-need: an event's code and a role's letter, or "r"
+    // or "m"), the flights it runs across (data-span) and who has it
+    // (data-holder); each person what they can take (data-can, web.seatCan);
+    // and #seat-busy, by span, who isn't free then, as places in the list.
+    let busyBySpan = null;
+    let places = null;
     const sortSeat = (people) => {
-        const need = people.form?.querySelector('select[name="seat"]')?.selectedOptions[0]?.dataset.need;
+        const seat = people.form?.querySelector('select[name="seat"]')?.selectedOptions[0];
+        const need = seat?.dataset.need;
         if (!need) { return; }
+        if (busyBySpan === null) {
+            try { busyBySpan = JSON.parse(document.getElementById('seat-busy')?.textContent || '{}'); } catch (e) { busyBySpan = {}; }
+            places = new Map([...(document.getElementById('seat-options')?.content.querySelectorAll('option') || [])].map((o, i) => [o.value, i]));
+        }
+        const busyList = seat.dataset.span ? busyBySpan[seat.dataset.span] : null;
+        const busy = new Set(busyList || []);
+        const isBusy = (o) => busyList !== null && busyList !== undefined && o.value !== seat.dataset.holder && busy.has(places.get(o.value));
         const [event, role] = need.includes(':') ? need.split(':') : ['', need];
         const can = (o) => (o.dataset.can || '').split(' ').some((t) => event === '' ? t === role : t.startsWith(event + ':') && t.slice(event.length + 1).includes(role));
         const chosen = people.value;
         const all = [...people.querySelectorAll('option[data-can]')];
         people.querySelectorAll('optgroup').forEach((g) => g.remove());
         all.forEach((o) => o.remove());
-        for (const [label, mark, list] of [["Can take this seat", 'yes', all.filter(can)], ["Can't take this seat", 'no', all.filter((o) => !can(o))]]) {
+        const groups = busyList ? [
+            ["Can take this seat, free then", 'yes', all.filter((o) => can(o) && !isBusy(o))],
+            ["Can take this seat, but busy then", 'busy', all.filter((o) => can(o) && isBusy(o))],
+            ["Can't take this seat", 'no', all.filter((o) => !can(o))],
+        ] : [["Can take this seat", 'yes', all.filter(can)], ["Can't take this seat", 'no', all.filter((o) => !can(o))]];
+        for (const [label, mark, list] of groups) {
             if (list.length === 0) { continue; }
             const group = document.createElement('optgroup');
             group.label = label;
-            group.dataset.mark = mark; // a ✓ or ✗ in the search's list (static/js/selectsearch.js)
+            group.dataset.mark = mark; // a ✓, ◷ or ✗ in the search's list (static/js/selectsearch.js)
             group.append(...list);
             people.append(group);
         }
