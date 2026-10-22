@@ -122,7 +122,8 @@ pair's one routine), checked as the Routine Builder checks them.
   haven't checked. More than a hundred cards come a level at a time (a big
   level by category, "BUCS L7 · Men"): choose one, print it, then **Next**;
   **Every level on one page** prints them all at once, from a computer; one level's are inside the open level (**Print this
-  level's cards**), and one gymnast's on their page (**Print card**). Save as
+  level's cards**; a level where men and women rank apart is listed as two,
+  "BUCS L7 · Men" and "BUCS L7 · Women", each with **Print these cards**), and one gymnast's on their page (**Print card**). Save as
   PDF from the print dialog for one file. A chair of judges' link finds the
   timetable's sheets in the same menu.
 - **Download CSV** gives every entry shown for a spreadsheet or scoring
@@ -772,7 +773,9 @@ Under **Judging and helping**, say what you can do at the competition: judge a
 discipline, or help as a recorder or marshal. Ticking **Judge** a discipline
 offers its HD (and in synchro, synchronisation) at any level; for
 **Execution**, **Difficulty** and **Chair**, choose no, any level, or up to a
-level, each on its own. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
+level, each on its own. Synchro goes with trampoline (**Judge Trampoline and
+synchro**): a synchro event by its hardest level, so up to ISTO Advanced takes
+in ISTO Intervanced/Advanced. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
 Below it, **Your judging qualifications**: tap **Add a judging
 qualification**, choose it and add a photo or PDF of its certificate. They're
 kept with you at the club for every competition; the organiser sees them with

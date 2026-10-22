@@ -106,24 +106,22 @@ func judgesFilter(c competitions.Competition) views.ListFilter {
 
 // judges is what an offer judges, as judgesFilter's values: each discipline
 // with the place of the hardest level they judge execution, difficulty or
-// chair at, easiest first. Up to no level, or one the competition no longer
-// has, is every level; HD or synchronisation only is none (0), which "any
-// level" still finds.
+// chair at, easiest first (synchro's, as trampoline's judges judge it at its
+// levels); HD or synchronisation only is none (0), which "any level" still
+// finds.
 func judges(c competitions.Competition, o competitions.Offer) []string {
 	var out []string
 	for _, d := range c.Disciplines() {
-		j, ok := o.Judge[d]
-		if !ok {
+		if _, ok := o.For(d); !ok {
 			continue
 		}
-		levels := c.LevelNames(d)
 		top := 0
-		for _, upTo := range j.UpTo {
-			at := len(levels)
-			if i := slices.Index(levels, upTo); i >= 0 {
-				at = i + 1
+		for i, l := range c.LevelNames(d) {
+			for _, role := range competitions.LevelRoles {
+				if c.CanJudge(o, true, d, l, role) {
+					top = i + 1
+				}
 			}
-			top = max(top, at)
 		}
 		out = append(out, offerKey(d)+":"+strconv.Itoa(top))
 	}

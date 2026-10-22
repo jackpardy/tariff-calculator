@@ -331,10 +331,30 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	for _, club := range clubs {
 		d.Clubs, seen[club.Name] = append(d.Clubs, club.Name), true
 	}
+	// A section a level, or one a category where men and women rank apart
+	// ("ISTO Novice · Men"), keyed by sectionKey.
 	byLevel := map[string]int{}
+	section := func(level, category string) int {
+		k := sectionKey(level, category)
+		if n, ok := byLevel[k]; ok {
+			return n
+		}
+		byLevel[k] = len(d.Levels)
+		name := level
+		if category != "" {
+			name += " · " + category
+		}
+		d.Levels = append(d.Levels, views.DashboardLevel{Name: name, Level: level, Category: category})
+		return byLevel[k]
+	}
 	for _, name := range c.EventNames() {
-		byLevel[name] = len(d.Levels)
-		d.Levels = append(d.Levels, views.DashboardLevel{Name: name})
+		if c.Split.Splits(name) {
+			for _, category := range competitions.Categories {
+				section(name, category)
+			}
+		} else {
+			section(name, "")
+		}
 	}
 	filter := dashboardFilter(q)
 	d.Filter, d.Search, d.Coach, d.CheckedFilter, d.SignedFilter, d.VideoFilter, d.Category, d.Sort =
@@ -402,11 +422,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 				row.Exercises[i] = strings.TrimPrefix(exerciseSummary(j.Entry.Entry.Exercises[i], ex), j.Entry.Entry.Event()+" · ")
 			}
 		}
-		n, ok := byLevel[j.Entry.Entry.Event()]
-		if !ok {
-			n, byLevel[j.Entry.Entry.Event()] = len(d.Levels), len(d.Levels)
-			d.Levels = append(d.Levels, views.DashboardLevel{Name: j.Entry.Entry.Event()})
-		}
+		n := section(j.Entry.Entry.Event(), categoryOf(c.Competition, j.Entry.Entry))
 		d.Levels[n].Rows = append(d.Levels[n].Rows, row)
 	}
 	for i := range d.Levels {
@@ -420,20 +436,38 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	slices.SortFunc(d.Coaches, competitions.CompareNames)
 	slices.SortFunc(d.Clubs, competitions.CompareNames)
-	totals := map[string]int{}
+	totals, inLevel := map[string]int{}, map[string]int{}
 	for _, e := range entries {
 		if !e.Withdrawn {
-			totals[e.Entry.Event()]++
+			totals[sectionKey(e.Entry.Event(), categoryOf(c.Competition, e.Entry))]++
+			inLevel[e.Entry.Event()]++
 		}
 	}
 	for i := range d.Levels {
-		d.Levels[i].Anchor, d.Levels[i].Total = "level-"+strconv.Itoa(i), totals[d.Levels[i].Name]
-		if limit := c.Limits[d.Levels[i].Name]; limit > 0 {
-			d.Levels[i].Places = fmt.Sprintf("%d of %d places", totals[d.Levels[i].Name], limit)
+		l := &d.Levels[i]
+		l.Anchor, l.Total = "level-"+strconv.Itoa(i), totals[sectionKey(l.Level, l.Category)]
+		if limit := c.Limits[l.Level]; limit > 0 {
+			l.Places = fmt.Sprintf("%d of %d places", inLevel[l.Level], limit)
+			if l.Category != "" {
+				l.Places = l.Level + ": " + l.Places // a limit is the level's, men and women together
+			}
 		}
 		sortRows(d.Levels[i].Rows, sentAt, d.Sort)
 	}
 	render(w, r, views.CompetitionDashboard(d))
+}
+
+// sectionKey is an entries page section's key: a level, and its category
+// where men and women rank apart.
+func sectionKey(level, category string) string { return level + "\x00" + category }
+
+// categoryOf is the category an entry's section is under: its own where its
+// level ranks men and women apart, else none.
+func categoryOf(c competitions.Competition, e competitions.Entry) string {
+	if c.Split.Splits(e.Event()) {
+		return e.Category
+	}
+	return ""
 }
 
 // cardsAtOnce is the most cards the cards page shows without being asked: a

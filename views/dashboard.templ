@@ -69,7 +69,9 @@ type LevelOrder struct {
 
 // DashboardLevel is one level's table.
 type DashboardLevel struct {
-	Name   string
+	Name     string // e.g. "ISTO Novice", or "ISTO Novice · Men" where men and women rank apart
+	Level    string // the level
+	Category string // its category, for a level split by category; "" otherwise
 	Anchor string // its id on the page, to jump to
 	Total  int    // its entries, before the filters
 	Places string // with a limit, e.g. "88 of 90 places"
@@ -197,7 +199,13 @@ templ CompetitionDashboard(d Dashboard) {
 						@emptyLine("None")
 					} else {
 						<div class="buttons mb-2">
-							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + filterQuery(d, l.Name)) } data-list-carry>Print this level's cards</a>
+							<a class="button is-small" href={ templ.SafeURL(d.Base + "/cards" + sectionQuery(d, l)) } data-list-carry>
+								if l.Category != "" {
+									Print these cards
+								} else {
+									Print this level's cards
+								}
+							</a>
 						</div>
 						<div class="table-container">
 							<table class={ "table", "is-fullwidth", "is-narrow", "comp-table", "comp-entries", "comp-stack", templ.KV("has-ticks", d.Access.Remove) } data-table-view="entries" data-table-hidden="Sent">
@@ -437,6 +445,16 @@ templ CompetitionEntry(d EntryDetail) {
 
 // filterQuery is the dashboard's filter as a query for the cards page, for one
 // level or ("") all.
+// sectionQuery is the cards of a section: its level, and its category as a
+// part of it where men and women rank apart.
+func sectionQuery(d Dashboard, l DashboardLevel) string {
+	q := filterQuery(d, l.Level)
+	if l.Category == "" {
+		return q
+	}
+	return q + "&part=" + url.QueryEscape(l.Category)
+}
+
 func filterQuery(d Dashboard, level string) string {
 	q := url.Values{}
 	for k, v := range d.Filter {
@@ -833,7 +851,8 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 			} else {
 				{ r.Club }
 			}
-			if r.Category != "" {
+			// A section by category says it in its heading.
+			if r.Category != "" && l.Category == "" {
 				<span class="tag is-light ml-1">{ r.Category }</span>
 			}
 		</td>

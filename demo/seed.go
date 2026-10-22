@@ -571,9 +571,6 @@ func (s *seeder) run(out io.Writer) error {
 				if slices.Contains(s.v.chairs, m.level) || s.rng.IntN(100) < 8 {
 					offer.Set("chair-trampoline", m.level)
 				}
-				if s.rng.IntN(100) < 40 {
-					offer.Set("judge-synchro", "1")
-				}
 			}
 			if s.rng.IntN(100) < 15 {
 				offer.Set("judge-tumbling", "1")
@@ -721,12 +718,12 @@ func (s *seeder) run(out io.Writer) error {
 		name, club string
 		offer      url.Values
 	}{
-		{"Gráinne Walsh", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}, "judge-synchro": {"1"}, "chair-synchro": {""}}},
+		{"Gráinne Walsh", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}}},
 		{"Michael Doyle", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}}},
 		{"Anne-Marie Keane", "Gymnastics Ireland", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}, "judge-tumbling": {"1"}, "chair-tumbling": {""}}},
 		{"Pat Hennessy", "", url.Values{"judge-tumbling": {"1"}, "chair-tumbling": {""}, "judge-dmt": {"1"}, "chair-dmt": {""}}},
 		{"Joan Furlong", "", url.Values{"judge-dmt": {"1"}, "chair-dmt": {""}, "judge-trampoline": {"1"}}},
-		{"Kieran Tobin", "", url.Values{"judge-trampoline": {"1"}, "judge-synchro": {"1"}, "chair-synchro": {""}}},
+		{"Kieran Tobin", "", url.Values{"judge-trampoline": {"1"}, "chair-trampoline": {""}}},
 		{"Deirdre Ní Bhriain", "", url.Values{"judge-tumbling": {"1"}, "judge-dmt": {"1"}, "recorder": {"1"}}},
 		{"Frank Lyons", "", url.Values{"recorder": {"1"}, "marshal": {"1"}}},
 	} {

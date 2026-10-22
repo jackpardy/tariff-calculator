@@ -200,7 +200,16 @@ func TestSandboxSeed(t *testing.T) {
 	// Members keep routines and mark skills: the start page's member has
 	// both, and the club's Members links to them.
 	members := do(t, s.h, http.MethodGet, l.CompSec.Link+"/members", nil).Body.String()
-	row := regexp.MustCompile(`(?s)>\s*` + regexp.QuoteMeta(html.EscapeString(l.Member.Name)) + `\s*<.*?</tr>`).FindString(members)
+	// Their row: a coach of the same name is an option in other rows' coach
+	// dropdowns, before it.
+	row := ""
+	named := regexp.MustCompile(`<td[^>]*>\s*(<a[^>]*>)?\s*` + regexp.QuoteMeta(html.EscapeString(l.Member.Name)) + `\s*<`)
+	for _, tr := range strings.Split(members, "<tr")[1:] {
+		if named.MatchString(tr) {
+			row = tr
+			break
+		}
+	}
 	for _, want := range []string{"/routines\"", "can do "} {
 		if !strings.Contains(row, want) {
 			t.Errorf("the club's Members doesn't link %s's %q: %q", l.Member.Name, want, row)
