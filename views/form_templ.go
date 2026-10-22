@@ -532,7 +532,7 @@ func picker(cats []catalog.Category) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<p class=\"picker-hint\">Not listed? Use \"Build or adjust this skill\".</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<p class=\"picker-hint\">Not listed? Use \"Build or adjust this skill\" below.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

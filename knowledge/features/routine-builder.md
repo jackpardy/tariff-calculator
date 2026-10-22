@@ -13,10 +13,9 @@ The builder is one of the routine tools (with the Requirements and compare
 pages), which share the competition pages' look: their text sizes, light
 buttons with colour only for the main action, notices and state chips, under
 a slim banner (`views/tool.templ`) naming the app, with **Routine Builder**
-and **Requirements** as links. On a laptop or wider (1,024 px up) **Add a
-skill** is on the left and **Your routine** on the right, so the routine
-starts on the first screen; on a phone, and while two routines are side by
-side on any screen (they need the width), Add a skill is above. The page uses
+and **Requirements** as links. **Add a skill** is above **Your routine** at
+every width, as before the look-and-feel pass (the owner kept that layout,
+2026-10-22; the layout is being redesigned separately). The page uses
 Bulma's container width (1,152 px at 1,216 px, 1,344 px at 1,408 px); the
 Requirements and compare pages are the competition pages' 60rem.
 

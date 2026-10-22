@@ -21,7 +21,7 @@ but use the same words and the same main-action colour.
   no footer.
 - **Width.** The Requirements and compare pages are the competition pages'
   60rem (`.container.is-narrow-tool`). The builder keeps Bulma's container
-  (1,152 px at a 1,300 px window), because it's two columns.
+  (1,152 px at a 1,300 px window), for two routines side by side.
 - **Headings.** Sections are `h2.title.is-5` with no box around them, a list
   with its count in grey after a dot ("Your levels · 2") and its one button at
   the right (`.tool-list-head`), as `listSection` is. A working panel that

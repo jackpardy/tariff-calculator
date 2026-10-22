@@ -50,12 +50,11 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 	</html>
 }
 
-// calculator is the builder: Add a skill, and the routine it goes into. On a
-// laptop or wider they sit side by side, the routine on the right, so both
-// are on the first screen; while two routines are side by side on a laptop,
-// Add a skill goes above them, to give them the width.
+// calculator is the builder: Add a skill, full width, above the routine it
+// goes into (or two side by side); on a laptop or wider, choosing a skill and
+// the skill's card sit side by side in it, so it takes half the height.
 templ calculator(groups []requirements.BuiltinGroup) {
-	<div class="builder" x-data="tariffCalculatorStore()" x-bind:class="{ 'is-two-routines': twoColumns() }">
+	<div class="builder" x-data="tariffCalculatorStore()">
 		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<section class="builder-add" aria-labelledby="builder-add-title">
 			<div class="builder-head">

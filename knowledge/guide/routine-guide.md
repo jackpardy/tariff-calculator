@@ -16,8 +16,7 @@ that browser on that device. For an overview of what the app can do, see
 
 # 1. Add a skill
 
-The **Add a skill** box is at the top on a phone, and on the left on a laptop
-or bigger screen, beside your routine.
+The **Add a skill** box is at the top, with your routine under it.
 
 1. **Find the skill**, in one of three ways:
    - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
@@ -49,8 +48,7 @@ or bigger screen, beside your routine.
 
 # 2. Build a routine
 
-Your routine is under **Your routine**: below the skill box on a phone, on
-the right on a laptop. Make sure **Routines** is selected at the top of it.
+Your routine is under **Your routine**, below the skill box. Make sure **Routines** is selected at the top of it.
 
 - **Reorder** skills by dragging a card, or with **↑** and **↓**.
 - **Change a skill**: tap **Edit** on its card. It opens in the skill box, which
