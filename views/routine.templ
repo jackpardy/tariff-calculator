@@ -176,8 +176,10 @@ func titleCase(s string) string {
 
 // skillCard is one element of the routine. Its head is a button that opens
 // the details, so it works from the keyboard: the name, FIG notation and
-// tariff, with a mark while a problem is folded away. ↑, ↓ and Edit sit at
-// the right; Remove is in the details, away from them, and can be undone.
+// tariff, with a mark while a problem is folded away. ↑, ↓, Edit and Remove
+// sit at the right, Remove in red and undone from its message (the owner
+// wanted it in sight, not in the opened card, 2026-10-22); on a phone it's a
+// red ✕, for the room.
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked, scoresFull bool) {
 	{{ text, problem := cardMessage(i, message) }}
 	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
@@ -222,6 +224,10 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						<button class="button" type="button" title="Move up" aria-label={ fmt.Sprintf("Move element %d up", i+1) } x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
 						<button class="button" type="button" title="Move down" aria-label={ fmt.Sprintf("Move element %d down", i+1) } x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
 						<button class="button" type="button" x-on:click={ side.call("editSkill", i) }>Edit</button>
+						<button class="button is-danger is-outlined card-remove" type="button" title="Remove" aria-label={ fmt.Sprintf("Remove element %d", i+1) } x-on:click={ side.call("removeSkill", i) }>
+							<span class="card-remove-word">Remove</span>
+							<span class="card-remove-x" aria-hidden="true">✕</span>
+						</button>
 					</div>
 				}
 			</div>
@@ -235,14 +241,11 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 				if text != "" {
 					<p class={ "card-message", templ.KV("is-problem", problem) }>{ text }</p>
 				}
-				<div class="card-actions">
-					if judged(sv.Skill) {
+				if judged(sv.Skill) {
+					<div class="card-actions">
 						@judgingButton(sv.Skill, endsExercise(i, last))
-					}
-					if !side.ReadOnly {
-						<button class="button is-small is-danger is-outlined card-remove" type="button" x-on:click={ side.call("removeSkill", i) }>Remove</button>
-					}
-				</div>
+					</div>
+				}
 			</div>
 		</div>
 	</div>

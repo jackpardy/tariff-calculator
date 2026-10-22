@@ -66,9 +66,10 @@ older versions show corrected names.
 
 Each card's head is a button that opens its details (so it works from the
 keyboard): the number and name, the FIG notation, a **!** while a problem is
-folded away, and the tariff. **↑**, **↓** and **Edit** sit at the right, each
-at least 40 px tall (36 px wide on a phone). **Remove** is in the opened card,
-away from them, beside How it's judged; it doesn't ask first, but the message
+folded away, and the tariff. **↑**, **↓**, **Edit** and **Remove** sit at the
+right, each at least 40 px tall (36 px wide on a phone). Remove is red, and a
+red **✕** on a phone for the room (in sight, not in the opened card: the
+owner, 2026-10-22); it doesn't ask first, but the message
 saying so has **Undo** (for 6 seconds), which puts the skill back where it was,
 in its own routine even if another is now on screen. The cards can be
 reordered by drag (SortableJS) or with ↑/↓. Every change posts the routine to

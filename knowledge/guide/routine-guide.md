@@ -54,7 +54,8 @@ Your routine is under **Your routine**, below the skill box. Make sure **Routine
 - **Change a skill**: tap **Edit** on its card. It opens in the skill box, which
   now says "Edit skill 3". Change it, then tap **Update** (or **Cancel**).
 - **See the details**: tap a card's name to open it.
-- **Remove a skill**: open its card and tap **Remove**. Changed your mind? Tap
+- **Remove a skill**: tap the red **Remove** beside Edit (a red **✕** on a
+  phone). Changed your mind? Tap
   **Undo** on the message that says so.
 - **How it's judged**: in an open card, this lists what the execution judges
   can take off for that skill, with the amounts and what each means: the
