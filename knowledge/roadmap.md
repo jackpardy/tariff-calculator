@@ -633,6 +633,9 @@ December. Before it:
   2026-10-21*: about several entries or whole events; Received, replies,
   and a note of the organiser's own when resolving; the sender sees their
   messages and adds to them, and hears of answers by push or email.
+  *Competitions made, 2026-10-22*: the maintainer's page lists each
+  competition made (name, day, when) and `FEEDBACK_EMAIL` emails it, saying
+  live site or sandbox ([competitions made](features/competition-entries.md#feedback-about-the-app)).
 - **Send in the background** (built 2026-10-15). A desk message, or a round of change
   notifications, emailed and pushed each person one at a time before the
   organiser's page answered: about half a second to a second an email, so

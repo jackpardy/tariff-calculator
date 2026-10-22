@@ -104,7 +104,13 @@ type MaintainerPage struct {
 	Total    int
 	Items    []SiteFeedbackItem
 	Sandbox  *SandboxPanel // the sandbox's buttons, in the sandbox only
+	Site     string        // where this is: "on the live site" or "in the sandbox"
+	Made     []MadeItem    // the competitions made, newest first
 }
+
+// MadeItem is a competition made: its name, its (first) day and when it
+// was made.
+type MadeItem struct{ Name, Day, At string }
 
 // SiteFeedbackItem is one piece of feedback.
 type SiteFeedbackItem struct {
@@ -126,7 +132,7 @@ type DetailLine struct{ Label, Value string }
 templ Maintainer(p MaintainerPage) {
 	@competitionLayout("Feedback about the app") {
 		<h1 class="title is-4">Feedback about the app</h1>
-		<p class="subtitle is-6">From every page, for you alone. Keep this page's link to yourself.</p>
+		<p class="subtitle is-6">From every page, and the competitions made, for you alone. Keep this page's link to yourself.</p>
 		if p.Notice != "" {
 			@notice(p.Notice)
 		}
@@ -162,6 +168,22 @@ templ Maintainer(p MaintainerPage) {
 					<p class="is-size-7 mb-2">Every picture and copy of a page goes; what people wrote stays. They go by themselves after 90 days.</p>
 					<button class="button is-small is-danger" type="submit">Delete them all</button>
 				</form>
+			}
+		</div>
+		<div class="box mb-5 comp-made">
+			@opens("Competitions made "+p.Site, madeLine(p.Made), "See them", false) {
+				if len(p.Made) == 0 {
+					@emptyLine("None yet.")
+				} else {
+					<table class="table is-narrow is-size-7">
+						<thead><tr><th>Competition</th><th>Its day</th><th>Made</th></tr></thead>
+						<tbody>
+							for _, c := range p.Made {
+								<tr><td>{ c.Name }</td><td>{ c.Day }</td><td>{ c.At }</td></tr>
+							}
+						</tbody>
+					</table>
+				}
 			}
 		</div>
 		if p.Sandbox != nil {
@@ -244,6 +266,14 @@ func captureLine(light bool) string {
 		return "Light: details, and a picture if they tick for it"
 	}
 	return "Full: a picture, a copy of the page and details"
+}
+
+// madeLine sums up the competitions made: how many, and the newest.
+func madeLine(made []MadeItem) string {
+	if len(made) == 0 {
+		return "none yet"
+	}
+	return Count(len(made), "competition", "competitions") + "; the newest, " + made[0].Name + ", made " + made[0].At
 }
 
 func keptLine(n int, size string) string {

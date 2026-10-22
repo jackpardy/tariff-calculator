@@ -67,7 +67,39 @@ func (s *Store) CreateCompetition(ctx context.Context, c competitions.Competitio
 	return out, admin, nil
 }
 
-const competitionColumns = `id, club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages`
+// MadeCompetition is a competition as the maintainer's page lists it: its
+// name, its (first) day and when it was made. Nothing about who made it.
+type MadeCompetition struct {
+	ID        string
+	Name      string
+	Date      string // as competitions.DateLayout
+	CreatedAt time.Time
+}
+
+// MadeCompetitions are the competitions there are, newest first, for the
+// maintainer's page: all but a sandbox copy's, which its seed made.
+func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id, name, date, created_at FROM competitions
+		WHERE id NOT IN (SELECT id FROM sandbox_items WHERE kind = 'competition')
+		ORDER BY created_at DESC, rowid DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []MadeCompetition
+	for rows.Next() {
+		var c MadeCompetition
+		var created string
+		if err := rows.Scan(&c.ID, &c.Name, &c.Date, &created); err != nil {
+			return nil, err
+		}
+		c.CreatedAt = parseTime(created)
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {

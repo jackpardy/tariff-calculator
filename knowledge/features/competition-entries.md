@@ -408,6 +408,19 @@ email address), a line of the details, and whether a picture and copy are on
 the maintainer's page; never a link. The demo has two, from a member's My
 competition and the chairs of judges.
 
+**Competitions made** (2026-10-22, `web/competitionmade.go`): the
+maintainer hears when anyone makes a competition. The maintainer's page has
+a **Competitions made on the live site** line (**in the sandbox** on the
+sandbox's), with how many and the newest, and **See them** opens the list,
+newest first: each one's name, its (first) day and when it was made
+(`store.MadeCompetitions`). It's every competition there is, but a sandbox
+copy's, which its seed made; a deleted competition leaves it. With
+`FEEDBACK_EMAIL` set and email set up, each one made is emailed there too,
+"Competition made: *name*", saying it was on the live site, its day, when,
+and the site's address. Nothing about who made it, and never a link. The
+sandbox emails nothing ([ADR 0016](../../docs/adr/0016-sandbox.md)), so what's
+made there is only on its own maintainer's page.
+
 ## When entries, changes and sign-offs close
 
 Three times (roadmap 2026-10-08), set on the Settings page: **entries

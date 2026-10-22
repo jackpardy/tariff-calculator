@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-10-22
+* **Feature**: [Competitions made](features/competition-entries.md#feedback-about-the-app): the maintainer hears when anyone makes a competition. The maintainer's page has **Competitions made on the live site** (or **in the sandbox**), how many and the newest, opening to the list, newest first: name, its day, when made; the sandbox's seeded competitions are left out. With `FEEDBACK_EMAIL` set, each is emailed too ("Competition made: *name*": live site, its day, when, the site's address), never a link or who made it. The sandbox emails nothing, as before. [Routes](architecture/http-routes.md).
 * **Fix**: [Straight jumps before the routine starts](domain/routine-validation.md) don't end it. The routine starts with the first skill that isn't a straight jump, so only a straight jump after that ends it; ones before are flagged "is a straight jump" and the elements after them count. Straight jumps aren't elements, so they're never flagged as repeats either. They can still go anywhere in the builder, for training routines.
 
 ## 2026-10-21
