@@ -973,10 +973,12 @@ function tariffCalculatorStore() {
             this.placeEditor();
             this.keepHeld();
             if (refocus) { this.$nextTick(() => document.querySelector(`[data-edit="${side}:${index}"]`)?.focus({ preventScroll: true })); }
-            // Held until the fresh form is in and shown.
+            // Held until the fresh form is in and shown; only this hold is let
+            // go, not one Edit has made since (a quick Edit after Update).
+            const hold = this._hold;
             return this.loadForm()
                 .catch(() => this.showToast('Failed to load the form.', 'error'))
-                .finally(() => requestAnimationFrame(() => requestAnimationFrame(() => this.releaseHold())));
+                .finally(() => requestAnimationFrame(() => requestAnimationFrame(() => { if (this._hold === hold) { this.releaseHold(); } })));
         },
         // escapeEdit is Escape in a card's form: it closes it, as Cancel does,
         // unless it's clearing what's typed in the search.
@@ -1123,9 +1125,21 @@ function tariffCalculatorStore() {
         holdOnResize() {
             const box = document.querySelector('.builder-add');
             if (box && window.ResizeObserver) { new ResizeObserver(() => this.keepHeld()).observe(box); }
+            // Only a scroll by hand is followed: the browser pulls the page back
+            // by itself when it gets shorter (the box shrinking a moment before
+            // the form lands in the card), and following that held the card in
+            // the wrong place.
+            let byHand = 0;
+            const hand = () => { byHand = performance.now(); };
+            const scrollKeys = ['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', ' '];
+            window.addEventListener('wheel', hand, { passive: true, capture: true });
+            window.addEventListener('touchmove', hand, { passive: true, capture: true });
+            // A press on the page's scrollbar (its target is the page itself), not a click on a button.
+            window.addEventListener('pointerdown', (e) => { if (e.target === document.documentElement) { hand(); } }, { passive: true, capture: true });
+            window.addEventListener('keydown', (e) => { if (scrollKeys.includes(e.key) && !e.target.closest?.('input, textarea, select, [contenteditable]')) { hand(); } }, { passive: true, capture: true });
             window.addEventListener('scroll', () => {
                 const hold = this._hold;
-                if (hold && window.scrollY !== hold.y) {
+                if (hold && window.scrollY !== hold.y && performance.now() - byHand < 1000) {
                     hold.top -= window.scrollY - hold.y;
                     hold.y = window.scrollY;
                 }
