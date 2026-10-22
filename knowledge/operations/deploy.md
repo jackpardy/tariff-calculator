@@ -213,8 +213,12 @@ the server's compose directory, then open the printed paths on
 # Sandbox: sandbox.tariff.pardy.ie
 
 The [sandbox](../features/sandbox.md) ([ADR 0016](../../docs/adr/0016-sandbox.md))
-is the same image run a second time, never the live site. **Not set up on
-the server yet.** To set it up:
+is the same image run a second time, never the live site. **Live at
+<https://sandbox.tariff.pardy.ie/sandbox> since 2026-10-22**: the
+`tariff-sandbox` service (server repo PR #3), deployed with `tariff` (the
+server's `deploy.sh tariff` rebuilds and restarts both), a CNAME in
+Cloudflare (DNS only), first reset the same night (19 seconds). How it was
+set up:
 
 1. **A second service** in the server's Compose file, beside `tariff`: the
    same image and build, with `SANDBOX=1`, its own data directory (e.g.
