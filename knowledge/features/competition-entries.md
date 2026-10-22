@@ -1080,7 +1080,13 @@ are then filled flight by flight.
   kept "what if"), and the **published** copy (`published_timetable`),
   which every attendee page reads (placements, duties, "My competition",
   personal and club timetables). With changes not published, the page says
-  so: **Publish changes** copies the draft over, **Discard changes** copies
+  so, and **What's changed since you published** lists them by kind
+  (`Schedule.ChangesFrom`, 2026-10-22): **Flights** added, moved, finishing
+  later or taken out, and running orders redrawn; **Gymnasts** moved to
+  another flight, added or taken out; **Panels**, a seat given to someone
+  else (once for its event); **Breaks** moved, added or taken out; and
+  **Setup** changed. It's open while there are 10 or fewer, folded once
+  there are more, and each kind folds on its own. **Publish changes** copies the draft over, **Discard changes** copies
   the published one back, **Unpublish** takes it down. Discarding and
   unpublishing ask first, on **Before you change it**, never in a browser
   pop-up ([asking first](../architecture/ui.md#asking-first)). Timetables published
