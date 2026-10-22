@@ -407,10 +407,6 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 		} else if d.Person != "" {
 			seat.Name = names[d.Person]
 		}
-		if d.Person != "" {
-			_, competes := names[d.Person]
-			seat.Who = seatRole(d.Person, competes)
-		}
 		out = append(out, seat)
 	}
 	return out

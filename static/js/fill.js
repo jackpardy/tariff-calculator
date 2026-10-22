@@ -54,10 +54,11 @@
         const all = [...people.querySelectorAll('option[data-can]')];
         people.querySelectorAll('optgroup').forEach((g) => g.remove());
         all.forEach((o) => o.remove());
-        for (const [label, list] of [["Can take this seat", all.filter(can)], ["Can't take this seat", all.filter((o) => !can(o))]]) {
+        for (const [label, mark, list] of [["Can take this seat", 'yes', all.filter(can)], ["Can't take this seat", 'no', all.filter((o) => !can(o))]]) {
             if (list.length === 0) { continue; }
             const group = document.createElement('optgroup');
             group.label = label;
+            group.dataset.mark = mark; // a ✓ or ✗ in the search's list (static/js/selectsearch.js)
             group.append(...list);
             people.append(group);
         }

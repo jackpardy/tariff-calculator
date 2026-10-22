@@ -90,9 +90,19 @@
             list.replaceChildren(...(found.length ? found.map(({ o }) => {
                 const b = Object.assign(document.createElement('button'), { type: 'button', className: 'select-search-option' });
                 b.append(o.textContent);
-                if (o.parentElement.tagName === 'OPTGROUP') {
+                const group = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement : null;
+                if (group?.dataset.mark) {
+                    // A yes or no group (a seat's people: can take it or
+                    // not) is a coloured ✓ or ✗, its words dropped where the
+                    // list is narrow; the group's name is its title.
+                    const m = Object.assign(document.createElement('span'), { className: `select-search-mark is-${group.dataset.mark}`, title: group.label });
+                    m.setAttribute('aria-label', group.label);
+                    m.append(group.dataset.mark === 'yes' ? '✓' : '✗',
+                        Object.assign(document.createElement('span'), { className: 'select-search-mark-word', textContent: group.dataset.mark === 'yes' ? ' Can take' : ' Can\'t' }));
+                    b.append(m);
+                } else if (group) {
                     const g = Object.assign(document.createElement('span'), { className: 'select-search-group' });
-                    g.textContent = o.parentElement.label;
+                    g.textContent = group.label;
                     b.append(g);
                 }
                 // Before the input loses focus, so the click lands.

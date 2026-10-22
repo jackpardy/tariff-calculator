@@ -53,7 +53,6 @@ type SeatView struct {
 	Need                     string // what the seat needs, for its people who can take it to be listed first (web.seatNeed)
 	Here                     bool   // checked in for the panel on the day
 	Missing                  bool   // marked missing for it
-	Who                      Role   // who fills it: a gymnast, a club's judge or the organiser's own
 }
 
 // SetupForm is the timetable's setup, as the forms show it.
@@ -914,8 +913,9 @@ templ seatsEditor(p TimetablePage, it ItemView, field string) {
 					if s.Person == "" {
 						@StateChip(Attention, "No one")
 					} else {
-						{ s.Name } <span class="has-text-grey">{ s.Club }</span>
-						@WhoChip(s.Who, "")
+						// Their page says who they are and what they do; a chip
+						// on every seat crowded the panel.
+						<a href={ templ.SafeURL(p.Base + "/people/" + url.PathEscape(s.Person)) }>{ s.Name }</a> <span class="has-text-grey">{ s.Club }</span>
 					}
 				</li>
 			}

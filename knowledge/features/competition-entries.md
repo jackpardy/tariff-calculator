@@ -600,7 +600,7 @@ and no Bulma colour for a state (buttons keep theirs):
 | One entry | Checked; the video review | |
 | The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
 | A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
-| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | on the timetable a seat's name links to their page instead (2026-10-22: a chip on every seat crowded the panel); on Officials, who offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
 | My competition (and the organiser's page of a person) | each event Checked, N problems, or Sent; Scratched; check-in (Here, Not checked in) | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
@@ -885,7 +885,9 @@ are then filled flight by flight.
   goes on the event's other flights the same person had that seat for. The
   dropdown lists first those who can take the seat chosen beside it (by role
   and level: "Can take this seat"), then the rest ("Can't take this seat"),
-  to choose anyway; the ask then says why ("Ann can't take the execution
+  to choose anyway (in the dropdown's search, a green ✓ or amber ✗ beside
+  each name, with "Can take" or "Can't" where the list is wide enough); the
+  ask then says why ("Ann can't take the execution
   judge seat at FIG AG3: their offer: Judge Trampoline (execution up to BUCS
   L3, and HD)", or "they aren't marked qualified").
   **Assign officials again** starts the rota afresh, keeping the flights;

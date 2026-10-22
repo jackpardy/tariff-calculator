@@ -75,11 +75,10 @@ func TestOfficialsRota(t *testing.T) {
 	}
 	l3 := page[strings.Index(page, "<strong>BUCS L3"):]
 	l3 = strings.Join(strings.Fields(l3[:strings.Index(l3, "Redraw order")]), " ")
-	// Each says who fills it, with a role chip: Dara competes, the organiser
-	// added Mary and Tom.
-	for _, who := range [][3]string{{"Chair of judges", "Mary", "organiser"}, {"Execution judge", "Dara", "gymnast"}, {"Execution judge", "Tom", "organiser"}} {
-		seat := regexp.QuoteMeta(who[0] + ": " + who[1])
-		if !regexp.MustCompile(seat + ` <span class="has-text-grey">[^<]*</span><span class="chip chip-who chip-who-` + who[2] + `">`).MatchString(l3) {
+	// Each says who fills it, linking to their page, with no chip.
+	for _, who := range [][2]string{{"Chair of judges", "Mary"}, {"Execution judge", "Dara"}, {"Execution judge", "Tom"}} {
+		seat := regexp.QuoteMeta(who[0]+": <a href=\"") + `[^"]*/people/[^"]+">` + regexp.QuoteMeta(who[1]+"</a>")
+		if !regexp.MustCompile(seat + ` <span class="has-text-grey">[^<]*</span></li>`).MatchString(l3) {
 			t.Errorf("BUCS L3's panel has %s: %s", who, l3)
 		}
 	}

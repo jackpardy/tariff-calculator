@@ -179,7 +179,7 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 		redirected(t, h, tt+"/setup/timings", timings)
 	}
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
-	if !strings.Contains(page, "Execution judge: Dara") {
+	if !regexp.MustCompile(`Execution judge:\s*<a href="[^"]+">Dara</a>`).MatchString(page) {
 		t.Fatalf("Dara has a seat to be scratched from: %s", page)
 	}
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
