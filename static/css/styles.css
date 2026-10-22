@@ -1225,12 +1225,14 @@ a:hover > .chip { text-decoration: underline; }
 .select-search-option { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; width: 100%; padding: 0.4rem 0.75rem; border: 0; background: none; font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
 .select-search-option:hover, .select-search-option:focus { background: #eef1fb; }
 .select-search-group { font-size: 0.75rem; color: #555; white-space: nowrap; }
-/* A yes or no group as a chip's colours: ✓ who can take a seat, ✗ who
-   can't; in a narrow list (a timetable column), the mark alone. */
+/* A marked group as a chip's colours: ✓ who can take a seat and is free,
+   ◷ who can but is busy then, ✗ who can't; in a narrow list (a timetable
+   column), the mark alone. */
 .select-search-list { container-type: inline-size; }
 .select-search-mark { flex: none; font-size: 0.75rem; font-weight: 600; white-space: nowrap; border-radius: 9999px; padding: 0.05rem 0.45rem; }
 .select-search-mark.is-yes { color: var(--state-done-ink); background: var(--state-done-bg); }
-.select-search-mark.is-no { color: var(--state-attention-ink); background: var(--state-attention-bg); }
+.select-search-mark.is-busy { color: var(--state-attention-ink); background: var(--state-attention-bg); }
+.select-search-mark.is-no { color: var(--state-not-yet-ink); background: var(--state-not-yet-bg); }
 @container (max-width: 15rem) { .select-search-mark-word { display: none; } }
 .select-search-none { font-size: 0.85rem; color: #555; padding: 0.4rem 0.75rem; margin: 0; }
 /* The requirements editor redraws itself by replacing its form (htmx). The

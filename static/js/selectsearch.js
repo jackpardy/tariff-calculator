@@ -92,13 +92,14 @@
                 b.append(o.textContent);
                 const group = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement : null;
                 if (group?.dataset.mark) {
-                    // A yes or no group (a seat's people: can take it or
-                    // not) is a coloured ✓ or ✗, its words dropped where the
-                    // list is narrow; the group's name is its title.
+                    // A marked group (a seat's people: free to take it, able
+                    // but busy then, or not able) is a coloured ✓, ◷ or ✗,
+                    // its word dropped where the list is narrow; the group's
+                    // name is its title.
                     const m = Object.assign(document.createElement('span'), { className: `select-search-mark is-${group.dataset.mark}`, title: group.label });
                     m.setAttribute('aria-label', group.label);
-                    m.append(group.dataset.mark === 'yes' ? '✓' : '✗',
-                        Object.assign(document.createElement('span'), { className: 'select-search-mark-word', textContent: group.dataset.mark === 'yes' ? ' Can take' : ' Can\'t' }));
+                    const [symbol, word] = { yes: ['✓', ' Free'], busy: ['◷', ' Busy'], no: ['✗', ' Can\'t'] }[group.dataset.mark] || ['', ''];
+                    m.append(symbol, Object.assign(document.createElement('span'), { className: 'select-search-mark-word', textContent: word }));
                     b.append(m);
                 } else if (group) {
                     const g = Object.assign(document.createElement('span'), { className: 'select-search-group' });
