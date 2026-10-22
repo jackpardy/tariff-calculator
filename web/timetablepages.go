@@ -261,6 +261,7 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		page.Days = itemsOf(s, entries, officials)
+		page.SeatBusy = seatsBusy(s, &page, people, officials)
 		page.OpenDay, _ = todayIndex(c, &s, p.now())
 		for i, f := range s.Flights {
 			page.Moves = append(page.Moves, views.FlightOption{Value: strconv.Itoa(i), Label: fmt.Sprintf("%s · %s %s · %s", f.Name(), s.Setup.Days[f.Day].Name, competitions.Clock(f.Start), f.Area), Group: f.Discipline})
@@ -691,6 +692,43 @@ func placement(c store.Competition, entryID string) *views.Placement {
 		part = fmt.Sprintf("Flight %d of %d", f.Number, f.Of)
 	}
 	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start), Part: part}
+}
+
+// seatsBusy marks each flight's seats on the page with the flights the seat
+// runs across (Span) and its holder, and is who isn't free for each span, as
+// places in the seat dropdown's people (the rota's order), for it to show
+// who's free (static/js/fill.js).
+func seatsBusy(s competitions.Schedule, page *views.TimetablePage, people map[string][]string, officials []competitions.RotaPerson) map[string][]int {
+	span, busy := s.SeatsBusy(people, officials)
+	at := map[string]int{}
+	for i, o := range officials {
+		at[o.Key] = i
+	}
+	for d := range page.Days {
+		for a := range page.Days[d].Areas {
+			for k, it := range page.Days[d].Areas[a].Items {
+				if !it.Flight || it.Index >= len(span) {
+					continue
+				}
+				for seat := range it.Seats {
+					if seat < len(span[it.Index]) {
+						page.Days[d].Areas[a].Items[k].Seats[seat].Span = span[it.Index][seat]
+					}
+				}
+			}
+		}
+	}
+	out := map[string][]int{}
+	for key, keys := range busy {
+		list := []int{}
+		for _, k := range keys {
+			if i, ok := at[k]; ok {
+				list = append(list, i)
+			}
+		}
+		out[key] = list
+	}
+	return out
 }
 
 // unpublishedChanges are what the draft changes from what's published, kind

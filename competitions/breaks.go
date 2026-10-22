@@ -186,6 +186,40 @@ func nameOr(names map[string]string, key string) string {
 // officiating or on blocked-time duty then, rested where rest is a must, nor
 // kept off by a must rule), in the order sortForSeat gives; the seat's holder
 // isn't one.
+// SeatsBusy says who isn't free for each flight's seats, as FreeForSeat
+// would find it, for the seat dropdown to show: span is, by flight then
+// seat, a key for the flights the seat runs across (the same for an event's
+// seats held by one person each through it), and busy, by that key, the
+// officials (by key) competing, officiating elsewhere, kept off by a must or
+// short of must rest then. A seat's own holder counts as busy with it.
+func (s Schedule) SeatsBusy(people map[string][]string, officials []RotaPerson) (span [][]string, busy map[string][]string) {
+	busy = map[string][]string{}
+	span = make([][]string, len(s.Flights))
+	for i, f := range s.Flights {
+		span[i] = make([]string, len(f.Officials))
+		for seat := range f.Officials {
+			start := i
+			for prev := s.before(start); prev >= 0 && seat < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[seat] == f.Officials[seat]; prev = s.before(start) {
+				start = prev
+			}
+			st := s.stretchFrom(start, seat)
+			key := fmt.Sprint(st.flights)
+			span[i][seat] = key
+			if _, done := busy[key]; done {
+				continue
+			}
+			list := []string{}
+			for _, o := range officials {
+				if !s.freeIgnoring(o.Key, st, nil, people) {
+					list = append(list, o.Key)
+				}
+			}
+			busy[key] = list
+		}
+	}
+	return span, busy
+}
+
 func (s Schedule) FreeForSeat(flight, seat int, people map[string][]string, officials []RotaPerson) []string {
 	if flight < 0 || flight >= len(s.Flights) || seat < 0 || seat >= len(s.Flights[flight].Officials) {
 		return nil

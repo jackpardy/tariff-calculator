@@ -142,3 +142,38 @@ func TestFreeForSeatOrder(t *testing.T) {
 		t.Errorf("free for the chair: %v, want %v", got, want)
 	}
 }
+
+// Who's busy for a seat: competing or on another panel then; not someone
+// free, and the seat's own holder is busy with it (the page shows them as
+// having it).
+func TestSeatsBusy(t *testing.T) {
+	judge := func(key string) RotaPerson {
+		p := RotaPerson{Key: key, Name: key}
+		for _, role := range LevelRoles {
+			p.Allow(role, "L")
+			p.Allow(role, "M")
+		}
+		return p
+	}
+	officials := []RotaPerson{judge("ann"), judge("bob"), judge("cat")}
+	s := Schedule{
+		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "18:00"}}},
+		Flights: []ScheduledFlight{
+			{Flight: Flight{Event: "L", Entries: []string{"e1"}}, Area: "P1", Start: 540, End: 600, Officials: []Duty{{Role: RoleChair, Person: "ann"}}},
+			{Flight: Flight{Event: "M", Entries: []string{"e2"}}, Area: "P2", Start: 540, End: 600, Officials: []Duty{{Role: RoleChair}}},
+		},
+	}
+	people := map[string][]string{"e1": {"bob"}} // Bob competes in L
+	span, busy := s.SeatsBusy(people, officials)
+	if len(span) != 2 || len(span[1]) != 1 {
+		t.Fatalf("a span for each seat: %v", span)
+	}
+	// M's chair, at the same time: Ann chairs L, Bob competes in L, Cat's free.
+	if got := busy[span[1][0]]; !slices.Equal(got, []string{"ann", "bob"}) {
+		t.Errorf("busy for M's chair: %v", got)
+	}
+	// L's chair: Ann has it, Bob competes.
+	if got := busy[span[0][0]]; !slices.Equal(got, []string{"ann", "bob"}) {
+		t.Errorf("busy for L's chair: %v", got)
+	}
+}
