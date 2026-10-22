@@ -158,6 +158,10 @@ func (c Competition) ValidateOffer(o Offer) error {
 			errs = append(errs, fmt.Errorf("the competition doesn't offer %s", DisciplineName(d)))
 			continue
 		}
+		if d == Synchro {
+			errs = append(errs, errors.New("synchro is judged by trampoline's judges: offer trampoline"))
+			continue
+		}
 		for role, upTo := range j.UpTo {
 			if !slices.Contains(LevelRoles, role) {
 				errs = append(errs, fmt.Errorf("%s: unknown role %q", DisciplineName(d), role))
@@ -176,14 +180,17 @@ func (c Competition) ValidateOffer(o Offer) error {
 // discipline's level under the competition's rule: HD and synchronisation at
 // any level of a discipline they judge; execution, difficulty and chairing up
 // to the level they say for each. qualified is the organiser's mark.
+//
+// Synchro is judged by trampoline's judges, at its levels: an event they may
+// take a role at if they may at the hardest trampoline level it pairs (chair
+// up to ISTO Advanced, chair "ISTO Intervanced/Advanced"); one pairing a
+// level trampoline doesn't have, only at any level.
 func (c Competition) CanJudge(o Offer, qualified bool, discipline, level, role string) bool {
-	j, ok := o.Judge[discipline]
+	j, ok := o.For(discipline)
 	if !ok || (c.Officials.Judge == JudgeQualified && !qualified) {
 		return false
 	}
-	levels := c.levelNames(discipline)
-	at := slices.Index(levels, level)
-	if at < 0 {
+	if !slices.Contains(c.levelNames(discipline), level) {
 		return false
 	}
 	if slices.Contains(Measured(discipline), role) {
@@ -193,10 +200,44 @@ func (c Competition) CanJudge(o Offer, qualified bool, discipline, level, role s
 	if !ok {
 		return false
 	}
-	if top := slices.Index(levels, upTo); upTo != "" && top >= 0 && at > top {
-		return false
+	if upTo == "" {
+		return true
 	}
-	return true
+	levels := c.levelNames(discipline)
+	at := slices.Index(levels, level)
+	if discipline == Synchro {
+		levels, at = c.levelNames(Trampoline), -1
+		for _, m := range c.synchroMembers(level) {
+			i := slices.Index(levels, m)
+			if i < 0 {
+				return false // a level trampoline doesn't have: only at any level
+			}
+			at = max(at, i)
+		}
+	}
+	top := slices.Index(levels, upTo)
+	return top < 0 || at <= top
+}
+
+// For is the offer's judging for a discipline: trampoline's for synchro,
+// which trampoline's judges judge.
+func (o Offer) For(discipline string) (JudgeOffer, bool) {
+	if discipline == Synchro {
+		discipline = Trampoline
+	}
+	j, ok := o.Judge[discipline]
+	return j, ok
+}
+
+// synchroMembers are a synchro event's levels, by its name: "ISTO
+// Intervanced/Advanced" is ISTO Intervanced and ISTO Advanced.
+func (c Competition) synchroMembers(event string) []string {
+	for _, l := range c.Synchro {
+		if name, err := l.eventName(); err == nil && name == event {
+			return MemberNames(l)
+		}
+	}
+	return []string{event}
 }
 
 // Describe says what an offer offers, e.g. "Judge Trampoline (execution and
@@ -206,7 +247,7 @@ func (o Offer) Describe() string {
 	var parts []string
 	for _, d := range AllDisciplines {
 		j, ok := o.Judge[d]
-		if !ok {
+		if !ok || d == Synchro { // trampoline's judges judge synchro; an offer from before for it counts for nothing
 			continue
 		}
 		parts = append(parts, DisciplineName(d)+" ("+j.describe(d)+")")

@@ -583,7 +583,10 @@ the page's address so a view can be kept or shared:
   checked, and for a link with the sheets but no timetable page the
   timetable's sheets) and **Download CSV**, above the search; the cards and
   the CSV take the same filters, and each open level has **Print this
-  level's cards**.
+  level's cards**. A level where men and women rank apart is two sections,
+  "BUCS L7 · Men" and "BUCS L7 · Women" (2026-10-22), each with **Print
+  these cards** (that category, `part=`), its rows without the category tag
+  the heading gives; a limit on the level shows on both, for the level.
 
 | Gymnast | Club | 1st exercise | 2nd exercise | Requirements | Problems | Video | Sent | Checked |
 |---|---|---|---|---|---|---|---|---|
@@ -823,7 +826,11 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   chair are each **no**, **any level** or **up to** a level, so someone can
   judge difficulty at a level they don't judge execution at (a new offer
   starts as execution and difficulty at any level, not chairing). Offers
-  from before (one level and "can chair") read as HD only. The organiser's
+  from before (one level and "can chair") read as HD only. Synchro has no
+  row of its own: trampoline's judges judge it ("Trampoline and synchro"),
+  each synchro event by the hardest trampoline level it pairs, so chairing
+  up to ISTO Advanced is chairing ISTO Intervanced/Advanced's synchro, and
+  synchronisation, like HD, at any level (`Offer.For`). The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   individual offers on their entry, one offer for the competition: made on
