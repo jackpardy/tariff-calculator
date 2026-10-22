@@ -386,6 +386,11 @@ a **Change** button to open it.
    listed first, marked ✓; those who could but are busy then, ◷; the rest,
    ✗); **Assign officials again** redoes every panel and keeps the flights
    (it asks first, as your changes to the panels are lost).
+   If someone with a seat withdraws, has their entry removed or changes
+   their offer so they can't take it, the Officials line says so in amber
+   ("1 seat problem"), naming them under **Problems with the seats**, and
+   so does the top of **Entries**: give the seat to someone else, then
+   publish again.
    Moving an event or a gymnast, or giving someone a seat, that would break
    something that holds now (someone in two places, a flight past the end of
    the day, one of your rules, rest where it's a must) asks first: **Before

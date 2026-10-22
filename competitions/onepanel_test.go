@@ -82,7 +82,7 @@ func TestOnePanelPerEvent(t *testing.T) {
 	// A seat given by hand goes with the event's flights.
 	settings.RecordersChange = false
 	s.Rota(entries, officials, settings, 1)
-	if !s.SetDuty(1, 1, "j3") {
+	if !s.SetDuty(1, 1, "j3", "") {
 		t.Fatal("set")
 	}
 	for _, f := range s.Flights[:3] {

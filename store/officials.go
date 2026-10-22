@@ -23,6 +23,7 @@ type Official struct {
 	ClubName  string // "" for none
 	MemberID  string // a club's member's offer, as the club sent it
 	EntryID   string // an individual's offer, on their entry
+	EntryKey  string // that entry's person key ("" if it has none)
 	Added     bool   // added by the organiser
 	Offer     competitions.Offer
 	Qualified bool // the organiser marked them qualified to judge
@@ -170,10 +171,20 @@ func (s *Store) IndividualOffer(ctx context.Context, entryID string) (competitio
 	return o, json.Unmarshal([]byte(data), &o)
 }
 
-// Officials are a competition's officials, by name.
+// Officials are a competition's officials, by name. An individual whose
+// entries there the organiser has all removed isn't one, until one is put
+// back: their offer goes with them, as it does when they withdraw. One held
+// for changes keeps it.
 func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, club_name, COALESCE(member_id, ''), COALESCE(entry_id, ''), added, offer, qualified, updated_at
-		FROM officials WHERE competition_id = $1 ORDER BY name, club_name, id`, competitionID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, name, club_name, COALESCE(member_id, ''), COALESCE(entry_id, ''), added, offer, qualified, updated_at,
+			COALESCE((SELECT person_key FROM entries WHERE id = officials.entry_id), '')
+		FROM officials WHERE competition_id = $1
+		AND NOT (COALESCE((SELECT removal FROM entries WHERE id = officials.entry_id), '') = $2
+			AND NOT EXISTS (SELECT 1 FROM entries x JOIN individuals xi ON xi.id = x.individual_id
+				JOIN entries e ON e.competition_id = x.competition_id AND e.individual AND lower(e.gymnast) = lower(x.gymnast)
+				JOIN individuals i ON i.id = e.individual_id AND i.person_id = xi.person_id
+				WHERE x.id = officials.entry_id AND e.removal NOT IN ($2, $3)))
+		ORDER BY name, club_name, id`, competitionID, Removed, Withdrew)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +193,7 @@ func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official
 	for rows.Next() {
 		var o Official
 		var offer, updated string
-		if err := rows.Scan(&o.ID, &o.Name, &o.ClubName, &o.MemberID, &o.EntryID, &o.Added, &offer, &o.Qualified, &updated); err != nil {
+		if err := rows.Scan(&o.ID, &o.Name, &o.ClubName, &o.MemberID, &o.EntryID, &o.Added, &offer, &o.Qualified, &updated, &o.EntryKey); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(offer), &o.Offer); err != nil {

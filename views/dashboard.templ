@@ -22,6 +22,10 @@ type Dashboard struct {
 	Access       Access // what the link it was opened by can do (ADR 0009)
 	Concerns     []ConcernView
 	OpenConcerns int
+	// SeatProblems are the timetable's seats whose holders can't have them
+	// any more (they withdrew, say), a line each, for the timetable link.
+	SeatProblems []string
+	SeatsHint    string // what to do about them, e.g. "Give the seat to someone else, then publish again."
 	Waiting      []WaitingList // each limited event's waiting list
 	Unchecked    int           // entries not checked yet
 	Withdrawn    int           // entries withdrawn since their club sent them
@@ -147,6 +151,19 @@ templ CompetitionDashboard(d Dashboard) {
 				</a>
 				<span class="is-size-7 has-text-grey ml-1">Below the entries.</span>
 			</p>
+		}
+		if len(d.SeatProblems) > 0 {
+			<div class="mb-3">
+				<a href={ templ.SafeURL(d.Base + "/timetable#officials-check") }>
+					@StateChip(Attention, Count(len(d.SeatProblems), "seat problem", "seat problems")+" on the timetable")
+				</a>
+				<span class="is-size-7 has-text-grey ml-1">{ d.SeatsHint }</span>
+				<ul class="is-size-7 mt-1">
+					for _, l := range d.SeatProblems {
+						<li>{ l }</li>
+					}
+				</ul>
+			</div>
 		}
 		if d.Entries == 0 {
 			@emptyLine("No entries yet. Clubs send theirs through the club link; gymnasts on their own enter through theirs.")

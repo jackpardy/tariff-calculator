@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"hash/fnv"
@@ -20,7 +21,9 @@ import (
 // planned, changed seat by seat, and printed.
 
 // officialKey is an official's person key: the same as where they compete,
-// so the rota keeps them off panels while they're competing.
+// so the rota keeps them off panels while they're competing. An individual's
+// offer on an entry that isn't live (held, or removed while another of theirs
+// is live) has its entry's key, so they keep their seats.
 func officialKey(o store.Official, keys map[string][]string) string {
 	switch {
 	case o.MemberID != "":
@@ -28,6 +31,9 @@ func officialKey(o store.Official, keys map[string][]string) string {
 	case o.EntryID != "":
 		if k := keys[o.EntryID]; len(k) > 0 {
 			return k[0]
+		}
+		if o.EntryKey != "" {
+			return o.EntryKey
 		}
 		return store.IndividualNameKey(o.Name)
 	}
@@ -221,12 +227,16 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		}
 		seat, err2 := strconv.Atoi(r.FormValue("seat"))
 		person := r.FormValue("person")
-		known := person == "" || slices.ContainsFunc(f.officials, func(o competitions.RotaPerson) bool { return o.Key == person })
+		i := slices.IndexFunc(f.officials, func(o competitions.RotaPerson) bool { return o.Key == person })
+		known, name := person == "" || i >= 0, ""
+		if i >= 0 {
+			name = f.officials[i].Name
+		}
 		set := false
 		if block, err := strconv.Atoi(r.FormValue("block")); err == nil {
-			set = s.SetBlockDuty(block, seat, person)
+			set = s.SetBlockDuty(block, seat, person, name)
 		} else if flight, err := strconv.Atoi(r.FormValue("flight")); err == nil {
-			set = s.SetDuty(flight, seat, person)
+			set = s.SetDuty(flight, seat, person, name)
 			if set {
 				anchor, notice = flightAnchor(s.Flights[flight]), "Seat set on "+s.Flights[flight].Name()+"."
 			}
@@ -251,7 +261,7 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 				if len(fixes) == maxFixes {
 					break
 				}
-				if other != person && clean(func(t *competitions.Schedule) bool { return t.SetDuty(flight, seat, other) }) {
+				if other != person && clean(func(t *competitions.Schedule) bool { return t.SetDuty(flight, seat, other, name(other)) }) {
 					fixes = append(fixes, views.ChangeFix{Label: "Give it to " + name(other), Fields: withField(postedFields(r), "person", other)})
 				}
 			}
@@ -303,7 +313,7 @@ func rotaView(s competitions.Schedule, entries []store.Entry, people []competiti
 		v.OwnClub = append(v.OwnClub, fmt.Sprintf("%s %d", c.Club, c.Times))
 	}
 	for _, w := range rr.Busiest {
-		v.Busiest = append(v.Busiest, fmt.Sprintf("%s: %d, %s", names[w.Person], w.Duties, hoursWord(w.Minutes)))
+		v.Busiest = append(v.Busiest, fmt.Sprintf("%s: %d, %s", cmp.Or(names[w.Person], w.Name, "Someone"), w.Duties, hoursWord(w.Minutes)))
 	}
 	for _, o := range people {
 		label := o.Name
@@ -404,12 +414,24 @@ func seatsOf(f competitions.ScheduledFlight, people []competitions.RotaPerson, n
 		}
 		if o, ok := byKey[d.Person]; ok {
 			seat.Name, seat.Club = o.Name, o.Club
+			if f.Event != "" && !o.Can(d.Role, f.Event) || f.Event == "" && !o.CanAny(d.Role) {
+				seat.Problem = "Can't take this seat"
+			}
 		} else if d.Person != "" {
-			seat.Name = names[d.Person]
+			seat.Name, seat.Problem = holderName(func(k string) string { return names[k] }, d), "Not an official any more"
 		}
 		out = append(out, seat)
 	}
 	return out
+}
+
+// holderName is who has a seat, as name names them, else as they were named
+// when given it (for someone gone from the officials).
+func holderName(name func(string) string, d competitions.Duty) string {
+	if n := name(d.Person); n != "" && n != "?" {
+		return n
+	}
+	return cmp.Or(d.Name, "?")
 }
 
 // seatRole is who fills a seat, for its role chip: a gymnast if they compete

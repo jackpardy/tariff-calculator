@@ -297,6 +297,24 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	if d.Access.Timetable && c.Timetable != nil && c.Timetable.Planned {
+		f, err := p.liveRota(r.Context(), c)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		for _, b := range c.Timetable.HolderBreaks(f.officials, f.names) {
+			d.SeatProblems = append(d.SeatProblems, b.Line)
+		}
+		d.SeatsHint = "Give the seat to someone else"
+		if len(d.SeatProblems) > 1 {
+			d.SeatsHint = "Give the seats to someone else"
+		}
+		if c.Published != nil {
+			d.SeatsHint += ", then publish again"
+		}
+		d.SeatsHint += "."
+	}
 	removed, err := p.st.RemovedEntries(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
