@@ -53,16 +53,21 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 }
 
 // calculator is the builder: Add a skill, full width, above the routine it
-// goes into (or two side by side); on a laptop or wider, choosing a skill and
-// the skill's card sit side by side in it, so it takes half the height.
+// goes into (or two side by side). Edit on a card changes the skill in the
+// card itself: the one skill form moves into it (placeEditor in app.js), and
+// comes back here after Update or Cancel.
 templ calculator(groups []requirements.BuiltinGroup) {
 	<div class="builder" x-data="tariffCalculatorStore()">
+		// Where the skill form waits while the routine it's in is redrawn.
+		<div id="editor-park" hidden></div>
 		// "Add a skill" panel: SkillFormView, loaded by the component.
 		<section class="builder-add" aria-labelledby="builder-add-title">
 			<div class="builder-head">
-				<h2 class="title is-5" id="builder-add-title" x-text="editingIndex === null ? 'Add a skill' : `Edit skill ${editingIndex + 1}` + (compareId ? ` of ${routineFor(editingSide)?.name}` : '')">Add a skill</h2>
+				<h2 class="title is-5" id="builder-add-title">Add a skill</h2>
 			</div>
-			<div id="skill-form-wrapper" hx-sync="this:replace">
+			// While a card is being changed, the form is in that card.
+			<p class="builder-add-waiting" x-show="editingIndex !== null" x-cloak x-text="changingWhere()"></p>
+			<div id="skill-form-wrapper" hx-sync="this:replace" x-on:keydown.escape="escapeEdit($event)">
 				<p class="has-text-grey">Loading the form...</p>
 			</div>
 		</section>

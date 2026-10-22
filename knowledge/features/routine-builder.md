@@ -44,8 +44,37 @@ notation and tariff. There are three ways to set it:
 
 The user can also give the skill an optional **custom name** (at most 60
 characters). It is shown alongside the official name, which is always derived
-by the server. A routine card's **Edit** button loads that skill back into the
-card for editing.
+by the server.
+
+## Changing a skill in its card
+
+A routine card's **Edit** opens that card to change the skill in place
+(2026-10-22): the one skill form moves out of Add a skill into the card,
+under its head, as wide as the card, loaded with the skill (`placeEditor` in
+`static/js/app.js`; `#editor-park` holds it while the routine is redrawn).
+In the card it's a **Change to another skill** search (a result goes on the
+card, keeping its label), **Build or adjust this skill** (open only for a
+skill without a name, as that's how it was made), the skill's card with its
+shapes and **Add a label**, and **Update** / **Cancel**; the picker's tabs are
+for adding and stay hidden. The card is marked while it's changed. Update
+saves it and puts the focus back on the card's Edit; Cancel, Escape in the
+form or Edit again leaves the skill as it was; Edit on another card moves the
+form there, the first left as it was. Enter in the search puts the focus on
+its first result, Enter again puts that on the card with the focus on
+Update, and a third Enter updates. While a card is being changed, Add a skill
+says so in one line ("Changing skill 7 in its card below: Update or Cancel
+there, then carry on adding.", with "of" the routine when there are two
+columns) and comes back as it was after. It works the same in either column
+side by side, in Levels mode and on a phone.
+
+Nothing moves under the finger: as Add a skill shrinks (and grows back), the
+card being changed is held where it is on the screen, the page scrolling by
+as much (`holdPlace`, `keepHeld`; the browser's scroll anchoring is off
+meanwhile). Where the page can't scroll that far, Add a skill keeps the room
+until the form comes back, or room is made under the builder and taken away
+once it's scrolled out of sight. Once open, a form that runs off the screen
+is brought up, once and gently (not with reduced motion), only as far as
+fits with the card's head still in sight.
 
 **How it's judged**, on the "Add a skill" card and in each routine card's
 details, opens a pop-up with the execution deductions that can apply to that

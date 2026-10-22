@@ -181,6 +181,13 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 /* Skills after an interruption (CoP §15.3) still show, but don't count. */
 .routine-skill.not-counted { opacity: 0.55; }
 .routine-skill-container.editing .routine-skill { box-shadow: inset 0 0 0 2px #485fc7; }
+/* A card being changed in place: the skill form under its head, as wide as
+   the card, in the editing blue's tint (placeEditor in app.js). */
+.routine-skill-container > #skill-form-wrapper { padding: 0.6rem 0.75rem 0.75rem; background: #f5f7ff; border-top: 1px solid #dfe4f7; border-bottom: 2px solid #485fc7; }
+.routine-skill-container > #skill-form-wrapper .picker { margin-bottom: 0.6rem; }
+.routine-skill-container > #skill-form-wrapper .skill-builder { margin-bottom: 0.6rem; background: #fff; }
+/* Add a skill's one line while the form is in a card. */
+.builder-add-waiting { color: #555; }
 .routine-skill-container.sortable-ghost .routine-skill { opacity: 0.4; }
 .routine-skill-container.sortable-chosen .routine-skill { cursor: grabbing; }
 .card-head { display: flex; align-items: center; gap: 0.5rem; }
@@ -529,6 +536,8 @@ details > summary.button::before, .routine-menu > summary::before { content: non
     /* While the builder is open, the card waits below it rather than covering it. */
     .skill-builder[open] ~ .skill-card { position: static; box-shadow: none; }
     #main-form:has(input:focus:not(#custom-name)) .skill-card { position: static; box-shadow: none; }
+    /* In a card changed in place, the card is in sight already: it stays put. */
+    .routine-skill-container .skill-card { position: static; box-shadow: none; }
     .builder-label { min-width: 100%; }
 }
 

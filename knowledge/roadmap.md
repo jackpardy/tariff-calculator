@@ -569,7 +569,8 @@ the scroll fade (with an arrow on tab rows) in place of grey bars, text at
 4.5:1, tap sizes on a phone, a real not-found page, print without the menu
 and buttons, chips without marks and a one-line Coach column with an
 asterisk for a coach not approved. The Routine Builder and Requirements pages
-follow on their own. Then (**built 2026-10-19**) no browser pop-ups: a
+follow on their own (built 2026-10-22, and a skill is now changed in its own
+card, [in place](features/routine-builder.md#changing-a-skill-in-its-card)). Then (**built 2026-10-19**) no browser pop-ups: a
 change asks on a page of its own when it does a lot at once, in a box on the
 same page when it's one thing that can't be put back, or is made with Undo;
 and [one wording for each state](architecture/ui.md#the-same-words) on every
