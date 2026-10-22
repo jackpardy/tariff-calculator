@@ -920,6 +920,11 @@ var migrations = []string{
 		id      TEXT NOT NULL,
 		PRIMARY KEY (copy_id, kind, id)
 	);`,
+
+	// 52: the rule of judging only levels below one's own is gone (judges
+	// offer each role up to a level of their own): competitions with it
+	// take the default, anyone as they offer.
+	`UPDATE competitions SET officials = json_remove(officials, '$.judge') WHERE json_extract(officials, '$.judge') = 'below';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

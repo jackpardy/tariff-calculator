@@ -160,7 +160,8 @@ calendar, "I'm here for the rest", the score sheets link) and these added:
   published their flight, place, rough times and check-in, as a chip (Here,
   Scratched or Not checked in).
 - **Officiating**: what they offered and who sent it, which events they may
-  judge under the judging rule (and can chair), whether they're marked
+  judge under the judging rule, with the roles there ("BUCS L7 (execution,
+  chair and HD)"), whether they're marked
   qualified where the rule asks, their seats (the published timetable's, or
   the draft's once planned) and whether they're here for their panels.
 - **Coaching**: the entries they coach, each gymnast linking to their page,
@@ -599,7 +600,7 @@ and no Bulma colour for a state (buttons keep theirs):
 | One entry | Checked; the video review | |
 | The comp sec's entries | not sent grey, sent or on a waiting list blue, changed since sent or on hold amber, checked green, withdrawn or removed red (sent again after a hold, blue); problems and missing video amber; the sign-off | the coach who signed off |
 | A member's or individual's disciplines, and their competitions list | the same states in a word or two; problems; timetable published; a message from the organisers | |
-| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | who fills a seat or offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
+| The rota (timetable) and Officials | a seat with no one; every seat filled; everything fits; a gymnast moved since | on the timetable a seat's name links to their page instead (2026-10-22: a chip on every seat crowded the panel); on Officials, who offered: a gymnast if they compete, else the organiser's own (added on the Officials page) or a club's judge (`seatRole`) |
 | A coach's entries | how many to sign off; problems; the sign-off, as on the comp sec's; can't sign off (not approved) | the coach who signed off |
 | My competition (and the organiser's page of a person) | each event Checked, N problems, or Sent; Scratched; check-in (Here, Not checked in) | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
@@ -802,9 +803,15 @@ a harder one), and qualified or not. The search and filters stay while the tab
 is open, so ticking someone qualified keeps the list as it was, back at their row with a notice saying so
 ([lists of people](../architecture/rendering.md#lists-of-people-search-and-filters)).
 
-- **Offers.** On their page, a member says what they can do at each
-  competition: judge a discipline (up to a level, perhaps chairing), and help
-  as a recorder or marshal. The comp sec can correct it, or add one for a
+- **Offers** ([ADR 0017](../../docs/adr/0017-judge-levels-by-role.md)). On
+  their page, a member says what they can do at each competition: judge a
+  discipline, and help as a recorder or marshal. Judging a discipline takes
+  its HD and synchronisation seats at any level; execution, difficulty and
+  chair are each **no**, **any level** or **up to** a level, so someone can
+  judge difficulty at a level they don't judge execution at (a new offer
+  starts as execution and difficulty at any level, not chairing). Offers
+  from before (one level and "can chair") read as HD only. The organiser's
+  **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
@@ -829,9 +836,12 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   with 2 synchronisation judges (the Code's §18.1 leaves synchronisation to
   a machine, which student competitions don't have), any of its judges able
   to take the seat; set 0 where a machine measures it.
-- **Who may judge what:** anyone up to the level they say (the default), only
-  levels below the one they compete at, or only people the organiser marks
-  qualified. Both go by the **order of levels**, easiest first: built-in
+- **Who may judge what:** anyone as they offer (the default), or only people
+  the organiser marks qualified (for every judging seat). The rule of judging
+  only levels below one's own is gone (migration 52 moved competitions with
+  it to the default); the organiser can write a **note to those offering**
+  instead (up to 500 characters, with the panels), shown above every offer
+  form. "Up to" goes by the **order of levels**, easiest first: built-in
   levels by their rank (BUCS lists its levels hardest first, so they're
   turned round), a coach's own levels after them, and tumbling and DMT's as
   typed. The organiser moves any level up or down on the Settings page;
@@ -851,9 +861,11 @@ A seat goes to someone free for the whole event. The organiser can let
 are then filled flight by flight.
 
 - **Never in two places:** no one officiates while competing, or on two
-  panels at once. Each seat goes only to someone who may take it: judges
-  under the judging rule and up to their level, chairs who said they can
-  chair, recorders and marshals who offered.
+  panels at once. Each seat goes only to someone who may take it: under the
+  judging rule, HD and synchronisation judges who judge the discipline,
+  execution and difficulty judges and chairs up to their level for that role,
+  recorders and marshals who offered. Judges who could take execution or
+  difficulty are kept for those seats over HD where there's a choice.
 - **As far as it can:** clubs share judging their own gymnasts fairly (each
   time costs a club more than the last), the work is spread, a panel stays
   together on its area from one event to the next, helpers who could judge
@@ -870,7 +882,14 @@ are then filled flight by flight.
   can't take), rules not kept, times each club judged its own, and the
   busiest officials.
 - **Manually:** give any seat to anyone who's offered, or empty it; the change
-  goes on the event's other flights the same person had that seat for.
+  goes on the event's other flights the same person had that seat for. The
+  dropdown lists first those who can take the seat chosen beside it (by role
+  and level: "Can take this seat"), then the rest ("Can't take this seat"),
+  to choose anyway (in the dropdown's search, a green ✓ or amber ✗ beside
+  each name, with "Can take" or "Can't" where the list is wide enough); the
+  ask then says why ("Ann can't take the execution
+  judge seat at FIG AG3: their offer: Judge Trampoline (execution up to BUCS
+  L3, and HD)", or "they aren't marked qualified").
   **Assign officials again** starts the rota afresh, keeping the flights;
   it asks first on a page of its own, as what was changed by hand is lost.
 - **Coaches** aren't checked (the owner's decision, 2026-10-19): the

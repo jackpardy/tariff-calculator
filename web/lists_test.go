@@ -46,7 +46,7 @@ func TestOfficialsListFilters(t *testing.T) {
 		t.Error("no search on an empty list")
 	}
 	redirected(t, h, officials+"/add", url.Values{"name": {"Seán Ó Briain"}, "club": {"UCD"},
-		"judge-trampoline": {"1"}, "upto-trampoline": {"BUCS L3"}, "chair-trampoline": {"1"}, "judge-tumbling": {"1"}})
+		"judge-trampoline": {"1"}, "execution-trampoline": {"BUCS L3"}, "difficulty-trampoline": {"BUCS L3"}, "chair-trampoline": {"BUCS L3"}, "judge-tumbling": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann O'Neill / Jr?"}, "recorder": {"1"}, "marshal": {"1"}})
 	page := do(t, h, http.MethodGet, officials, nil).Body.String()
 

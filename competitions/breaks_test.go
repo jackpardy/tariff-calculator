@@ -68,7 +68,7 @@ func TestWhatIfsKeepTheRules(t *testing.T) {
 	}
 
 	judge := func(key string) RotaPerson {
-		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L1": true}}
+		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L1": true}, Execution: map[string]bool{"L1": true}, Difficulty: map[string]bool{"L1": true}}
 	}
 	officials := []RotaPerson{judge("gone"), judge("meeting"), judge("tired"), judge("free")}
 	s.Setup.Rest, s.Setup.RestMust = 30, true
@@ -120,7 +120,7 @@ func TestBreakLinesOrder(t *testing.T) {
 // whoever's first by name.
 func TestFreeForSeatOrder(t *testing.T) {
 	judge := func(key string) RotaPerson {
-		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L": true}, Chair: map[string]bool{"L": true}}
+		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L": true}, Execution: map[string]bool{"L": true}, Difficulty: map[string]bool{"L": true}, Chair: map[string]bool{"L": true}}
 	}
 	officials := []RotaPerson{judge("ann"), judge("bob"), judge("cat"), judge("dan"), judge("eve")}
 	flight := func(day, start int, duties ...Duty) ScheduledFlight {

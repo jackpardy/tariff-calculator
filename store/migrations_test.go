@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"tariffCalculator/competitions"
 )
 
 // A database migrated further than the app knows isn't opened, so an older
@@ -273,5 +275,32 @@ func TestMessagesAboutSeveralMigrate(t *testing.T) {
 	}
 	if msg.ID != "m1" || msg.EntryID != "" || !slices.Equal(msg.Entries, []string{"e1"}) || msg.Acknowledged() || len(msg.Thread) != 0 {
 		t.Errorf("the message's entry moves into its list: %+v", msg)
+	}
+}
+
+// Migration 52 moves competitions off the rule of judging only levels below
+// one's own, now gone, to the default; other settings stay.
+func TestJudgeBelowMigrates(t *testing.T) {
+	all := migrations
+	t.Cleanup(func() { migrations = all })
+	migrations = all[:52-1]
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	must(t, err)
+	below, _, err := s.CreateCompetition(ctx, competition())
+	must(t, err)
+	qualified, _, err := s.CreateCompetition(ctx, competition())
+	must(t, err)
+	_, err = s.db.ExecContext(ctx, `UPDATE competitions SET officials = $1 WHERE id = $2`, `{"judge":"below","recorders_change":true}`, below.ID)
+	must(t, err)
+	_, err = s.db.ExecContext(ctx, `UPDATE competitions SET officials = $1 WHERE id = $2`, `{"judge":"qualified"}`, qualified.ID)
+	must(t, err)
+	migrations = all
+	s = reopen(t, s, dir)
+	if got, _ := s.Competition(ctx, below.ID); got.Officials.Judge != competitions.JudgeDeclared || !got.Officials.RecordersChange {
+		t.Errorf("below becomes the default, keeping the rest: %+v", got.Officials)
+	}
+	if got, _ := s.Competition(ctx, qualified.ID); got.Officials.Judge != competitions.JudgeQualified {
+		t.Errorf("qualified stays: %+v", got.Officials)
 	}
 }

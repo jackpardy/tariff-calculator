@@ -124,7 +124,7 @@ func TestDeskSendsInTheBackground(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	aClub(t, h, admin, "UCD", true, "Ann")
 	desk := admin + "/desk"
-	clubID := regexp.MustCompile(`<option value="([^"]+)">UCD</option>`).FindStringSubmatch(do(t, h, http.MethodGet, desk, nil).Body.String())[1]
+	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(do(t, h, http.MethodGet, desk, nil).Body.String())[1]
 	c, err := s.st.CompetitionByAdmin(context.Background(), strings.TrimPrefix(admin, "/competitions/admin/"))
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +198,7 @@ func TestChangesSentInTheBackground(t *testing.T) {
 		names = append(names, fmt.Sprintf("Gymnast %d", i))
 	}
 	aClub(t, h, admin, "UCD", true, names...)
-	clubID := regexp.MustCompile(`<option value="([^"]+)">UCD</option>`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/desk", nil).Body.String())[1]
+	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/desk", nil).Body.String())[1]
 	c, err := s.st.CompetitionByAdmin(context.Background(), strings.TrimPrefix(admin, "/competitions/admin/"))
 	if err != nil {
 		t.Fatal(err)
@@ -283,7 +283,7 @@ func TestSendStop(t *testing.T) {
 	send = s.p.notify.send
 	admin := created(t, s.h, newCompetition())
 	aClub(t, s.h, admin, "UCD", true, "Ann")
-	clubID := regexp.MustCompile(`<option value="([^"]+)">UCD</option>`).FindStringSubmatch(do(t, s.h, http.MethodGet, admin+"/desk", nil).Body.String())[1]
+	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(do(t, s.h, http.MethodGet, admin+"/desk", nil).Body.String())[1]
 	c, _ := s.st.CompetitionByAdmin(context.Background(), strings.TrimPrefix(admin, "/competitions/admin/"))
 	subscribe(t, s.st, c.ID, clubID, store.ByEmail, []string{"a@example.com", "b@example.com", "c@example.com", "d@example.com", "e@example.com", "f@example.com"})
 	redirected(t, routesWithPages(s.p), admin+"/desk", url.Values{"to": {"club"}, "club": {clubID}, "text": {"Hello"}})

@@ -40,17 +40,11 @@ func TestLevelOrder(t *testing.T) {
 	// Judging goes by the order: up to L5 is L7, L6 and L5.
 	c := competition(t)
 	c.Levels = OrderLevels(nil, []Level{ref("bucs-l1"), ref("bucs-l5"), ref("bucs-l6"), ref("bucs-l7")})
-	upToL5 := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: "BUCS L5"}}}
+	upToL5 := Offer{Judge: map[string]JudgeOffer{Trampoline: {UpTo: map[string]string{RoleExecution: "BUCS L5"}}}}
 	for level, can := range map[string]bool{"BUCS L7": true, "BUCS L6": true, "BUCS L5": true, "BUCS L1": false} {
-		if c.CanJudge(upToL5, false, nil, Trampoline, level) != can {
+		if c.CanJudge(upToL5, false, Trampoline, level, RoleExecution) != can {
 			t.Errorf("up to BUCS L5 judging %s: want %v", level, can)
 		}
-	}
-	c.Officials.Judge = JudgeBelow
-	any := Offer{Judge: map[string]JudgeOffer{Trampoline: {}}}
-	competing := map[string]string{Trampoline: "BUCS L5"}
-	if !c.CanJudge(any, false, competing, Trampoline, "BUCS L6") || c.CanJudge(any, false, competing, Trampoline, "BUCS L1") {
-		t.Error("only levels below their own are the easier ones")
 	}
 
 	// The organiser moves a level.

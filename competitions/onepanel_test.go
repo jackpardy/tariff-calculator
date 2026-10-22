@@ -26,7 +26,7 @@ func onePanelSchedule() (Schedule, []SchedEntry, []RotaPerson) {
 		{PlanEntry: PlanEntry{ID: "z", Level: "L3"}, People: []string{"h2"}},
 	}
 	judge := func(key string, chair bool) RotaPerson {
-		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L1": true}, Chair: map[string]bool{"L1": chair}}
+		return RotaPerson{Key: key, Name: key, Judge: map[string]bool{"L1": true}, Execution: map[string]bool{"L1": true}, Difficulty: map[string]bool{"L1": true}, Chair: map[string]bool{"L1": chair}}
 	}
 	helper := func(key string) RotaPerson { return RotaPerson{Key: key, Name: key, Recorder: true} }
 	return s, entries, []RotaPerson{judge("ch", true), judge("ch2", true), judge("j1", false), judge("j2", false), judge("j3", false), helper("h1"), helper("h2")}

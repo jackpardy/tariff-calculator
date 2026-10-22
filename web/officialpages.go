@@ -36,21 +36,41 @@ func offerKey(d string) string {
 	return d
 }
 
-// offerForm is an offer as the form shows it, for the competition's disciplines.
+// offerForm is an offer as the form shows it, for the competition's
+// disciplines, with the organiser's note to those offering.
 func offerForm(c competitions.Competition, o competitions.Offer, action string) views.OfferForm {
-	f := views.OfferForm{Action: action, Recorder: o.Recorder, Marshal: o.Marshal, Summary: o.Describe()}
+	f := views.OfferForm{Action: action, Recorder: o.Recorder, Marshal: o.Marshal, Summary: o.Describe(), Organiser: c.Officials.Note}
 	for _, d := range c.Disciplines() {
 		j, judges := o.Judge[d]
-		f.Disciplines = append(f.Disciplines, views.OfferDiscipline{
-			Key: offerKey(d), Name: competitions.DisciplineName(d), Levels: c.LevelNames(d),
-			Judge: judges, UpTo: j.UpTo, Chair: j.Chair,
-		})
+		var measured []string
+		for _, role := range competitions.Measured(d) {
+			measured = append(measured, competitions.JudgingWord(role))
+		}
+		od := views.OfferDiscipline{Key: offerKey(d), Name: competitions.DisciplineName(d), Levels: c.LevelNames(d), Judge: judges, Measured: competitions.JoinList(measured)}
+		for _, role := range competitions.LevelRoles {
+			upTo, on := j.UpTo[role]
+			if !judges {
+				// Unticked, the form starts as most offer: execution and
+				// difficulty at any level, not chairing.
+				on = role != competitions.RoleChair
+			}
+			od.Roles = append(od.Roles, views.OfferRole{Key: role, Name: offerRoleName(role), On: on, UpTo: upTo})
+		}
+		f.Disciplines = append(f.Disciplines, od)
 	}
 	return f
 }
 
-// postedOffer reads an offer: for each discipline, judge-<key>, upto-<key> and
-// chair-<key>; and recorder and marshal.
+// offerRoleName is a role as the offer form names it.
+func offerRoleName(role string) string {
+	name := competitions.JudgingWord(role)
+	return strings.ToUpper(name[:1]) + name[1:]
+}
+
+// postedOffer reads an offer: for each discipline, judge-<key>, and for each
+// of competitions.LevelRoles <role>-<key>, the highest level ("" for any,
+// "no" for not at all); and recorder and marshal. A role left out is taken
+// as the form starts: execution and difficulty at any level, not chairing.
 func postedOffer(r *http.Request, c competitions.Competition) competitions.Offer {
 	o := competitions.Offer{Recorder: r.FormValue("recorder") == "1", Marshal: r.FormValue("marshal") == "1"}
 	for _, d := range c.Disciplines() {
@@ -61,7 +81,19 @@ func postedOffer(r *http.Request, c competitions.Competition) competitions.Offer
 		if o.Judge == nil {
 			o.Judge = map[string]competitions.JudgeOffer{}
 		}
-		o.Judge[d] = competitions.JudgeOffer{UpTo: r.FormValue("upto-" + key), Chair: r.FormValue("chair-"+key) == "1"}
+		j := competitions.JudgeOffer{UpTo: map[string]string{}}
+		for _, role := range competitions.LevelRoles {
+			name := role + "-" + key
+			switch v := strings.TrimSpace(r.FormValue(name)); {
+			case !r.Form.Has(name):
+				if role != competitions.RoleChair {
+					j.UpTo[role] = ""
+				}
+			case v != "no":
+				j.UpTo[role] = v
+			}
+		}
+		o.Judge[d] = j
 	}
 	return o
 }
@@ -196,7 +228,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 	}
 	page := views.OfficialsPage{
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuOfficials), Notice: r.URL.Query().Get("notice"),
-		Judge: c.Officials.Judge, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
+		Judge: c.Officials.Judge, Note: c.Officials.Note, RecordersChange: c.Officials.RecordersChange, MarshalsChange: c.Officials.MarshalsChange, Add: offerForm(c.Competition, competitions.Offer{}, ""),
 	}
 	for _, d := range c.Disciplines() {
 		panel := c.Officials.Panel(d)
@@ -212,7 +244,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			cover.Judges++
-			if j.Chair {
+			if j.Takes(competitions.RoleChair) {
 				cover.Chairs++
 			}
 		}
@@ -270,13 +302,13 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 }
 
 // officialSettings saves each discipline's panel (panel-<key>-<role>) and who
-// may judge what (judge).
+// may judge what (judge), and the note to those offering (note).
 func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
 		return
 	}
-	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Panels: map[string]competitions.Panel{}, RecordersChange: r.FormValue("recordersChange") == "1", MarshalsChange: r.FormValue("marshalsChange") == "1"}
+	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Note: strings.TrimSpace(r.FormValue("note")), Panels: map[string]competitions.Panel{}, RecordersChange: r.FormValue("recordersChange") == "1", MarshalsChange: r.FormValue("marshalsChange") == "1"}
 	for _, d := range c.Disciplines() {
 		n := func(role string) int {
 			v, err := strconv.Atoi(strings.TrimSpace(r.FormValue("panel-" + offerKey(d) + "-" + role)))

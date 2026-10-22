@@ -14,6 +14,7 @@ type OfferForm struct {
 	Marshal     bool
 	Summary     string // what they offer now, "" for nothing
 	Note        string // e.g. that an individual's offer is the same on each of their entries
+	Organiser   string // the organiser's note to those offering, "" for none
 	Problems    []string
 	Judging     *JudgingBox // their judging qualifications, with adding them; nil where there's nowhere to keep them
 }
@@ -39,40 +40,38 @@ type JudgingRow struct {
 	Name, Certificate, Remove string
 }
 
-// OfferDiscipline is judging one discipline: whether, up to which level, and
-// whether they can chair.
+// OfferDiscipline is judging one discipline: whether, what it measures at
+// any level (HD, synchronisation), and how far they take each other role.
 type OfferDiscipline struct {
-	Key    string // the form's name for it
-	Name   string
-	Levels []string
-	Judge  bool
-	UpTo   string
-	Chair  bool
+	Key      string // the form's name for it
+	Name     string
+	Levels   []string
+	Judge    bool
+	Measured string // e.g. "HD and synchronisation": any of its judges, at any level; "" for none
+	Roles    []OfferRole
+}
+
+// OfferRole is a judging role taken up to a level: execution, difficulty or
+// chair.
+type OfferRole struct {
+	Key   string // the form's name for it, before the discipline's
+	Name  string // e.g. "Execution"
+	On    bool   // they take it
+	UpTo  string // the highest level, "" for any
 }
 
 // offerForm asks what someone can judge and help with.
 templ offerForm(f OfferForm) {
 	@problemList(f.Problems)
+	if f.Organiser != "" {
+		<div class="notification is-light comp-organiser-note mb-3">
+			<p class="is-size-7 has-text-weight-semibold mb-1">From the organiser</p>
+			<p class="comp-wrap">{ f.Organiser }</p>
+		</div>
+	}
 	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-offer">
 		for _, d := range f.Disciplines {
-			<div class="field comp-offer-row">
-				<label class="checkbox">
-					<input type="checkbox" name={ "judge-" + d.Key } value="1" checked?={ d.Judge }/>
-					Judge { d.Name }
-				</label>
-				<div class="select is-small">
-					<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
-						<option value="" selected?={ d.UpTo == "" }>any level</option>
-						for _, l := range d.Levels {
-							<option value={ l } selected?={ d.UpTo == l }>up to { l }</option>
-						}
-					</select>
-				</div>
-				<label class="checkbox is-size-7">
-					<input type="checkbox" name={ "chair-" + d.Key } value="1" checked?={ d.Chair }/>
-					can chair
-				</label>
-			</div>
+			@offerDisciplineRow(d)
 		}
 		<div class="field">
 			<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1" checked?={ f.Recorder }/> Recorder</label>
@@ -89,6 +88,36 @@ templ offerForm(f OfferForm) {
 	if f.Judging != nil {
 		@judgingBox(*f.Judging)
 	}
+}
+
+// offerDisciplineRow is judging one discipline in an offer: whether, and the
+// highest level for each role taken up to a level.
+templ offerDisciplineRow(d OfferDiscipline) {
+	<fieldset class="field comp-offer-row">
+		<label class="checkbox">
+			<input type="checkbox" name={ "judge-" + d.Key } value="1" checked?={ d.Judge }/>
+			Judge { d.Name }
+		</label>
+		if d.Measured != "" {
+			<span class="is-size-7 has-text-grey">{ d.Measured } at any level, and:</span>
+		}
+		<span class="comp-offer-roles">
+			for _, role := range d.Roles {
+				<label class="comp-offer-role is-size-7">
+					<span class="comp-offer-role-name">{ role.Name }</span>
+					<span class="select is-small">
+						<select name={ role.Key + "-" + d.Key } aria-label={ d.Name + " " + strings.ToLower(role.Name) }>
+							<option value="no" selected?={ !role.On }>no</option>
+							<option value="" selected?={ role.On && role.UpTo == "" }>any level</option>
+							for _, l := range d.Levels {
+								<option value={ l } selected?={ role.On && role.UpTo == l }>up to { l }</option>
+							}
+						</select>
+					</span>
+				</label>
+			}
+		</span>
+	</fieldset>
 }
 
 // judgingID is a judging box's id: "judging", or its own where there are several.
@@ -181,6 +210,7 @@ type OfficialsPage struct {
 	Menu            []MenuSection
 	Notice          string
 	Judge           string // the judging rule
+	Note            string // the organiser's note to those offering
 	RecordersChange bool   // recorders can change between an event's flights
 	MarshalsChange  bool   // marshals can too
 	Panels          []PanelSetting
@@ -278,10 +308,15 @@ templ CompetitionOfficials(p OfficialsPage) {
 				<label class="checkbox comp-option mb-3"><input type="checkbox" name="marshalsChange" value="1" checked?={ p.MarshalsChange }/> Marshals can change between an event's flights</label>
 				<fieldset class="field">
 					<legend class="label is-small">Who may judge what</legend>
-					<label class="radio comp-option"><input type="radio" name="judge" value="" checked?={ p.Judge == "" }/> Anyone, up to the level they say</label>
-					<label class="radio comp-option"><input type="radio" name="judge" value="below" checked?={ p.Judge == "below" }/> Only levels below the one they compete at</label>
-					<label class="radio comp-option"><input type="radio" name="judge" value="qualified" checked?={ p.Judge == "qualified" }/> Only people I mark qualified</label>
+					<label class="radio comp-option"><input type="radio" name="judge" value="" checked?={ p.Judge != "qualified" }/> Anyone, as they offer</label>
+					<label class="radio comp-option"><input type="radio" name="judge" value="qualified" checked?={ p.Judge == "qualified" }/> Only people I mark qualified, as they offer</label>
+					<p class="help">Judges offer HD and synchronisation at any level, and execution, difficulty and chairing each up to a level they choose.</p>
 				</fieldset>
+				<div class="field">
+					<label class="label is-small" for="officials-note">A note to those offering</label>
+					<textarea class="textarea is-small" id="officials-note" name="note" rows="2" maxlength="500" placeholder="e.g. We're short of difficulty judges for the top levels. Please don't offer to judge your own level.">{ p.Note }</textarea>
+					<p class="help">Shown above the form where people say what they'll judge and help with.</p>
+				</div>
 				<button class="button is-small" type="submit">Save</button>
 			</form>
 		}
@@ -354,18 +389,7 @@ templ addOfficial(p OfficialsPage) {
 				<input class="input is-small mt-1" name="club" maxlength="80" placeholder="Club (leave blank if none)" aria-label="Club"/>
 			</div>
 			for _, d := range p.Add.Disciplines {
-				<div class="field comp-offer-row">
-					<label class="checkbox"><input type="checkbox" name={ "judge-" + d.Key } value="1"/> Judge { d.Name }</label>
-					<div class="select is-small">
-						<select name={ "upto-" + d.Key } aria-label={ "Highest " + d.Name + " level to judge" }>
-							<option value="">any level</option>
-							for _, l := range d.Levels {
-								<option value={ l }>up to { l }</option>
-							}
-						</select>
-					</div>
-					<label class="checkbox is-size-7"><input type="checkbox" name={ "chair-" + d.Key } value="1"/> can chair</label>
-				</div>
+				@offerDisciplineRow(d)
 			}
 			<div class="field">
 				<label class="checkbox mr-4"><input type="checkbox" name="recorder" value="1"/> Recorder</label>
@@ -400,12 +424,13 @@ func panelsNow(p OfficialsPage) string {
 		}
 		seats = append(seats, fmt.Sprintf("%s %d", s.Name, n))
 	}
-	who := "anyone, up to the level they say"
-	switch p.Judge {
-	case "below":
-		who = "only levels below the one they compete at"
-	case "qualified":
+	who := "anyone, as they offer"
+	if p.Judge == "qualified" {
 		who = "only people you mark qualified"
 	}
-	return "seats on a panel: " + strings.Join(seats, ", ") + "; who may judge: " + who
+	out := "seats on a panel: " + strings.Join(seats, ", ") + "; who may judge: " + who
+	if p.Note != "" {
+		out += "; with a note to those offering"
+	}
+	return out
 }

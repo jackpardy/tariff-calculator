@@ -15,8 +15,8 @@ func TestLeavePage(t *testing.T) {
 	officials := admin + "/officials"
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"1"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"1"}, "panel-trampoline-marshal": {"0"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Rory"}, "recorder": {"1"}, "judge-trampoline": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "recorder": {"1"}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Bea"}, "recorder": {"1"}})
@@ -40,7 +40,7 @@ func TestLeavePage(t *testing.T) {
 	if seats == nil {
 		t.Fatal("no chair on the timetable")
 	}
-	chair := regexp.MustCompile(`<option value="([^"]+)">` + seats[1] + `</option>`).FindStringSubmatch(form)
+	chair := regexp.MustCompile(`<option value="([^"]+)"[^>]*>` + seats[1] + `</option>`).FindStringSubmatch(form)
 	if chair == nil {
 		t.Fatalf("%s isn't among those who can leave", seats[1])
 	}

@@ -13,7 +13,7 @@ func TestSimulation(t *testing.T) {
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
 	admin := created(t, h, form)
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}, "judge-tumbling": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}, "judge-tumbling": {"1"}})
 	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Rory"}, "recorder": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	eve := redirected(t, h, enter, bucsEntry("Eve"))
@@ -156,7 +156,7 @@ func TestSimulationKeepsTheLatest(t *testing.T) {
 func TestSimulationAsEntered(t *testing.T) {
 	h := competitionServer(t)
 	admin := created(t, h, newCompetition())
-	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, admin+"/officials/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	for _, name := range []string{"Ann", "Bea", "Cal", "Dan", "Eve", "Fay", "Gus"} {
 		redirected(t, h, enter, bucsEntry(name))

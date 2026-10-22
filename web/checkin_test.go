@@ -160,9 +160,9 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 	redirected(t, h, officials+"/settings", url.Values{
 		"panel-trampoline-chair": {"1"}, "panel-trampoline-execution": {"2"}, "panel-trampoline-difficulty": {"0"}, "panel-trampoline-recorder": {"0"}, "panel-trampoline-marshal": {"0"},
 		"panel-tumbling-chair": {"1"}, "panel-tumbling-execution": {"1"}, "panel-tumbling-difficulty": {"0"}, "panel-tumbling-recorder": {"0"}, "panel-tumbling-marshal": {"0"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Mary"}, "judge-trampoline": {"1"}, "chair-trampoline": {""}})
 	redirected(t, h, officials+"/add", url.Values{"name": {"Tom"}, "judge-trampoline": {"1"}})
-	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {"1"}})
+	redirected(t, h, officials+"/add", url.Values{"name": {"Ann"}, "judge-tumbling": {"1"}, "chair-tumbling": {""}})
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, bucsEntry("Eve"))
 	// Dara competes in tumbling and judges trampoline: tumbling goes first
@@ -179,7 +179,7 @@ func scratchSetupOn(t *testing.T, h http.Handler, timings url.Values) (admin, tt
 		redirected(t, h, tt+"/setup/timings", timings)
 	}
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
-	if !strings.Contains(page, "Execution judge: Dara") {
+	if !regexp.MustCompile(`Execution judge:\s*<a href="[^"]+">Dara</a>`).MatchString(page) {
 		t.Fatalf("Dara has a seat to be scratched from: %s", page)
 	}
 	redirected(t, h, tt+"/publish", url.Values{"action": {"publish"}})
