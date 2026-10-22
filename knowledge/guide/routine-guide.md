@@ -77,7 +77,9 @@ Your routine is in the **Routine Builder**, below the skill box. Make sure
 - **Warnings** show on the card (⚠️) and under the total. They cover repeated
   skills, a take-off that doesn't match the last landing ("Bad Transition"), a
   straight jump or impossible landing that interrupts the routine, a tenth skill
-  that doesn't land on feet, and more than ten skills.
+  that doesn't land on feet, and more than ten skills. Straight jumps before
+  the first other skill are preparation jumps: the routine starts after
+  them, so they don't interrupt it.
 
 **More than one routine.** The menu at the top lists your routines with their
 number of skills.
@@ -257,6 +259,13 @@ someone else can **Import** (a level's file brings the requirements it uses).
 Everything is saved only in this browser on this device. Clearing the
 browser's data, or using a private window, loses it. To keep a copy or move to
 another phone, share your routines and requirements to yourself by link, or
-export your requirements.
+export your requirements. A club member can keep routines on their club
+page (**More → Save to my page**), and members, coaches and gymnasts entering
+on their own can keep requirements on their page (**Save to my page** on the
+requirements page): they then open on any phone (see the [competitions
+guide](competition-guide.md#keep-your-routines-on-your-page)).
 
 If a bar says **The app has been updated**, tap **Refresh**.
+
+Something confusing, wrong or missing? The **Feedback** tab at the right edge
+of the screen sends it to the people who make the app.

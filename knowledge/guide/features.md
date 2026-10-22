@@ -87,6 +87,8 @@ generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
 # Competitions and clubs
 
 At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
+To try it first, the [sandbox](https://sandbox.tariff.pardy.ie/sandbox) is a
+copy full of made-up clubs and gymnasts, with a link for each role.
 
 - **Collect every card before the day.** Organisers create a competition, and
   every entry arrives already checked against its level, with its problems
@@ -128,9 +130,11 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   timetable team, a venue screen or a co-organiser a link of their own; every
   change is listed in a history, and anyone with a link can flag a concern.
 - **Tell the organiser**: members, coaches, comp secs and gymnasts send the
-  organiser a message from their pages, named, and about one of their
-  entries if they choose; it joins the concerns on the organiser's page,
-  and the organiser can turn it off.
+  organiser a message from their pages, named, and about any of their
+  entries or whole events if they choose; it joins the concerns on the
+  organiser's page. The organiser marks it received, replies and resolves
+  it, the sender sees each and can add to it, and the organiser can turn
+  messages off.
 - **Feedback**: a tab at the edge of every page, for anyone to tell the
   people who make the app what confused them, with a picture of the screen
   and a copy of the page while it's being tried out.
@@ -151,7 +155,20 @@ At <https://tariff.pardy.ie/competitions> (not linked from the calculator yet).
   marked with when they were last loaded.
 - **Video proof by link**, for chosen skills or whole routines: never uploaded.
 - **Coach sign-off**: clubs add their coaches, and each coach signs off their
-  members' routines on their own page.
+  members' routines on their own page. An organiser can accept only approved
+  coaches: clubs send their coaches' qualifications and certificates, and
+  the organiser approves each.
+- **Judges' qualifications**: members add theirs, with a certificate, and the
+  organiser sees them with their offer to judge.
+- **Skills and club levels**: members mark the skills they're learning and
+  can do, coaches mark them too and confirm, and a club writes its own
+  levels and skills to track, and shares levels with other clubs.
+- **Routines and requirements on your page**: keep them on your club or
+  own page, so they open on any phone and your coach sees them, with notes.
+- **What if**: see what a delay or an official leaving does to the rest of
+  the day, and **Simulate** numbers before the entries come in.
+- **People**: everyone at the competition in one list, each person once,
+  with all they're doing.
 - **No accounts**: everyone gets a private link, saved in their browser.
 - **One link for all your roles**: a member who coaches, a comp sec, a
   gymnast entering on their own: add your other links to your page and one
