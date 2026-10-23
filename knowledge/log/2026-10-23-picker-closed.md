@@ -1,1 +1,0 @@
-* **Update**: The Routine Builder's [skill categories](domain/skill-catalog.md#the-picker) (Jumps, Body landings, Singles, Doubles, Triples) start closed: a category's button opens its skills, and pressing it again closes it.

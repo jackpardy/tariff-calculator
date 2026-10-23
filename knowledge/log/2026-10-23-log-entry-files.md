@@ -1,1 +1,0 @@
-* **Update**: [The log's new lines](log/README.md) are files of their own, one per change, in `knowledge/log/`, moved into this page under their dates after they merge (the **Update log** workflow, `scripts/log-entries.py`), so two pull requests no longer conflict over it. CI checks the files on every pull request.
