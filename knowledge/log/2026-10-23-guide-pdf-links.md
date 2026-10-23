@@ -1,0 +1,1 @@
+* **Update**: The guides' PDFs link to each other's PDFs (routine-guide.pdf, competition-guide.pdf), not to pages on GitHub, and don't say they're also a PDF; the [features](guide/features.md) list is a PDF too, and pages with no PDF aren't linked in them (`scripts/guide-pdfs.py`).

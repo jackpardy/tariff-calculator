@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Build the guides' PDFs: knowledge/guide/<name>.pdf from <name>.md, for the
-routine builder guide and the competitions guide.
+routine builder guide, the competitions guide and the features list.
 
-Renders the Markdown to HTML (front matter dropped, links to other bundle pages
-pointed at GitHub) and prints it to A4 with headless Chrome or Chromium.
+Renders the Markdown to HTML and prints it to A4 with headless Chrome or
+Chromium. For the PDF: the front matter goes; so does "This guide is also a
+PDF" (it is one); a link to another of these points at its PDF beside it
+(competition-guide.pdf); and a link to any other page of the bundle, which
+has no PDF, is plain text, or dropped where it's only an aside in brackets.
 
-    pip install markdown
+    pip install markdown pypdf
     CHROME=/path/to/chrome python3 scripts/guide-pdfs.py
 
 Run it again whenever a guide changes, and commit the PDFs with it.
@@ -20,11 +23,12 @@ import tempfile
 from pathlib import Path
 
 import markdown
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, TextStringObject
 
 ROOT = Path(__file__).resolve().parent.parent
 GUIDE = ROOT / "knowledge/guide"
-GUIDES = ["routine-guide", "competition-guide"]
-BLOB = "https://github.com/jackpardy/tariff-calculator/blob/master/knowledge/guide/"
+GUIDES = ["routine-guide", "competition-guide", "features"]
 
 STYLE = """
 @page { size: A4; margin: 18mm 16mm; }
@@ -63,13 +67,34 @@ def four_space_lists(body):
     return "\n".join(lines)
 
 
+def for_pdf(body):
+    """The Markdown as the PDF has it: no "This guide is also a PDF", links to
+    the other guides at their PDFs, and other bundle pages not linked."""
+    body = re.sub(r"This (?:guide|list) is also a\s+\[PDF\]\([^)]*\)\.[ \t]*\n?", "", body)
+
+    def link(m):
+        text, target = m.group(1), m.group(2)
+        page = target.split("#")[0]
+        if page.endswith(".md") and "/" not in page and page[:-3] in GUIDES:
+            return f"[{text}]({page[:-3]}.pdf)"  # a PDF can't open another at a heading
+        if page.endswith(".pdf") and "/" not in page:
+            return m.group(0)
+        return text
+    # An aside in brackets that's only a link to a bundle page ("([tariff](../domain/tariff.md))") goes.
+    def aside(m):
+        page = m.group(1).split("#")[0]
+        guide = page.endswith(".md") and "/" not in page and page[:-3] in GUIDES
+        return m.group(0) if guide else ""
+    body = re.sub(r"\s*\(\[[^\]]+\]\((?!https?:|#)([^)]+)\)\)", aside, body)
+    return re.sub(r"\[([^\]]+)\]\((?!https?:|#|mailto:)([^)]+)\)", link, body)
+
+
 def build(name):
     source, output = GUIDE / f"{name}.md", GUIDE / f"{name}.pdf"
     text = source.read_text()
     front, body = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S).groups()
     title = re.search(r"^title: (.*)$", front, re.M).group(1)
-    # Other bundle pages ("features.md", "../domain/tariff.md") open on GitHub.
-    body = re.sub(r"\]\((?!https?:|#)([^)#]+\.(?:md|pdf))(#[^)]*)?\)", lambda m: f"]({BLOB}{m.group(1)}{m.group(2) or ''})", body)
+    body = for_pdf(body)
     html = markdown.markdown(four_space_lists(body), extensions=["toc", "sane_lists"])
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title>
 <style>{STYLE}</style></head><body>
@@ -80,7 +105,24 @@ def build(name):
         src.write_text(page)
         subprocess.run([chrome(), "--headless", "--no-sandbox", "--disable-gpu", "--no-pdf-header-footer",
                         f"--print-to-pdf={output}", src.as_uri()], check=True, capture_output=True)
+    relative_links(output)
     print(f"wrote {output.relative_to(ROOT)}")
+
+
+def relative_links(pdf):
+    """Chrome makes a link to another guide's PDF absolute, to the temporary
+    folder it printed from: put it back to the file's name, so it opens the
+    PDF beside this one wherever the guides are kept together."""
+    reader = PdfReader(pdf)
+    writer = PdfWriter(clone_from=reader)
+    for page in writer.pages:
+        for annot in page.get("/Annots") or []:
+            action = annot.get_object().get("/A")
+            uri = action and action.get("/URI")
+            if uri and uri.startswith("file://") and Path(uri).name in {f"{g}.pdf" for g in GUIDES}:
+                action[NameObject("/URI")] = TextStringObject(Path(uri).name)
+    with open(pdf, "wb") as f:
+        writer.write(f)
 
 
 def main():

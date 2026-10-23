@@ -7,6 +7,8 @@ tags: [guide, features, users]
 generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
 ---
 
+This list is also a [PDF](features.pdf).
+
 # Work out difficulty
 
 - **Tariff for any skill** under the FIG Code of Points 2025–2028, from a tuck
