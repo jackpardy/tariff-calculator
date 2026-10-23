@@ -52,16 +52,26 @@ A routine card's **Edit** opens that card to change the skill in place
 (2026-10-22): the one skill form moves out of Add a skill into the card,
 under its head, as wide as the card, loaded with the skill (`placeEditor` in
 `static/js/app.js`; `#editor-park` holds it while the routine is redrawn).
-In the card it's a **Change to another skill** search (a result goes on the
-card, keeping its label), **Build or adjust this skill** (open only for a
-skill without a name, as that's how it was made), the skill's card with its
-shapes and **Add a label**, and **Update** / **Cancel**; the picker's tabs are
-for adding and stay hidden. The card is marked while it's changed. Update
-saves it and puts the focus back on the card's Edit; Cancel, Escape in the
-form or Edit again leaves the skill as it was; Edit on another card moves the
-form there, the first left as it was. Enter in the search puts the focus on
-its first result, Enter again puts that on the card with the focus on
-Update, and a third Enter updates. While a card is being changed, Add a skill
+The card's own head shows the skill as it will be, live (2026-10-23, the
+owner's ask): its number, the new name (or label, with the name after it),
+notation and tariff, read off the form as the server last drew it
+(`readDraft`), tinted, with "not saved" once it differs from the saved
+skill; **Update** and **Cancel** sit on the head in place of ↑, ↓, Edit and
+✕ (the two versions of the head swap by the card's `drafting` class, so they
+never show together). Under the head come the **shapes** (where the shape
+matters, with their tariff differences) and **Add a label** (`editFields`,
+sent back out of band with each change), then **Change to another skill**
+(a search; a result goes straight on the head, keeping the label), then
+**Build or adjust this skill** (open only for a skill without a name, as
+that's how it was made). The skill card shows only while Build or adjust is
+open, as the readout of what's being built, without buttons of its own. The
+picker's tabs are for adding and stay hidden; the card's details (the skill
+as saved) wait until it's done. Update saves it and puts the focus back on
+the card's Edit; Cancel, Escape (in the form or on Update/Cancel) or Edit
+again puts the head back and leaves the skill as it was; Edit on another
+card moves the form there, the first left as it was. Enter in the search
+puts the focus on its first result, Enter again puts that on the head with
+the focus on Update, and a third Enter updates. While a card is being changed, Add a skill
 says so in one line ("Changing skill 7 in its card below: Update or Cancel
 there, then carry on adding.", with "of" the routine when there are two
 columns) and comes back as it was after. It works the same in either column

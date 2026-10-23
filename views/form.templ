@@ -18,8 +18,10 @@ type SkillForm struct {
 }
 
 // SkillEditor is the part of the panel the server re-renders as the skill
-// changes: the skill card (live summary, shape, label, Add/Update) and the
-// builder that adjusts the skill's parameters.
+// changes: the skill card (live summary, shape, label, Add) and the builder
+// that adjusts the skill's parameters. A skill being changed in its routine
+// card has its shape and label above the search instead (editFields), and
+// Update and Cancel on the card's head.
 type SkillEditor struct {
 	Skill       skills.TrampolineSkill // named and priced
 	EditIndex   int                    // index of the routine skill being edited, or -1 when adding
@@ -38,8 +40,24 @@ func (e SkillEditor) Editing() bool { return e.EditIndex >= 0 }
 // SkillFormView renders the "Add a skill" panel. Every change inside
 // #skill-editor posts the whole form to /skill-inputs, which re-renders the
 // editor from it, so the card always shows the skill that Add will add.
+// Changing a skill in its card, the shape and label come first, under the
+// card's head, then the search and the builder: #edit-fields posts its
+// changes the same way, and comes back with the editor (SkillInputsView).
 templ SkillFormView(f SkillForm) {
 	<form id="main-form" class="skill-adder" x-on:submit.prevent>
+		if f.Editor.Editing() {
+			<div
+				id="edit-fields"
+				class="edit-fields"
+				hx-post="/skill-inputs"
+				hx-trigger="change"
+				hx-include="#main-form"
+				hx-target="#skill-editor"
+				hx-sync="#skill-editor:replace"
+			>
+				@editFields(f.Editor)
+			</div>
+		}
 		@picker(f.Categories)
 		// The skill before the place Add (or Update) puts this one, as JSON, for
 		// a body-landing tile to take off where it landed.
@@ -280,7 +298,22 @@ templ SearchResults(query string, results []catalog.Result, reading *skills.Tram
 	}
 }
 
-// SkillEditorView renders the builder and the skill card for the editor's skill.
+// SkillInputsView is the editor re-rendered as the skill changes; changing a
+// skill in its card, the shape and label above the search come too, in place
+// of the ones there (out of band).
+templ SkillInputsView(e SkillEditor) {
+	@SkillEditorView(e)
+	if e.Editing() {
+		<div id="edit-fields" hx-swap-oob="innerHTML">
+			@editFields(e)
+		</div>
+	}
+}
+
+// SkillEditorView renders the builder and the skill card for the editor's
+// skill. Changing a skill in its card, the card is only a readout of what's
+// being built, shown while the builder is open (the routine card's head
+// shows the skill otherwise).
 templ SkillEditorView(e SkillEditor) {
 	<input type="hidden" name="editIndex" value={ strconv.Itoa(e.EditIndex) }/>
 	if e.SetRoutine {
@@ -294,94 +327,123 @@ templ SkillEditorView(e SkillEditor) {
 		x-on:toggle="$el.closest('form').elements.builder_open.value = $el.open ? '1' : ''"
 	>
 		<summary>Build or adjust this skill</summary>
-		@builderFields(e.Skill)
+		@builderFields(e.Skill, e.Editing())
 	</details>
-	@editorCard(e)
+	if e.Editing() {
+		<div class="skill-card skill-readout">
+			@skillCardHead(e.Skill)
+		</div>
+	} else {
+		@editorCard(e)
+	}
+}
+
+// editFields are the shape and label of a skill being changed in its card,
+// and what the card says about it: they sit just under the card's head. The
+// label shows on the head as it's typed (readDraft in app.js).
+templ editFields(e SkillEditor) {
+	if e.Follows != "" {
+		<p class="help skill-card-follows">{ e.Follows }</p>
+	}
+	if e.Skill.LandingPosition() == skills.Invalid {
+		<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
+	}
+	@shapeChoice(e.Skill)
+	@labelField(e.Skill, true)
 }
 
 // editorCard is the live summary of the skill, its shape, an optional label and
-// the one button that adds (or updates) it. On phones it sticks to the bottom of
-// the screen while the panel is in view.
+// the one button that adds it. On phones it sticks to the bottom of the screen
+// while the panel is in view.
 templ editorCard(e SkillEditor) {
 	<div class="skill-card">
-		<div class="skill-card-head">
-			<div>
-				<p class="skill-card-name">{ e.Skill.Name }</p>
-				<p class="skill-card-meta">
-					if e.Skill.FIGNotation() != "" {
-						<span class="skill-card-fig">{ e.Skill.FIGNotation() }</span> ·
-					}
-					{ e.Skill.TakeoffPosition.String() } → { landingText(e.Skill) }
-					// Small and out of the way until it's wanted; a straight jump isn't judged.
-					if judged(e.Skill) {
-						{ " · " }
-						<button
-							type="button"
-							class="judging-link"
-							hx-get="/judging"
-							hx-include="#main-form"
-							hx-target="body"
-							hx-swap="beforeend"
-							data-judging
-						>How it's judged</button>
-					}
-				</p>
-			</div>
-			<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</p>
-		</div>
+		@skillCardHead(e.Skill)
 		if e.Follows != "" {
 			<p class="help skill-card-follows">{ e.Follows }</p>
 		}
 		if e.Skill.LandingPosition() == skills.Invalid {
 			<p class="skill-card-problem">This skill can't land like that. Check the direction, somersault and twist.</p>
 		}
-		<details class="skill-card-label" open?={ e.Skill.CustomName != "" }>
-			<summary>Add a label</summary>
-			<input
-				class="input is-small"
-				type="text"
-				id="custom-name"
-				name="custom_name"
-				maxlength={ strconv.Itoa(skills.MaxCustomNameLength) }
-				value={ e.Skill.CustomName }
-				placeholder="Your own name for this skill (optional)"
-				aria-label="Label"
-			/>
-		</details>
+		@labelField(e.Skill, false)
 		// The shape and the main action share a row.
 		<div class="skill-card-actions">
 			@shapeChoice(e.Skill)
-			if e.Editing() {
-				<div class="buttons skill-card-buttons">
-					<button type="button" id="update-btn" class="button is-success" x-on:click="updateFromForm()" x-bind:disabled="busy">Update</button>
-					<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit(true)">Cancel</button>
+			// Which saved routine the skill goes to: the one on screen unless another
+			// is chosen (in Levels mode, the voluntary shown).
+			<div class="add-to" x-show="routines.length > 1" x-cloak>
+				<label class="add-to-label" for="add-to">Add to</label>
+				<div class="select is-small">
+					<select id="add-to" x-on:change="addTo = $event.target.value">
+						// No routine yet for a level's voluntary: none chosen, rather than the first.
+						<option value="" x-show="!addToValue()" x-bind:selected="!addToValue()">Choose a routine...</option>
+						<template x-for="t in addTargets()" x-bind:key="t.value">
+							<option x-bind:value="t.value" x-bind:selected="t.value === addToValue()" x-text="t.label"></option>
+						</template>
+					</select>
 				</div>
-			} else {
-				// Which saved routine the skill goes to: the one on screen unless another
-				// is chosen (in Levels mode, the voluntary shown).
-				<div class="add-to" x-show="routines.length > 1" x-cloak>
-					<label class="add-to-label" for="add-to">Add to</label>
-					<div class="select is-small">
-						<select id="add-to" x-on:change="addTo = $event.target.value">
-							// No routine yet for a level's voluntary: none chosen, rather than the first.
-							<option value="" x-show="!addToValue()" x-bind:selected="!addToValue()">Choose a routine...</option>
-							<template x-for="t in addTargets()" x-bind:key="t.value">
-								<option x-bind:value="t.value" x-bind:selected="t.value === addToValue()" x-text="t.label"></option>
-							</template>
-						</select>
-					</div>
-				</div>
-				<p class="help mb-1" x-show="!addTarget()" x-cloak>Choose the routine doing this voluntary first (under its tab), or a routine above.</p>
-				<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled={ "busy || !addTarget()" + cantLand(e.Skill) }>
-					if e.SetRoutine {
-						Add to the set routine
-					} else {
-						Add to routine
-					}
-				</button>
-			}
+			</div>
+			<p class="help mb-1" x-show="!addTarget()" x-cloak>Choose the routine doing this voluntary first (under its tab), or a routine above.</p>
+			<button type="button" id="add-btn" class="button is-primary is-fullwidth" x-on:click="addFromForm()" x-bind:disabled={ "busy || !addTarget()" + cantLand(e.Skill) }>
+				if e.SetRoutine {
+					Add to the set routine
+				} else {
+					Add to routine
+				}
+			</button>
 		</div>
 	</div>
+}
+
+// skillCardHead is the skill's name, notation, take-off and landing, and
+// tariff, as the skill card shows them (and, changing a skill in its card,
+// the routine card's head, read from here: readDraft in app.js).
+templ skillCardHead(s skills.TrampolineSkill) {
+	<div class="skill-card-head">
+		<div>
+			<p class="skill-card-name">{ s.Name }</p>
+			<p class="skill-card-meta">
+				if s.FIGNotation() != "" {
+					<span class="skill-card-fig">{ s.FIGNotation() }</span> ·
+				}
+				{ s.TakeoffPosition.String() } → { landingText(s) }
+				// Small and out of the way until it's wanted; a straight jump isn't judged.
+				if judged(s) {
+					{ " · " }
+					<button
+						type="button"
+						class="judging-link"
+						hx-get="/judging"
+						hx-include="#main-form"
+						hx-target="body"
+						hx-swap="beforeend"
+						data-judging
+					>How it's judged</button>
+				}
+			</p>
+		</div>
+		<p class="skill-card-tariff" title="Tariff (difficulty)">{ fmt.Sprintf("%.1f", s.Tariff) }</p>
+	</div>
+}
+
+// labelField is the skill's optional label, folded away until it's wanted.
+// Changing a skill in its card (live), the card's head shows it as it's typed.
+templ labelField(s skills.TrampolineSkill, live bool) {
+	<details class="skill-card-label" open?={ s.CustomName != "" }>
+		<summary>Add a label</summary>
+		<input
+			class="input is-small"
+			type="text"
+			id="custom-name"
+			name="custom_name"
+			maxlength={ strconv.Itoa(skills.MaxCustomNameLength) }
+			value={ s.CustomName }
+			placeholder="Your own name for this skill (optional)"
+			aria-label="Label"
+			if live {
+				x-on:input="readDraft()"
+			}
+		/>
+	</details>
 }
 
 // shapeChoice offers the shapes that make a different skill. When shape doesn't
@@ -423,7 +485,7 @@ func shapeDifference(s skills.TrampolineSkill, shape skills.Shape) string {
 }
 
 // builderFields are the skill's parameters in plain language.
-templ builderFields(s skills.TrampolineSkill) {
+templ builderFields(s skills.TrampolineSkill, editing bool) {
 	<div class="builder-row">
 		<label class="builder-label" for="rotation">Somersault</label>
 		@stepper("rotation", "rotation", s.Rotation, 0, skills.MaxRotation, "Quarter somersaults")
@@ -467,7 +529,12 @@ templ builderFields(s skills.TrampolineSkill) {
 		</label>
 	</div>
 	// Shape is the card's: it shows only the shapes the skill allows, and what each does to its tariff.
-	<p class="builder-readout mt-3">Shape: choose it on the card below.</p>
+	// (Changing a skill in its card, the shapes are above the search.)
+	if editing {
+		<p class="builder-readout mt-3">Shape: choose it at the top, under the card's name.</p>
+	} else {
+		<p class="builder-readout mt-3">Shape: choose it on the card below.</p>
+	}
 }
 
 // stepper is a number input with − and + buttons, for quarter somersaults and half twists.

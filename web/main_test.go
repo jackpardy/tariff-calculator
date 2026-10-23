@@ -255,13 +255,18 @@ func TestSkillForm(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		for _, want := range []string{`id="update-btn"`, "Cancel", `name="editIndex" value="2"`, `name="builder_open" value=""`} {
+		for _, want := range []string{`id="edit-fields"`, `class="skill-card skill-readout"`, `name="editIndex" value="2"`, `name="builder_open" value=""`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("edit panel is missing %q", want)
 			}
 		}
-		if strings.Contains(html, "Add to routine") {
-			t.Errorf("an edit panel should not offer Add")
+		// Update and Cancel are on the routine card's head, not in the panel.
+		if strings.Contains(html, "Add to routine") || strings.Contains(html, `id="update-btn"`) {
+			t.Errorf("an edit panel should offer neither Add nor its own Update")
+		}
+		// Its shape and label come first, above the search, under the card's head.
+		if i, j := strings.Index(html, `id="custom-name"`), strings.Index(html, `id="skill-search"`); i < 0 || j < 0 || i > j || strings.Index(html, `name="shape"`) > j {
+			t.Errorf("the shape and label should come before the search (label at %d, search at %d)", i, j)
 		}
 		if tag := tagWithID(t, html, "custom-name"); !strings.Contains(tag, `value="Opener"`) {
 			t.Errorf("custom name = %s", tag)
@@ -370,10 +375,22 @@ func TestSkillInputsFollowTheSkill(t *testing.T) {
 		if !strings.Contains(tagWithID(t, html, "rotation"), `value="8"`) || !strings.Contains(tagWithID(t, html, "twist-2"), `value="1"`) {
 			t.Errorf("want the half-out (8, [0 1]) loaded")
 		}
-		for _, want := range []string{`value="Opener"`, `name="editIndex" value="3"`, `id="update-btn"`, `name="builder_open" value="1"`} {
+		for _, want := range []string{`value="Opener"`, `name="editIndex" value="3"`, `name="builder_open" value="1"`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("editor is missing %q", want)
 			}
+		}
+		// Changing a skill in its card, the shape and label above the search
+		// come back with it, in place of the ones there.
+		if tag := tagWithID(t, html, "edit-fields"); !strings.Contains(tag, `hx-swap-oob="innerHTML"`) {
+			t.Errorf("the shape and label should come back out of band: %s", tag)
+		}
+		if strings.Index(html, `id="edit-fields"`) > strings.Index(html, `id="custom-name"`) {
+			t.Errorf("the label should be in the fields above the search")
+		}
+		adding := inputs(t, withValue(form, "editIndex", "-1"))
+		if strings.Contains(adding, `edit-fields`) || !strings.Contains(adding, `id="add-btn"`) {
+			t.Errorf("adding, the label stays on the skill card, with Add")
 		}
 	})
 
@@ -1026,7 +1043,7 @@ func TestScoredElements(t *testing.T) {
 		return url.Values{"routineData": {routine}, "requirementSet": {"builtin:fig-ag3-first"}, "checks": {checks}}
 	}
 	html := postForm(t, "/routine", values("")).Body.String()
-	if !strings.Contains(html, `routine-total-value">1.5<`) || strings.Count(html, `class="scores-toggle is-scoring"`) != 2 || strings.Count(html, `class="scores-toggle`) != 4 ||
+	if !strings.Contains(html, `routine-total-value">1.5<`) || strings.Count(html, `class="scores-toggle saved-only is-scoring"`) != 2 || strings.Count(html, `class="scores-toggle`) != 4 ||
 		!strings.Contains(html, `<option value="2" selected>`) || !strings.Contains(html, `data-scoring="[2,3]"`) {
 		t.Errorf("AG3 first exercise: the full back and Rudi (1.5) score, ticked; every element can be ticked")
 	}

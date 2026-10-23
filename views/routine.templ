@@ -64,6 +64,12 @@ func (s RoutineSide) call(method string, i int) string {
 	return fmt.Sprintf("%s(%d, '%s')", method, i, s.Side)
 }
 
+// drafting is the Alpine expression for whether card i is being changed,
+// its head showing the skill as it will be (drafting in app.js).
+func (s RoutineSide) drafting(i int) string {
+	return s.call("drafting", i)
+}
+
 // expanded is the Alpine expression for whether card i is expanded.
 func (s RoutineSide) expanded(i int) string {
 	if s.Side == "b" {
@@ -181,10 +187,13 @@ func titleCase(s string) string {
 // wanted it in sight, not in the opened card, and a ✕ at every width,
 // 2026-10-22). Edit opens the skill form in the card, under its head
 // (placeEditor in app.js); data-edit names its column and index, for the
-// focus to come back to it after Update or Cancel.
+// focus to come back to it after Update or Cancel. Meanwhile ("drafting")
+// the head shows the skill as it will be, read off the form (readDraft),
+// with Update and Cancel in place of ↑, ↓, Edit and ✕ (the owner,
+// 2026-10-23).
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked, scoresFull bool) {
 	{{ text, problem := cardMessage(i, message) }}
-	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
+	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s', 'drafting': %s }", i, side.Side, side.drafting(i)) }>
 		<div
 			class={ "routine-skill",
 				templ.KV("invalid-transition", sv.InvalidTransition || sv.IntermediateJump),
@@ -196,7 +205,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 			<div class="card-head">
 				<button type="button" class="card-toggle" x-on:click={ side.call("toggleExpanded", i) } x-bind:aria-expanded={ side.expanded(i) + " ? 'true' : 'false'" }>
 					<span class="card-arrow" aria-hidden="true"></span>
-					<span class="card-title">
+					<span class="card-title card-saved">
 						<span class="skill-name">
 							{ cardTitle(i, sv.Skill) }
 							if sv.Skill.CustomName != "" {
@@ -205,24 +214,43 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 						</span>
 						<span class="card-fig">{ sv.FIGNotation }</span>
 					</span>
+					// Being changed, the skill as it will be (draft, read from the
+					// skill form as it changes), until Update.
+					<span class="card-title card-draft">
+						<span class="skill-name">
+							<span x-text="(editingIndex + 1) + '. ' + draft?.name"></span>
+							<span class="card-official" x-bind:hidden="!draft?.official" x-text="draft?.official ? '· ' + draft.official : ''"></span>
+						</span>
+						<span class="card-fig" x-text="draft?.fig"></span>
+						<span class="card-unsaved" x-bind:hidden="!draft?.changed">not saved</span>
+					</span>
 					// Flags a problem while the card is folded; the details say what it is.
 					if problem {
 						// A "!" on its own reads well on a folded card (the owner, 2026-10-19);
 						// it's the "!" inside a chip's words that was clutter.
-						<span class="card-problem" title={ text } aria-label={ "Problem: " + text }>!</span>
+						<span class="card-problem saved-only" title={ text } aria-label={ "Problem: " + text }>!</span>
 					}
-					<span class="card-tariff">{ tariffText(sv.Skill.Tariff) }</span>
+					<span class="card-tariff saved-only">{ tariffText(sv.Skill.Tariff) }</span>
+					<span class="card-tariff draft-only" x-text="draft?.tariff"></span>
 				</button>
 				// When only some elements score, the coach can choose which.
 				if canScore {
-					<label class={ "scores-toggle", templ.KV("is-scoring", sv.Counted) }>
+					<label class={ "scores-toggle", "saved-only", templ.KV("is-scoring", sv.Counted) }>
 						// Once as many score as may, another waits for one to be unticked.
 						<input type="checkbox" checked?={ scoresTicked } disabled?={ scoresFull && !scoresTicked } title={ scoresTitle(scoresFull && !scoresTicked) } x-on:change={ fmt.Sprintf("toggleScores(%d, '%s', $event.target.checked)", i, side.Side) }/>
 						Scores
 					</label>
 				}
 				if !side.ReadOnly {
-					<div class="card-buttons">
+					// Being changed, Update and Cancel take their place (only on the
+					// card being changed, so their ids are the page's only ones).
+					<template x-if={ side.drafting(i) }>
+						<div class="card-buttons card-edit-buttons" x-on:keydown.escape="escapeEdit($event)">
+							<button type="button" id="update-btn" class="button is-success" x-on:click="updateFromForm()" x-bind:disabled="busy">Update</button>
+							<button type="button" id="cancel-btn" class="button" x-on:click="cancelEdit(true)">Cancel</button>
+						</div>
+					</template>
+					<div class="card-buttons saved-only">
 						<button class="button" type="button" title="Move up" aria-label={ fmt.Sprintf("Move element %d up", i+1) } x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
 						<button class="button" type="button" title="Move down" aria-label={ fmt.Sprintf("Move element %d down", i+1) } x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
 						<button class="button" type="button" data-edit={ side.Side + ":" + strconv.Itoa(i) } x-on:click={ side.call("editSkill", i) }>Edit</button>

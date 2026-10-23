@@ -59,10 +59,12 @@ The **Add a skill** box is at the top, with your routine under it.
 Your routine is under **Your routine**, below the skill box. Make sure **Routines** is selected at the top of it.
 
 - **Reorder** skills by dragging a card, or with **↑** and **↓**.
-- **Change a skill**: tap **Edit** on its card. The card opens where it is,
-  with the skill in it: change the shape or the label, or search for another
-  skill under **Change to another skill**. Then tap **Update** (or **Cancel**
-  to leave it as it was). The skill box at the top waits until you're done.
+- **Change a skill**: tap **Edit** on its card. The card opens where it is:
+  change the shape or the label, search for another skill under **Change to
+  another skill**, or open **Build or adjust this skill**. The card's name
+  line shows the skill as it will be as you go, marked "not saved". Then tap
+  **Update** on that line (or **Cancel** to leave it as it was). The skill
+  box at the top waits until you're done.
 - **See the details**: tap a card's name to open it.
 - **Remove a skill**: tap the red **✕** beside Edit. Changed your mind? Tap
   **Undo** on the message that says so.
