@@ -179,7 +179,9 @@ func titleCase(s string) string {
 // tariff, with a mark while a problem is folded away. ↑, ↓, Edit and Remove
 // sit at the right, Remove a red ✕, undone from its message (the owner
 // wanted it in sight, not in the opened card, and a ✕ at every width,
-// 2026-10-22).
+// 2026-10-22). Edit opens the skill form in the card, under its head
+// (placeEditor in app.js); data-edit names its column and index, for the
+// focus to come back to it after Update or Cancel.
 templ skillCard(i int, sv skills.SkillValidation, message string, last bool, side RoutineSide, different bool, canScore, scoresTicked, scoresFull bool) {
 	{{ text, problem := cardMessage(i, message) }}
 	<div class="routine-skill-container" x-bind:class={ fmt.Sprintf("{ 'editing': editingIndex === %d && editingSide === '%s' }", i, side.Side) }>
@@ -223,7 +225,7 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 					<div class="card-buttons">
 						<button class="button" type="button" title="Move up" aria-label={ fmt.Sprintf("Move element %d up", i+1) } x-on:click={ side.call("moveSkillUp", i) } disabled?={ i == 0 }>↑</button>
 						<button class="button" type="button" title="Move down" aria-label={ fmt.Sprintf("Move element %d down", i+1) } x-on:click={ side.call("moveSkillDown", i) } disabled?={ last }>↓</button>
-						<button class="button" type="button" x-on:click={ side.call("editSkill", i) }>Edit</button>
+						<button class="button" type="button" data-edit={ side.Side + ":" + strconv.Itoa(i) } x-on:click={ side.call("editSkill", i) }>Edit</button>
 						<button class="button is-danger is-outlined card-remove" type="button" title="Remove" aria-label={ fmt.Sprintf("Remove element %d", i+1) } x-on:click={ side.call("removeSkill", i) }>✕</button>
 					</div>
 				}

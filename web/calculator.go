@@ -168,7 +168,7 @@ func editIndexFrom(r *http.Request) int {
 
 // handleSkillForm renders the "Add a skill" panel: for the default skill, or
 // (when the page posts the routine skill being edited as JSON with its index)
-// loaded with that skill and its builder open.
+// loaded with that skill, to change it in its card.
 func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 	editor := views.SkillEditor{Skill: defaultSkill(), EditIndex: -1}
 
@@ -187,10 +187,13 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 			badRequest(w, fmt.Errorf("invalid edit index %q", r.FormValue("editIndex")))
 			return
 		}
-		editor.Skill, editor.BuilderOpen = s, true
+		editor.Skill = s
 	}
 
 	editor.Skill = prepared(editor.Skill)
+	// A skill being changed opens with the builder shut unless it has no name
+	// of its own (the builder is how it was made).
+	editor.BuilderOpen = editor.Editing() && editor.Skill.Name == skills.UnnamedSkill
 	form := views.SkillForm{Editor: editor, Categories: catalog.Categories()}
 	// compact=1: a cut-down form, the search, the builder and the card, for
 	// building a set routine on the Requirements page.

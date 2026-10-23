@@ -61,12 +61,23 @@ templ SkillFormView(f SkillForm) {
 // per category. Choosing one loads it into the editor (keeping the label and
 // edit state), where the card shows it and its shape can be changed. The tab and
 // the last pick are kept in the page's Alpine component (pickerTab, picked).
+// In the builder, while a card is being changed in place (the form moved into
+// it), only the search shows, as "Change to another skill": the tabs are for
+// adding.
 templ picker(cats []catalog.Category) {
 	<div class="picker">
-		<label class="label" for="skill-search">Choose a skill</label>
+		<label
+			class="label"
+			for="skill-search"
+			if len(cats) > 0 {
+				x-text="editingIndex === null ? 'Choose a skill' : 'Change to another skill'"
+			}
+		>Choose a skill</label>
 		// Search by name or FIG notation; while there's a query, its results replace the tabs.
 		// Enter searches at once and picks the first result of what's typed now, not of the
-		// last search to come back (the typing waits 200 ms before it searches).
+		// last search to come back (the typing waits 200 ms before it searches). In a
+		// card being changed, Enter puts the focus on the first result instead, and
+		// Enter again puts it on the card (searchEnter in app.js).
 		<input
 			class="input"
 			type="search"
@@ -79,104 +90,123 @@ templ picker(cats []catalog.Category) {
 			hx-trigger="input changed delay:200ms, search"
 			hx-target="#search-results"
 			hx-sync="this:replace"
-			x-on:keydown.enter.prevent="htmx.ajax('GET', '/skill-search?q=' + encodeURIComponent($el.value), { target: '#search-results', swap: 'innerHTML' }).then(() => document.querySelector('#search-results .picker-skill')?.click())"
-		/>
-		<div id="search-results" class="picker-results" x-show="query.trim() !== ''" x-cloak></div>
-		<div class="picker-tabs" role="tablist" aria-label="Skill categories" x-show="query.trim() === ''">
-			for _, c := range cats {
-				<button
-					type="button"
-					role="tab"
-					class="picker-tab"
-					x-bind:class={ fmt.Sprintf("{ 'is-active': pickerTab === '%s' }", c.Key) }
-					x-bind:aria-selected={ fmt.Sprintf("pickerTab === '%s'", c.Key) }
-					x-on:click={ fmt.Sprintf("pickerTab = '%s'", c.Key) }
-				>{ c.Label }</button>
+			if len(cats) > 0 {
+				x-on:keydown.enter.prevent="searchEnter($el)"
+			} else {
+				x-on:keydown.enter.prevent="htmx.ajax('GET', '/skill-search?q=' + encodeURIComponent($el.value), { target: '#search-results', swap: 'innerHTML' }).then(() => document.querySelector('#search-results .picker-skill')?.click())"
 			}
-		</div>
-		for _, c := range cats {
-			<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
-				// Body landings: the drops from the feet, then those from a body
-				// landing, each taking off where the skill before it lands (g.Note).
-				for _, g := range c.Groups {
-					<div class="picker-group" role="group" aria-label={ g.Title }>
-						<p class="picker-group-title">{ g.Title }</p>
-						if g.Note != "" {
-							<p class="picker-group-note">{ g.Note }</p>
-						}
-						<div class="picker-group-options">
-							for _, e := range g.Options {
-								<button
-									type="button"
-									class="picker-option"
-									x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }
-									x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
-									hx-post="/skill-inputs"
-									hx-target="#skill-editor"
-									hx-include="#main-form"
-									if e.Tile != nil {
-										hx-vals={ loadLanding(e.Key) }
-									} else {
-										hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
-									}
-								>
-									<span class="picker-skill-name">{ e.Label }</span>
-									// A tile's tariff depends on the skill before it: the card shows it.
-									if e.Tile == nil {
-										<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
-									}
-								</button>
-							}
-						</div>
-					</div>
+		/>
+		<div
+			id="search-results"
+			class="picker-results"
+			x-show="query.trim() !== ''"
+			x-cloak
+			if len(cats) > 0 {
+				x-on:click="resultChosen($event)"
+			}
+		></div>
+		<div
+			class="picker-browse"
+			if len(cats) > 0 {
+				x-show="editingIndex === null"
+			}
+		>
+			<div class="picker-tabs" role="tablist" aria-label="Skill categories" x-show="query.trim() === ''">
+				for _, c := range cats {
+					<button
+						type="button"
+						role="tab"
+						class="picker-tab"
+						x-bind:class={ fmt.Sprintf("{ 'is-active': pickerTab === '%s' }", c.Key) }
+						x-bind:aria-selected={ fmt.Sprintf("pickerTab === '%s'", c.Key) }
+						x-on:click={ fmt.Sprintf("pickerTab = '%s'", c.Key) }
+					>{ c.Label }</button>
 				}
-				for _, e := range c.Entries {
-					<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) } data-tariffs={ templ.JSONString(e.ShapeTariffs()) }>
-						// The skill in its usual shape...
-						<button
-							type="button"
-							class="picker-skill-main"
-							x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
-							hx-post="/skill-inputs"
-							hx-target="#skill-editor"
-							hx-include="#main-form"
-							hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
-						>
-							<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
-							// The base (tuck) tariff, or once picked, the chosen shape's; the shape
-							// buttons say how the others differ from it.
-							<span class="picker-skill-tariff" x-text={ fmt.Sprintf("boxTariff($el.closest('.picker-skill').dataset.tariffs, '%s', %.1f)", e.ID(), e.BaseTariff()) }>{ fmt.Sprintf("%.1f", e.BaseTariff()) }</span>
-						</button>
-						// ...or straight away in another shape.
-						if options := e.ShapeOptions(); len(options) > 0 {
-							<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
-								for _, o := range options {
+			</div>
+			for _, c := range cats {
+				<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
+					// Body landings: the drops from the feet, then those from a body
+					// landing, each taking off where the skill before it lands (g.Note).
+					for _, g := range c.Groups {
+						<div class="picker-group" role="group" aria-label={ g.Title }>
+							<p class="picker-group-title">{ g.Title }</p>
+							if g.Note != "" {
+								<p class="picker-group-note">{ g.Note }</p>
+							}
+							<div class="picker-group-options">
+								for _, e := range g.Options {
 									<button
 										type="button"
-										class="picker-shape"
-										x-bind:class={ fmt.Sprintf("{ 'is-selected': picked === '%s' && pickedShape === '%s' }", e.ID(), o.Shape) }
-										x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), o.Shape) }
+										class="picker-option"
+										x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) }
+										x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
 										hx-post="/skill-inputs"
 										hx-target="#skill-editor"
 										hx-include="#main-form"
-										hx-vals={ loadCommon(e.Key, o.Shape) }
+										if e.Tile != nil {
+											hx-vals={ loadLanding(e.Key) }
+										} else {
+											hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+										}
 									>
-										<span class="picker-shape-name">{ o.Shape.String() }</span>
-										// Against tuck, or against the shape chosen once this box is picked.
-										<span class="picker-shape-modifier" x-text={ fmt.Sprintf("shapeModifier($el.closest('.picker-skill').dataset.tariffs, '%s', '%s')", o.Shape, e.ID()) }>
-											if o.Modifier > 0 {
-												{ fmt.Sprintf("+%.1f", o.Modifier) }
-											}
-										</span>
+										<span class="picker-skill-name">{ e.Label }</span>
+										// A tile's tariff depends on the skill before it: the card shows it.
+										if e.Tile == nil {
+											<span class="picker-skill-tariff">{ fmt.Sprintf("%.1f", e.Skill.Tariff) }</span>
+										}
 									</button>
 								}
 							</div>
-						}
-					</div>
-				}
-			</div>
-		}
-		<p class="picker-hint">Not listed? Use "Build or adjust this skill" below.</p>
+						</div>
+					}
+					for _, e := range c.Entries {
+						<div class="picker-skill" x-bind:class={ fmt.Sprintf("{ 'is-picked': picked === '%s' }", e.ID()) } data-tariffs={ templ.JSONString(e.ShapeTariffs()) }>
+							// The skill in its usual shape...
+							<button
+								type="button"
+								class="picker-skill-main"
+								x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), e.Skill.Shape) }
+								hx-post="/skill-inputs"
+								hx-target="#skill-editor"
+								hx-include="#main-form"
+								hx-vals={ loadCommon(e.Key, e.Skill.Shape) }
+							>
+								<span class="picker-skill-name">{ catalog.PickerName(e.Skill) }</span>
+								// The base (tuck) tariff, or once picked, the chosen shape's; the shape
+								// buttons say how the others differ from it.
+								<span class="picker-skill-tariff" x-text={ fmt.Sprintf("boxTariff($el.closest('.picker-skill').dataset.tariffs, '%s', %.1f)", e.ID(), e.BaseTariff()) }>{ fmt.Sprintf("%.1f", e.BaseTariff()) }</span>
+							</button>
+							// ...or straight away in another shape.
+							if options := e.ShapeOptions(); len(options) > 0 {
+								<div class="picker-shapes" role="group" aria-label={ "Shape for " + catalog.PickerName(e.Skill) }>
+									for _, o := range options {
+										<button
+											type="button"
+											class="picker-shape"
+											x-bind:class={ fmt.Sprintf("{ 'is-selected': picked === '%s' && pickedShape === '%s' }", e.ID(), o.Shape) }
+											x-on:click={ fmt.Sprintf("picked = '%s'; pickedShape = '%s'", e.ID(), o.Shape) }
+											hx-post="/skill-inputs"
+											hx-target="#skill-editor"
+											hx-include="#main-form"
+											hx-vals={ loadCommon(e.Key, o.Shape) }
+										>
+											<span class="picker-shape-name">{ o.Shape.String() }</span>
+											// Against tuck, or against the shape chosen once this box is picked.
+											<span class="picker-shape-modifier" x-text={ fmt.Sprintf("shapeModifier($el.closest('.picker-skill').dataset.tariffs, '%s', '%s')", o.Shape, e.ID()) }>
+												if o.Modifier > 0 {
+													{ fmt.Sprintf("+%.1f", o.Modifier) }
+												}
+											</span>
+										</button>
+									}
+								</div>
+							}
+						</div>
+					}
+				</div>
+			}
+			<p class="picker-hint">Not listed? Use "Build or adjust this skill" below.</p>
+		</div>
 	</div>
 }
 
@@ -324,7 +354,7 @@ templ editorCard(e SkillEditor) {
 			if e.Editing() {
 				<div class="buttons skill-card-buttons">
 					<button type="button" id="update-btn" class="button is-success" x-on:click="updateFromForm()" x-bind:disabled="busy">Update</button>
-					<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit()">Cancel</button>
+					<button type="button" id="cancel-btn" class="button is-light" x-on:click="cancelEdit(true)">Cancel</button>
 				</div>
 			} else {
 				// Which saved routine the skill goes to: the one on screen unless another

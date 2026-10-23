@@ -255,7 +255,7 @@ func TestSkillForm(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status %d, body %s", rec.Code, html)
 		}
-		for _, want := range []string{`id="update-btn"`, "Cancel", `name="editIndex" value="2"`, `name="builder_open" value="1"`} {
+		for _, want := range []string{`id="update-btn"`, "Cancel", `name="editIndex" value="2"`, `name="builder_open" value=""`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("edit panel is missing %q", want)
 			}
@@ -269,8 +269,17 @@ func TestSkillForm(t *testing.T) {
 		if tag := tagWithID(t, html, "twist-1"); !strings.Contains(tag, `value="1"`) {
 			t.Errorf("twist-1 = %s, want 1", tag)
 		}
-		if tag := tagWithID(t, html, "skill-builder"); !strings.Contains(tag, " open") {
-			t.Errorf("the builder should be open when editing: %s", tag)
+		// A named skill is changed on its card, the builder shut; one without a
+		// name opens in the builder, which is how it was made.
+		if tag := tagWithID(t, html, "skill-builder"); strings.Contains(tag, " open") {
+			t.Errorf("the builder should be shut when changing a named skill: %s", tag)
+		}
+		custom := postForm(t, "/skill-form", url.Values{
+			"skill":     {`{"rotation":7,"twist_distribution":[3],"takeoff_position":"Feet","shape":"Tuck"}`},
+			"editIndex": {"0"},
+		}).Body.String()
+		if tag := tagWithID(t, custom, "skill-builder"); !strings.Contains(custom, "Custom Skill") || !strings.Contains(tag, " open") {
+			t.Errorf("the builder should be open when changing a skill without a name: %s", tag)
 		}
 	})
 

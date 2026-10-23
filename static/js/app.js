@@ -29,6 +29,8 @@ function tariffCalculatorStore() {
         expandedB: [],   // per-card expanded state, parallel to routineB
         addTo: '',       // the routine Add puts a skill in (its id); '' for the one on screen
         mobileTab: 'a',  // the column shown on a phone while comparing
+        // A card being changed in place: the skill form is moved into it
+        // (placeEditor), and back to Add a skill after.
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
         busy: false, // an add or update is in flight
@@ -96,10 +98,29 @@ function tariffCalculatorStore() {
                 this.persist();
             });
 
-            document.body.addEventListener('htmx:afterSwap', (event) => {
-                if (event.detail.target.id === 'routine-view') { this.makeSortable('a'); }
-                if (event.detail.target.id === 'routine-view-b') { this.makeSortable('b'); }
+            // A routine's view is redrawn whole: a card's skill form steps out
+            // first, and goes back into the card in the new one.
+            document.body.addEventListener('htmx:beforeSwap', (event) => {
+                const id = event.detail.target.id;
+                if (id === 'routine-view' || id === 'routine-view-b') { this.parkEditor(event.detail.target); }
             });
+            document.body.addEventListener('htmx:afterSwap', (event) => {
+                const id = event.detail.target.id;
+                if (id === 'routine-view') { this.makeSortable('a'); }
+                if (id === 'routine-view-b') { this.makeSortable('b'); }
+                if (id === 'routine-view' || id === 'routine-view-b') {
+                    this.placeEditor();
+                    // Side by side both columns are redrawn: the Edit is focused in its own.
+                    const edit = this._refocusEdit && event.detail.target.querySelector(this._refocusEdit);
+                    if (edit) { edit.focus({ preventScroll: true }); this._refocusEdit = null; }
+                }
+                // After Enter in a card's search, the typing's own search may come
+                // back later and replace the results: the focus goes back on the first.
+                if (id === 'search-results' && this._enterFor !== null && this._enterFor === this.query) { this.focusFirstResult(); }
+                // A result chosen in a card being changed: on to Update.
+                if (id === 'skill-editor' && this._toUpdate) { this._toUpdate = false; document.getElementById('update-btn')?.focus({ preventScroll: true }); }
+            });
+            this.holdOnResize();
             document.body.addEventListener('htmx:afterRequest', (event) => {
                 if (event.detail.failed) { this.requestFailed(event.detail.requestConfig?.path, event.detail.xhr); }
             });
@@ -156,7 +177,7 @@ function tariffCalculatorStore() {
                     const p = document.querySelector(view);
                     // Only a level with set routines can start the voluntary from one.
                     const fromSet = this.entryTabs().some((t) => t.set) ? ', or start from a set' : '';
-                    if (p) { p.innerHTML = `<p class="has-text-grey level-empty">No routine for this voluntary yet. Choose one above: a new routine or one you've built${fromSet}.</p>`; }
+                    if (p) { this.parkEditor(p); p.innerHTML = `<p class="has-text-grey level-empty">No routine for this voluntary yet. Choose one above: a new routine or one you've built${fromSet}.</p>`; }
                     return;
                 }
                 const entryValues = LevelEntries.values(this.entry(), tab.exercise, this.routines);
@@ -209,6 +230,7 @@ function tariffCalculatorStore() {
                     const p = document.createElement('p');
                     p.className = 'has-text-danger';
                     p.textContent = `Couldn't show the saved routine (${reason}). Use Clear skills to start again.`;
+                    this.parkEditor(view);
                     view.replaceChildren(p);
                 }
             } else {
@@ -885,37 +907,247 @@ function tariffCalculatorStore() {
                 this.busy = false;
             }
         },
-        async updateFromForm() {
-            const index = this.editingIndex, skills = this.skillsOf(this.editingSide);
-            if (this.busy || index === null || index >= skills.length) { return; }
-            this.busy = true;
-            try {
-                const skill = await this.calculateFormSkill();
-                skills.splice(index, 1, skill);
-                this.cancelEdit();
-            } catch (error) {
-                this.showToast(`Can't update skill: ${error.message}`, 'error');
-            } finally {
-                this.busy = false;
-            }
-        },
         clearLabel() {
             const input = document.getElementById('custom-name');
             if (!input) { return; }
             input.value = '';
             input.closest('details')?.removeAttribute('open');
         },
+
+        // --- Changing a skill in its card ---
+        // editSkill opens a card into the skill form, to change the skill in
+        // place: the form moves out of Add a skill into the card, under its
+        // head, once it's loaded with the skill. Edit on another card moves it
+        // there (the first left as it was); Edit again on the same one closes it.
         editSkill(index, side = 'a') {
+            if (this.editingIndex === index && this.editingSide === side) { this.cancelEdit(true); return; }
+            this.holdPlace(() => this.cardAt(index, side)?.querySelector('.card-head'));
             this.editingIndex = index;
             this.editingSide = side;
+            this.query = '';
+            this._enterFor = null;
+            this._toUpdate = false;
+            this._refocusEdit = null;
+            this.mobileTab = side;
             this.loadForm(index, side)
-                .then(() => document.getElementById('skill-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-                .catch(() => { this.showToast('Failed to load edit form.', 'error'); this.editingIndex = null; });
+                .then(() => {
+                    this.placeEditor();
+                    this.keepHeld();
+                    this.$nextTick(() => {
+                        this.showEditor();
+                        if (this.wide()) { document.getElementById('skill-search')?.focus({ preventScroll: true }); }
+                    });
+                })
+                .catch(() => { this.showToast('Failed to load the form.', 'error'); this.cancelEdit(); });
         },
-        cancelEdit() {
+        async updateFromForm() {
+            const index = this.editingIndex, side = this.editingSide, skills = this.skillsOf(side);
+            if (this.busy || index === null || index >= skills.length) { return; }
+            this.busy = true;
+            try {
+                const skill = await this.calculateFormSkill();
+                skills.splice(index, 1, skill);
+                // The routine is redrawn: the focus goes back on the card's Edit once it is.
+                this._refocusEdit = `[data-edit="${side}:${index}"]`;
+                this.cancelEdit(true);
+            } catch (error) {
+                this.showToast(`Can't update skill: ${error.message}`, 'error');
+            } finally {
+                this.busy = false;
+            }
+        },
+        // cancelEdit stops changing a card (Cancel, Escape, Update, or the
+        // skill or its routine gone): the form goes back to Add a skill, fresh
+        // for adding, the card staying where it is on the screen, and (with
+        // refocus) the focus back on the card's Edit.
+        cancelEdit(refocus = false) {
+            if (this.editingIndex === null) { return Promise.resolve(); }
+            const index = this.editingIndex, side = this.editingSide;
+            this.holdPlace(() => this.cardAt(index, side)?.querySelector('.card-head'));
             this.editingIndex = null;
             this.editingSide = 'a';
-            this.loadForm().catch(() => this.showToast('Failed to load the form.', 'error'));
+            this.query = '';
+            this._enterFor = null;
+            this._toUpdate = false;
+            document.querySelector('.builder-add').style.minHeight = '';
+            this.placeEditor();
+            this.keepHeld();
+            if (refocus) { this.$nextTick(() => document.querySelector(`[data-edit="${side}:${index}"]`)?.focus({ preventScroll: true })); }
+            // Held until the fresh form is in and shown; only this hold is let
+            // go, not one Edit has made since (a quick Edit after Update).
+            const hold = this._hold;
+            return this.loadForm()
+                .catch(() => this.showToast('Failed to load the form.', 'error'))
+                .finally(() => requestAnimationFrame(() => requestAnimationFrame(() => { if (this._hold === hold) { this.releaseHold(); } })));
+        },
+        // escapeEdit is Escape in a card's form: it closes it, as Cancel does,
+        // unless it's clearing what's typed in the search.
+        escapeEdit(event) {
+            if (this.editingIndex === null || (event.target.id === 'skill-search' && event.target.value)) { return; }
+            this.cancelEdit(true);
+        },
+        // changingWhere is what the Add a skill box says while a card is being changed.
+        changingWhere() {
+            if (this.editingIndex === null) { return ''; }
+            const routine = this.mode === 'levels' ? this.columnRoutine(this.editingSide) : this.routineFor(this.editingSide);
+            const of = this.twoColumns() && routine ? ` of ${routine.name}` : '';
+            return `Changing skill ${this.editingIndex + 1}${of} in its card below: Update or Cancel there, then carry on adding.`;
+        },
+        // searchEnter is Enter in the search. Adding, it puts the first result
+        // of what's typed now on the card (not of the last search to come
+        // back). In a card being changed, it puts the focus on the first
+        // result, so Enter again puts that on the card, the focus moving on to
+        // Update, and a third Enter updates.
+        async searchEnter(input) {
+            const q = input.value;
+            if (this.editingIndex === null) {
+                await htmx.ajax('GET', '/skill-search?q=' + encodeURIComponent(q), { target: '#search-results', swap: 'innerHTML' });
+                document.querySelector('#search-results .picker-skill')?.click();
+                return;
+            }
+            if (!q.trim()) { return; }
+            this._enterFor = q;
+            await htmx.ajax('GET', '/skill-search?q=' + encodeURIComponent(q), { target: '#search-results', swap: 'innerHTML' });
+            this.focusFirstResult();
+        },
+        _enterFor: null,  // the search Enter was pressed on in a card, while its first result has the focus
+        _toUpdate: false, // a result is on its way to a card's form: the focus goes on to Update
+        focusFirstResult() { document.querySelector('#search-results .picker-skill')?.focus({ preventScroll: true }); },
+        // resultChosen notes a search result chosen in a card being changed:
+        // the results close, and once it's on the card, the focus is on Update.
+        resultChosen(event) {
+            if (this.editingIndex === null || !event.target.closest('.picker-skill')) { return; }
+            this._enterFor = null;
+            this._toUpdate = true;
+            this.query = '';
+        },
+        // wide reports a laptop or wider with a mouse, where typing is at hand:
+        // there a card's form opens with the cursor in its search.
+        wide() { return window.matchMedia('(min-width: 1024px) and (hover: hover)').matches; },
+        // cardAt is the card of the skill at index in a column.
+        cardAt(index, side) {
+            return document.getElementById(side === 'b' ? 'routine-view-b' : 'routine-view')?.querySelectorAll('.routine-skill-container')[index];
+        },
+        // editorHome is where the skill form belongs: in the card being
+        // changed (parked while that card is redrawn), otherwise in Add a skill.
+        editorHome() {
+            if (this.editingIndex === null) { return document.querySelector('.builder-add'); }
+            return this.cardAt(this.editingIndex, this.editingSide) || document.getElementById('editor-park');
+        },
+        // placeEditor moves the skill form to its home, keeping the cursor
+        // where it was.
+        placeEditor() {
+            const wrapper = document.getElementById('skill-form-wrapper');
+            const home = this.editorHome();
+            if (!wrapper || !home || wrapper.parentElement === home) { return; }
+            const focus = this._refocus || this.focusIn(wrapper);
+            this._refocus = null;
+            home.appendChild(wrapper);
+            if (focus?.el.isConnected && wrapper.contains(focus.el)) {
+                focus.el.focus({ preventScroll: true });
+                if (focus.start !== null) { try { focus.el.setSelectionRange(focus.start, focus.end); } catch (e) { /* not a text field */ } }
+            }
+        },
+        // parkEditor takes the skill form out of a view about to be redrawn.
+        parkEditor(view) {
+            const wrapper = document.getElementById('skill-form-wrapper');
+            if (!wrapper || !view.contains(wrapper)) { return; }
+            this._refocus = this.focusIn(wrapper);
+            document.getElementById('editor-park').appendChild(wrapper);
+        },
+        // focusIn is the field focused inside el, with its selection, if any.
+        focusIn(el) {
+            const active = document.activeElement;
+            if (!active || !el.contains(active)) { return null; }
+            let start = null, end = null;
+            try { start = active.selectionStart; end = active.selectionEnd; } catch (e) { /* not a text field */ }
+            return { el: active, start, end };
+        },
+        // showEditor brings a card's form into view once it's opened, gently
+        // and only as far as it must: as much of it as fits, the card's head
+        // kept in sight. The card is let go of here.
+        showEditor() {
+            this.releaseHold();
+            const wrapper = document.getElementById('skill-form-wrapper');
+            const card = wrapper?.closest('.routine-skill-container');
+            if (!card) { return; }
+            const margin = 16;
+            const below = wrapper.getBoundingClientRect().bottom + margin - window.innerHeight;
+            const by = Math.min(below, card.getBoundingClientRect().top - margin);
+            if (by <= 0) { return; }
+            const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollBy({ top: by, behavior: smooth ? 'smooth' : 'instant' });
+        },
+
+        // --- Nothing moves under the finger ---
+        // The form moving out of Add a skill (or back) changes that box's
+        // height, above the routine. Meanwhile the card being changed is held
+        // where it is on the screen: the page scrolls by as much as the card
+        // would move, and where it can't (at the top of the page), the box
+        // keeps the room until the form comes back. The browser's own scroll
+        // anchoring is off meanwhile, so the two don't both make up for it.
+        // holdPlace holds what at gives (a function, as the routine may be
+        // redrawn meanwhile) where it is now.
+        holdPlace(at) {
+            const el = at();
+            this._hold = el ? { at, top: el.getBoundingClientRect().top, y: window.scrollY } : null;
+            document.documentElement.style.overflowAnchor = this._hold ? 'none' : '';
+        },
+        releaseHold() {
+            this._hold = null;
+            document.documentElement.style.overflowAnchor = '';
+        },
+        // keepHeld puts what's held back where it was.
+        keepHeld() {
+            const hold = this._hold, el = hold?.at();
+            if (!el) { return; }
+            const drift = el.getBoundingClientRect().top - hold.top;
+            if (Math.abs(drift) < 1) { return; }
+            window.scrollBy({ top: drift, behavior: 'instant' });
+            const left = el.getBoundingClientRect().top - hold.top;
+            if (left < -1) {
+                const box = document.querySelector('.builder-add');
+                box.style.minHeight = `${box.offsetHeight - left}px`;
+            } else if (left > 1) {
+                // At the foot of the page: room under the builder to scroll into,
+                // taken away again once it's out of sight (holdOnResize).
+                this._room = (this._room || 0) + left;
+                document.querySelector('.builder').style.paddingBottom = `${this._room}px`;
+                window.scrollBy({ top: left, behavior: 'instant' });
+            }
+            hold.y = window.scrollY;
+        },
+        // holdOnResize keeps the hold as the box changes height (Alpine and
+        // htmx change it in their own time), and follows the page as it's
+        // scrolled by hand meanwhile, so it never pulls the page back. Room
+        // made at the foot of the page goes once it's scrolled out of sight,
+        // so nothing jumps.
+        holdOnResize() {
+            const box = document.querySelector('.builder-add');
+            if (box && window.ResizeObserver) { new ResizeObserver(() => this.keepHeld()).observe(box); }
+            // Only a scroll by hand is followed: the browser pulls the page back
+            // by itself when it gets shorter (the box shrinking a moment before
+            // the form lands in the card), and following that held the card in
+            // the wrong place.
+            let byHand = 0;
+            const hand = () => { byHand = performance.now(); };
+            const scrollKeys = ['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', ' '];
+            window.addEventListener('wheel', hand, { passive: true, capture: true });
+            window.addEventListener('touchmove', hand, { passive: true, capture: true });
+            // A press on the page's scrollbar (its target is the page itself), not a click on a button.
+            window.addEventListener('pointerdown', (e) => { if (e.target === document.documentElement) { hand(); } }, { passive: true, capture: true });
+            window.addEventListener('keydown', (e) => { if (scrollKeys.includes(e.key) && !e.target.closest?.('input, textarea, select, [contenteditable]')) { hand(); } }, { passive: true, capture: true });
+            window.addEventListener('scroll', () => {
+                const hold = this._hold;
+                if (hold && window.scrollY !== hold.y && performance.now() - byHand < 1000) {
+                    hold.top -= window.scrollY - hold.y;
+                    hold.y = window.scrollY;
+                }
+                if (this._room && !hold && window.scrollY + window.innerHeight <= document.documentElement.scrollHeight - this._room) {
+                    this._room = 0;
+                    document.querySelector('.builder').style.paddingBottom = '';
+                }
+            }, { passive: true });
         },
 
         // --- Choosing which elements score (when only some do) ---
@@ -988,7 +1220,7 @@ function tariffCalculatorStore() {
             if (!list || !window.Sortable || 'readOnly' in list.dataset) { return; } // a prescribed set routine stays as it is
             Sortable.create(list, {
                 draggable: '.routine-skill-container',
-                filter: 'button:not(.card-toggle)', preventOnFilter: false, // the card's buttons stay clickable; its head (a button too) still drags, and a tap on it still opens it
+                filter: 'button:not(.card-toggle), #skill-form-wrapper', preventOnFilter: false, // the card's buttons (and a skill form in it) stay usable; its head (a button too) still drags, and a tap on it still opens it
                 delay: 200, delayOnTouchOnly: true,       // on touch, press and hold so the page still scrolls
                 animation: 150,
                 onEnd: (event) => {
