@@ -11,8 +11,7 @@ generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
 
 - **Tariff for any skill** under the FIG Code of Points 2025–2028, from a tuck
   jump to a quadruple somersault. Each skill shows its name, its FIG notation
-  (e.g. `8 2 3 /`) and its tariff. The maths is checked against every worked
-  example in the Code of Points ([tariff](../domain/tariff.md)).
+  (e.g. `8 2 3 /`) and its tariff.
 - **Three ways to add a skill**: tap it in the picker (Jumps, Body landings,
   Singles, Doubles, Triples, each opening its skills when tapped); search by name ("barani", "back
   s/s", "rudy") or by FIG notation ("8 1 1 <"); or build it yourself from
