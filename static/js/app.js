@@ -38,7 +38,7 @@ function tariffCalculatorStore() {
         // card's form is in.
         draft: null,
         busy: false, // an add or update is in flight
-        pickerTab: 'jumps', // the skill picker's open category
+        pickerTab: '', // the skill picker's open category, '' while they're all closed
         picked: null,       // the picker entry last chosen (catalog.Entry ID)
         pickedShape: null,  // the shape it was chosen in
         query: '',          // the picker's search text; results replace the tabs while it's set

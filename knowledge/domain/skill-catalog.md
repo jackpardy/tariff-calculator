@@ -37,8 +37,10 @@ picker shows names without the shape, which is chosen on the skill card.
 
 # The picker
 
-`catalog.Categories()` turns the common skills into the picker's tabs:
-**Jumps**, **Body landings**, **Singles**, **Doubles**, **Triples**. Each
+`catalog.Categories()` turns the common skills into the picker's categories:
+**Jumps**, **Body landings**, **Singles**, **Doubles**, **Triples**. They start
+closed; one button opens its skills and pressing the open one again closes it
+(the owner, 2026-10-23; buttons with `aria-expanded`, not tabs). Each
 skill is placed by its rotation and positions: Singles holds every single
 somersault, twisting or not, to line up with Doubles and Triples. Body
 landings holds only the skills short of a somersault (seat, back and front

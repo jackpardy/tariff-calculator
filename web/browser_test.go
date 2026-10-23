@@ -493,3 +493,33 @@ func TestCardsDragByTheirHeadInABrowser(t *testing.T) {
 		t.Error("a drag from ↑, ↓ or Edit should be ignored, so those stay clickable")
 	}
 }
+
+// The picker's categories start closed: one opens its skills, another
+// switches to it, and pressing the open one again closes it.
+func TestPickerCategoriesOpenAndCloseInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	const shown = `[...document.querySelectorAll('.builder-add .picker-list')].filter((l) => l.offsetParent !== null).map((l) => l.getAttribute('aria-label')).join() || 'none'`
+	tab := func(name string) chromedp.Action {
+		return chromedp.Click(`//button[contains(@class, "picker-tab") and normalize-space() = "`+name+`"]`, chromedp.BySearch)
+	}
+	var start, jumps, singles, closed, expanded string
+	step(t, ctx, "opening and closing the categories",
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.WaitVisible(`.builder-add .picker-tab`, chromedp.ByQuery),
+		chromedp.Sleep(200*time.Millisecond),
+		chromedp.Evaluate(shown, &start),
+		tab("Jumps"), chromedp.Sleep(150*time.Millisecond), chromedp.Evaluate(shown, &jumps),
+		tab("Singles"), chromedp.Sleep(150*time.Millisecond), chromedp.Evaluate(shown, &singles),
+		chromedp.Evaluate(`[...document.querySelectorAll('.builder-add .picker-tab')].map((b) => b.getAttribute('aria-expanded')).join()`, &expanded),
+		tab("Singles"), chromedp.Sleep(150*time.Millisecond), chromedp.Evaluate(shown, &closed),
+	)
+	if start != "none" || jumps != "Jumps" || singles != "Singles" || closed != "none" {
+		t.Errorf("open categories: at the start %s, Jumps %s, Singles %s, Singles again %s; want none, Jumps, Singles, none", start, jumps, singles, closed)
+	}
+	if expanded != "false,false,true,false,false" {
+		t.Errorf("the buttons should say which is open: %s", expanded)
+	}
+}
