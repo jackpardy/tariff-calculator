@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -200,12 +199,13 @@ func TestSandboxSeed(t *testing.T) {
 	// Members keep routines and mark skills: the start page's member has
 	// both, and the club's Members links to them.
 	members := do(t, s.h, http.MethodGet, l.CompSec.Link+"/members", nil).Body.String()
-	// Their row: a coach of the same name is an option in other rows' coach
-	// dropdowns, before it.
+	// Their row, by the row's own name (data-name): a coach of the same name
+	// is an option in the coach filter and other rows' dropdowns, so the name
+	// on its own matched them now and then (the seed is random).
 	row := ""
-	named := regexp.MustCompile(`<td[^>]*>\s*(<a[^>]*>)?\s*` + regexp.QuoteMeta(html.EscapeString(l.Member.Name)) + `\s*<`)
-	for _, tr := range strings.Split(members, "<tr")[1:] {
-		if named.MatchString(tr) {
+	named := `data-name="` + html.EscapeString(l.Member.Name) + `"`
+	for _, tr := range strings.Split(members, "<tr ")[1:] {
+		if head, _, _ := strings.Cut(tr, ">"); strings.Contains(head, named) {
 			row = tr
 			break
 		}

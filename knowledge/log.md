@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-10-23
+* **Update**: [CI and deploys](operations/deploy.md#ci) are faster and steadier. The tests and the Docker image build side by side (the image cached between runs), the image no longer runs the tests again, and a deploy sends the image CI built to the server, which loads it in seconds rather than building it for about 5 minutes. Two tests that failed now and then on CI are fixed (the sandbox member found by their row; the phone's stood-still clock kept through a reload), and a browser test that times out says where its page was.
+
 ## 2026-10-22
 * **Update**: [A skill is changed in its own card](features/routine-builder.md#changing-a-skill-in-its-card). **Edit** opens the card where it is, the skill form moving into it under its head: **Change to another skill** (a search; a result keeps the label), **Build or adjust this skill** (open only for a skill without a name), the shapes, **Add a label**, **Update** and **Cancel**. Update puts the focus back on Edit; Cancel, Escape or Edit again leaves it as it was; Edit on another card moves the form there. Enter, Enter, Enter in the search finds, puts on the card and updates. Add a skill says "Changing skill 7 in its card below…" until then, its picker hidden. The cards above don't move as it opens; a form running off the screen comes up once, gently. Side by side (either column), in Levels mode and on a phone. The layout, adding and the cards' look are as they were.
 * **Fix**: On a phone the [Feedback tab](features/competition-entries.md#feedback-about-the-app) covered whatever was at the right edge, such as a routine card's red ✕: it's slimmer there and the page keeps clear of it, the banners still reaching the edge.
