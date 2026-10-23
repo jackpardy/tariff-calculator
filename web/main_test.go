@@ -229,7 +229,7 @@ func TestSkillForm(t *testing.T) {
 			}
 		}
 		// The picker offers the common skills by category, named in their usual shape.
-		tabs := regexp.MustCompile(`role="tab"[^>]*>([^<]+)</button>`).FindAllStringSubmatch(html, -1)
+		tabs := regexp.MustCompile(`class="picker-tab"[^>]*>([^<]+)</button>`).FindAllStringSubmatch(html, -1)
 		var labels []string
 		for _, m := range tabs {
 			labels = append(labels, m[1])

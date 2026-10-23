@@ -19,8 +19,9 @@ that browser on that device. For an overview of what the app can do, see
 The **Add a skill** box is at the top, with your routine under it.
 
 1. **Find the skill**, in one of three ways:
-   - **Tap it** in the picker. The tabs are Jumps, Body landings, Singles,
-     Doubles and Triples. **Body landings** are the seat, back and front drops
+   - **Tap it** in the picker. The categories are Jumps, Body landings, Singles,
+     Doubles and Triples. They start closed: tap one to see its skills, and tap
+     it again to close it. **Body landings** are the seat, back and front drops
      and their twists: first **From feet** (Seat Drop, Back Drop, Front Drop
      and their ½ twists), then **From a body landing**, in one group by where
      they land (To Feet, ½ Twist To Feet, To Seat…). Those take off from where

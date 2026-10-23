@@ -24,7 +24,8 @@ Requirements and compare pages are the competition pages' 60rem.
 The "Add a skill" card shows one skill with a live summary: its name, FIG
 notation and tariff. There are three ways to set it:
 
-- **Picker**: big buttons by category, with tuck, pike or straight where the
+- **Picker**: big buttons by category (all closed at first; a category's
+  button opens it, and again closes it), with tuck, pike or straight where the
   shape matters ([skill catalog](../domain/skill-catalog.md)). Body landings
   start with the drops from the feet (fixed tiles); then one group, "From a
   body landing", by where they land (To Feet, ½ Twist To Feet, To Seat…), and a

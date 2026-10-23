@@ -75,10 +75,12 @@ templ SkillFormView(f SkillForm) {
 	</form>
 }
 
-// picker lets the user choose a common skill by category: big buttons, one tab
-// per category. Choosing one loads it into the editor (keeping the label and
-// edit state), where the card shows it and its shape can be changed. The tab and
-// the last pick are kept in the page's Alpine component (pickerTab, picked).
+// picker lets the user choose a common skill by category: big buttons under
+// a button per category. The categories start closed; one opens its skills,
+// and pressing the open one again closes it (the owner, 2026-10-23). Choosing a
+// skill loads it into the editor (keeping the label and edit state), where the
+// card shows it and its shape can be changed. The open category and the last
+// pick are kept in the page's Alpine component (pickerTab, '' for none; picked).
 // In the builder, while a card is being changed in place (the form moved into
 // it), only the search shows, as "Change to another skill": the tabs are for
 // adding.
@@ -129,20 +131,22 @@ templ picker(cats []catalog.Category) {
 				x-show="editingIndex === null"
 			}
 		>
-			<div class="picker-tabs" role="tablist" aria-label="Skill categories" x-show="query.trim() === ''">
+			<div class="picker-tabs" role="group" aria-label="Skill categories" x-show="query.trim() === ''">
 				for _, c := range cats {
 					<button
 						type="button"
-						role="tab"
 						class="picker-tab"
+						aria-controls={ "picker-" + c.Key }
 						x-bind:class={ fmt.Sprintf("{ 'is-active': pickerTab === '%s' }", c.Key) }
-						x-bind:aria-selected={ fmt.Sprintf("pickerTab === '%s'", c.Key) }
-						x-on:click={ fmt.Sprintf("pickerTab = '%s'", c.Key) }
+						x-bind:aria-expanded={ fmt.Sprintf("pickerTab === '%s' ? 'true' : 'false'", c.Key) }
+						x-on:click={ fmt.Sprintf("pickerTab = pickerTab === '%[1]s' ? '' : '%[1]s'", c.Key) }
 					>{ c.Label }</button>
 				}
 			</div>
 			for _, c := range cats {
-				<div class="picker-list" role="tabpanel" aria-label={ c.Label } x-show={ fmt.Sprintf("query.trim() === '' && pickerTab === '%s'", c.Key) } x-cloak>
+				// hidden (bound), not x-show: the form is moved into a card and
+				// back, and x-show then left the closed lists showing.
+				<div class="picker-list" id={ "picker-" + c.Key } role="group" aria-label={ c.Label } hidden x-bind:hidden={ fmt.Sprintf("!(query.trim() === '' && pickerTab === '%s')", c.Key) }>
 					// Body landings: the drops from the feet, then those from a body
 					// landing, each taking off where the skill before it lands (g.Note).
 					for _, g := range c.Groups {
