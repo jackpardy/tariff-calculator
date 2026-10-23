@@ -206,7 +206,9 @@ but use the same words and the same main-action colour.
 - **Layout.** The builder's layout is as it was: Add a skill above the
   routine at every width (the owner, 2026-10-22; a redesign is separate).
   **Edit** changes a skill in its own card: the skill form moves into the
-  card under its head, in the editing blue's tint (`#f5f7ff`), and Add a
+  card under its head, in the editing blue's tint (`#f5f7ff`), the head
+  tinted too and showing the skill as it will be ("not saved" in the
+  editing blue), with Update and Cancel on it, and Add a
   skill says so in one line until Update or Cancel; the cards above don't
   move ([how](../features/routine-builder.md#changing-a-skill-in-its-card)).
   Shared with the competition pages: the open arrow on More

@@ -186,6 +186,23 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 .routine-skill-container > #skill-form-wrapper { padding: 0.6rem 0.75rem 0.75rem; background: #f5f7ff; border-top: 1px solid #dfe4f7; border-bottom: 2px solid #485fc7; }
 .routine-skill-container > #skill-form-wrapper .picker { margin-bottom: 0.6rem; }
 .routine-skill-container > #skill-form-wrapper .skill-builder { margin-bottom: 0.6rem; background: #fff; }
+/* Its head shows the skill as it will be, tinted, with Update and Cancel;
+   its details (the skill as saved) wait until it's done. The head's two
+   versions swap by the card's class, at once, so they never show together
+   (and the head never wraps) for a moment. */
+.routine-skill-container.drafting .card-saved, .routine-skill-container.drafting .saved-only,
+.routine-skill-container:not(.drafting) .card-draft, .routine-skill-container:not(.drafting) .draft-only { display: none; }
+.routine-skill-container.editing .routine-skill { background: #f5f7ff; }
+.routine-skill-container.editing .card-details { display: none; }
+.routine-skill-container.editing .card-arrow { visibility: hidden; }
+.card-unsaved { font-size: 0.75rem; color: #485fc7; white-space: nowrap; }
+/* Under the head: the shape and label, then the search, then the builder,
+   with the skill card as its readout only while it's open. */
+.edit-fields { margin-bottom: 0.6rem; }
+.edit-fields .skill-card-label { margin-top: 0.4rem; }
+.edit-fields .skill-card-problem { margin: 0 0 0.4rem; }
+.edit-fields .skill-card-follows { margin: 0 0 0.4rem; }
+.skill-builder:not([open]) ~ .skill-readout { display: none; }
 /* Add a skill's one line while the form is in a card. */
 .builder-add-waiting { color: #555; }
 .routine-skill-container.sortable-ghost .routine-skill { opacity: 0.4; }

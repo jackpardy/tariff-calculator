@@ -33,6 +33,10 @@ function tariffCalculatorStore() {
         // (placeEditor), and back to Add a skill after.
         editingIndex: null,
         editingSide: 'a', // the column of the skill being edited
+        // The skill as it will be, shown on the card's head while it's changed
+        // (readDraft): {name, official, fig, tariff, changed}; null until the
+        // card's form is in.
+        draft: null,
         busy: false, // an add or update is in flight
         pickerTab: 'jumps', // the skill picker's open category
         picked: null,       // the picker entry last chosen (catalog.Entry ID)
@@ -117,8 +121,13 @@ function tariffCalculatorStore() {
                 // After Enter in a card's search, the typing's own search may come
                 // back later and replace the results: the focus goes back on the first.
                 if (id === 'search-results' && this._enterFor !== null && this._enterFor === this.query) { this.focusFirstResult(); }
-                // A result chosen in a card being changed: on to Update.
-                if (id === 'skill-editor' && this._toUpdate) { this._toUpdate = false; document.getElementById('update-btn')?.focus({ preventScroll: true }); }
+                // A card being changed shows the skill on its head as it changes.
+                if (id === 'skill-editor' || id === 'skill-form-wrapper') { this.readDraft(); }
+                // A result chosen in a card being changed: on to Update, on its head.
+                if (id === 'skill-editor' && this._toUpdate) {
+                    this._toUpdate = false;
+                    this.$nextTick(() => document.getElementById('update-btn')?.focus({ preventScroll: true }));
+                }
             });
             this.holdOnResize();
             document.body.addEventListener('htmx:afterRequest', (event) => {
@@ -917,13 +926,16 @@ function tariffCalculatorStore() {
         // --- Changing a skill in its card ---
         // editSkill opens a card into the skill form, to change the skill in
         // place: the form moves out of Add a skill into the card, under its
-        // head, once it's loaded with the skill. Edit on another card moves it
-        // there (the first left as it was); Edit again on the same one closes it.
+        // head, once it's loaded with the skill, and the head shows the skill
+        // as it changes (readDraft), with Update and Cancel. Edit on another
+        // card moves it there (the first left as it was); Edit again on the
+        // same one closes it.
         editSkill(index, side = 'a') {
             if (this.editingIndex === index && this.editingSide === side) { this.cancelEdit(true); return; }
             this.holdPlace(() => this.cardAt(index, side)?.querySelector('.card-head'));
             this.editingIndex = index;
             this.editingSide = side;
+            this.draft = null; // the card shows its skill until its form is in
             this.query = '';
             this._enterFor = null;
             this._toUpdate = false;
@@ -966,6 +978,7 @@ function tariffCalculatorStore() {
             this.holdPlace(() => this.cardAt(index, side)?.querySelector('.card-head'));
             this.editingIndex = null;
             this.editingSide = 'a';
+            this.draft = null;
             this.query = '';
             this._enterFor = null;
             this._toUpdate = false;
@@ -985,6 +998,28 @@ function tariffCalculatorStore() {
         escapeEdit(event) {
             if (this.editingIndex === null || (event.target.id === 'skill-search' && event.target.value)) { return; }
             this.cancelEdit(true);
+        },
+        // drafting reports whether the card at index in a column is being
+        // changed, its form in: its head shows the skill as it will be, with
+        // Update and Cancel in place of ↑, ↓, Edit and ✕.
+        drafting(index, side) { return this.draft !== null && this.editingIndex === index && this.editingSide === side; },
+        // readDraft reads the skill being built off the form, as the server
+        // last drew it (its name, notation and tariff) and the label as it's
+        // typed, for the card's head; "not saved" once it differs from what
+        // the head showed.
+        readDraft() {
+            const form = document.getElementById('main-form');
+            if (this.editingIndex === null || !form || !(Number(form.elements.editIndex?.value) >= 0)) { return; }
+            const text = (sel) => form.querySelector(sel)?.textContent.trim() || '';
+            const official = text('.skill-card-name'), label = document.getElementById('custom-name')?.value.trim() || '';
+            const draft = { name: label || official, official: label ? official : '', fig: text('.skill-card-fig'), tariff: text('.skill-card-tariff') };
+            const saved = this.cardAt(this.editingIndex, this.editingSide)?.querySelector('.card-saved');
+            const flat = (s) => s.replace(/\s+/g, '');
+            const shown = `${this.editingIndex + 1}.${draft.name}${draft.official ? '·' + draft.official : ''}`;
+            draft.changed = !!saved && (flat(saved.querySelector('.skill-name').textContent) !== flat(shown)
+                || flat(saved.querySelector('.card-fig').textContent) !== flat(draft.fig)
+                || saved.closest('.card-toggle').querySelector('.card-tariff').textContent.trim() !== draft.tariff);
+            this.draft = draft;
         },
         // changingWhere is what the Add a skill box says while a card is being changed.
         changingWhere() {
@@ -1014,7 +1049,8 @@ function tariffCalculatorStore() {
         _toUpdate: false, // a result is on its way to a card's form: the focus goes on to Update
         focusFirstResult() { document.querySelector('#search-results .picker-skill')?.focus({ preventScroll: true }); },
         // resultChosen notes a search result chosen in a card being changed:
-        // the results close, and once it's on the card, the focus is on Update.
+        // the results close, and once it's on the card's head, the focus is
+        // on Update there.
         resultChosen(event) {
             if (this.editingIndex === null || !event.target.closest('.picker-skill')) { return; }
             this._enterFor = null;

@@ -14,7 +14,8 @@ import (
 
 // Changing a skill happens in its own card: Edit moves the one skill form
 // out of Add a skill into the card, under its head, and Update or Cancel
-// moves it back (placeEditor in static/js/app.js).
+// moves it back (placeEditor in static/js/app.js). Meanwhile the head shows
+// the skill as it will be, with Update and Cancel on it (readDraft).
 
 // tuckBacks is n tuck backs as a routine's skills, as JSON.
 func tuckBacks(n int) string {
@@ -80,16 +81,33 @@ func inCard(list string, i int) string {
 // formHome is whether the skill form is back in Add a skill, ready to add.
 const formHome = `!!document.querySelector('.builder-add > #skill-form-wrapper #add-btn') && document.querySelector('.builder-add-waiting').offsetParent === null`
 
+// headShows is whether the card being changed shows on its head, until
+// Update, the skill as it will be: its number and name, its tariff, and
+// "not saved" or not; Update and Cancel there, in place of ↑, ↓, Edit and ✕.
+func headShows(name, tariff string, unsaved bool) string {
+	return `(() => { const card = document.querySelector('.routine-skill-container.editing'), head = card?.querySelector('.card-head'), draft = head?.querySelector('.card-draft');
+		const shown = (el) => !!el && el.offsetParent !== null;
+		return shown(draft) && !shown(head.querySelector('.card-saved')) && draft.querySelector('.skill-name').textContent.replace(/\s+/g, ' ').trim() === ` + "`" + name + "`" + `
+			&& [...head.querySelectorAll('.card-tariff')].find(shown)?.textContent === '` + tariff + `' && shown(draft.querySelector('.card-unsaved')) === ` + fmt.Sprint(unsaved) + `
+			&& shown(head.querySelector('#update-btn')) && shown(head.querySelector('#cancel-btn')) && !shown(head.querySelector('[data-edit]')); })()`
+}
+
+// readoutShown is whether the skill card shows in the card being changed:
+// only as the readout of Build or adjust while that's open.
+const readoutShown = `document.querySelector('#skill-form-wrapper .skill-readout')?.offsetParent != null`
+
 // headTop is where a card's head is on the screen.
 func headTop(list string, i int) string {
 	return `document.querySelectorAll('#` + list + ` .routine-skill-container')[` + string(rune('0'+i)) + `].querySelector('.card-head').getBoundingClientRect().top`
 }
 
 // Edit opens the card into the skill form, the card above it not moving:
-// a shape changed and Update saves it; the search finds another skill,
-// Enter, Enter and Enter putting it on the card and updating; Cancel and
-// Escape leave the skill as it was; Edit on another card moves the form.
-// Meanwhile Add a skill says where the form is.
+// a shape changed shows on the head, not saved, and Update saves it; the
+// search finds another skill, Enter, Enter and Enter putting it on the head
+// and updating, the head staying put; the skill card shows only while Build
+// or adjust is open; Cancel and Escape put the head back and leave the
+// skill as it was; Edit on another card moves the form. Meanwhile Add a
+// skill says where the form is.
 func TestEditInTheCardInABrowser(t *testing.T) {
 	ctx := browser(t)
 	srv := httptest.NewServer(routes())
@@ -106,6 +124,7 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 		chromedp.Evaluate(headTop("routine-skills", 2), &above),
 		chromedp.Click(`[data-edit="a:3"]`, chromedp.ByQuery),
 		poll(inCard("routine-skills", 3)+` && !!document.getElementById('update-btn') && document.querySelector('.routine-skill-container.editing') !== null`),
+		poll(headShows("4. Tuck Back", "0.5", false)+` && !(`+readoutShown+`)`),
 		poll(`document.querySelector('.builder-add-waiting').offsetParent !== null && document.querySelector('.picker-browse').offsetParent === null`),
 		chromedp.Sleep(300*time.Millisecond),
 		chromedp.Evaluate(headTop("routine-skills", 3), &after),
@@ -126,19 +145,25 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 		t.Errorf("the card above moved from %v to %v", above, aboveAfter)
 	}
 
-	step(t, ctx, "changing its shape to pike and updating",
+	var shaped float64
+	step(t, ctx, "changing its shape to pike: the head shows it, not saved, and Update saves it",
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(2)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
+		poll(headShows("4. Pike Back", "0.6", true)),
+		chromedp.Evaluate(headTop("routine-skills", 3), &shaped),
+		poll(savedSkills(0, "shape")+` === 'Tuck,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck'`),
 		chromedp.Click(`#update-btn`, chromedp.ByQuery),
 		poll(savedSkills(0, "shape")+` === 'Tuck,Tuck,Tuck,Pike,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck'`),
 		poll(formHome+` && document.activeElement?.dataset.edit === 'a:3'`),
 	)
+	if math.Abs(shaped-after) >= 1 {
+		t.Errorf("the card's head moved from %v to %v as the shape was chosen", after, shaped)
+	}
 
-	var held float64
+	var held, chosen float64
 	step(t, ctx, "changing it to a rudi by the search: Enter, Enter, Enter",
 		chromedp.Evaluate(headTop("routine-skills", 3), &before),
 		chromedp.Click(`[data-edit="a:3"]`, chromedp.ByQuery),
-		poll(inCard("routine-skills", 3)+` && document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
+		poll(inCard("routine-skills", 3)+` && `+headShows("4. Pike Back", "0.6", false)),
 		// With a mouse the search has the focus already; a browser without one
 		// (headless on CI) is treated as a touch screen, so it's clicked into.
 		poll(`!matchMedia('(min-width: 1024px) and (hover: hover)').matches || document.activeElement?.id === 'skill-search'`),
@@ -149,31 +174,44 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 		chromedp.Sleep(400*time.Millisecond),
 		poll(`document.activeElement?.matches('#search-results .picker-skill')`),
 		chromedp.KeyEvent("\r"),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Rudi' && document.activeElement?.id === 'update-btn'`),
+		// The result goes straight on the card's head, the focus on to its Update.
+		poll(headShows("4. Rudi", "0.8", true)+` && document.activeElement?.id === 'update-btn'`),
+		chromedp.Evaluate(headTop("routine-skills", 3), &chosen),
 		chromedp.KeyEvent("\r"),
 		poll(savedSkills(0, "name")+`.split(',')[3] === 'Rudi'`),
 		poll(formHome+` && document.activeElement?.dataset.edit === 'a:3'`),
 		chromedp.Evaluate(headTop("routine-skills", 3), &held),
 	)
-	if math.Abs(held-before) >= 1 {
-		t.Errorf("the card moved from %v to %v, opened and updated", before, held)
+	if math.Abs(held-before) >= 1 || math.Abs(chosen-before) >= 1 {
+		t.Errorf("the card moved from %v to %v as the result was chosen, and %v once updated", before, chosen, held)
 	}
 
 	var shapes string
-	step(t, ctx, "Cancel and Escape leave the skill as it was",
+	// The card's head as saved: its own name, nothing of a change left on it.
+	savedHead := func(i int, name string) string {
+		return `(() => { const head = document.querySelectorAll('#routine-skills .routine-skill-container')[` + fmt.Sprint(i) + `].querySelector('.card-head');
+			return head.querySelector('.card-saved')?.offsetParent != null && head.querySelector('.card-draft').offsetParent === null
+				&& head.querySelector('.card-saved .skill-name').textContent.trim() === '` + name + `' && head.querySelector('[data-edit]').offsetParent != null; })()`
+	}
+	step(t, ctx, "Cancel and Escape leave the skill as it was, Build or adjust showing the skill card while it's open",
 		chromedp.Click(`[data-edit="a:1"]`, chromedp.ByQuery),
-		poll(inCard("routine-skills", 1)+` && !!document.getElementById('cancel-btn')`),
+		poll(inCard("routine-skills", 1)+` && !!document.getElementById('cancel-btn') && !(`+readoutShown+`)`),
+		chromedp.Click(`#skill-builder > summary`, chromedp.ByQuery),
+		// (Its toggle event, a moment later, notes it's open for the server.)
+		poll(readoutShown+` && !document.querySelector('#skill-form-wrapper #update-btn') && document.getElementById('main-form').elements.builder_open.value === '1'`),
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(3)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Straight Back'`),
+		poll(headShows("2. Straight Back", "0.6", true)+` && `+readoutShown),
+		chromedp.Click(`#skill-builder > summary`, chromedp.ByQuery),
+		poll(`!(`+readoutShown+`)`),
 		chromedp.Click(`#cancel-btn`, chromedp.ByQuery),
-		poll(formHome+` && document.activeElement?.dataset.edit === 'a:1'`),
+		poll(formHome+` && document.activeElement?.dataset.edit === 'a:1' && `+savedHead(1, "2. Tuck Back")),
 		chromedp.Click(`[data-edit="a:1"]`, chromedp.ByQuery),
 		poll(inCard("routine-skills", 1)+` && !!document.getElementById('cancel-btn')`),
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(2)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
+		poll(headShows("2. Pike Back", "0.6", true)),
 		chromedp.Focus(`#update-btn`, chromedp.ByQuery),
 		chromedp.KeyEvent("\x1b"),
-		poll(formHome+` && document.activeElement?.dataset.edit === 'a:1'`),
+		poll(formHome+` && document.activeElement?.dataset.edit === 'a:1' && `+savedHead(1, "2. Tuck Back")),
 		chromedp.Evaluate(savedSkills(0, "shape"), &shapes),
 	)
 	if shapes != "Tuck,Tuck,Tuck,Straight,Tuck,Tuck,Tuck,Tuck,Tuck,Tuck" {
@@ -185,15 +223,19 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 		chromedp.Click(`[data-edit="a:0"]`, chromedp.ByQuery),
 		poll(inCard("routine-skills", 0)+` && !!document.getElementById('update-btn')`),
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(2)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
+		poll(headShows("1. Pike Back", "0.6", true)),
 		chromedp.Evaluate(`document.querySelector('[data-edit="a:4"]').scrollIntoView({block: 'center'}); 0`, nil),
 		chromedp.Sleep(100*time.Millisecond),
 		chromedp.Evaluate(headTop("routine-skills", 4), &before),
 		chromedp.Click(`[data-edit="a:4"]`, chromedp.ByQuery),
-		poll(inCard("routine-skills", 4)+` && document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Tuck Back'`),
+		poll(inCard("routine-skills", 4)+` && `+headShows("5. Tuck Back", "0.5", false)+` && `+savedHead(0, "1. Tuck Back")),
 		chromedp.Sleep(200*time.Millisecond),
 		chromedp.Evaluate(headTop("routine-skills", 4), &after),
 		chromedp.Evaluate(`document.querySelectorAll('.routine-skill-container.editing').length`, &marked),
+		// A label shows on the head as it's typed.
+		chromedp.Click(`#skill-form-wrapper .skill-card-label > summary`, chromedp.ByQuery),
+		chromedp.SendKeys(`#custom-name`, "Opener", chromedp.ByQuery),
+		poll(headShows("5. Opener · Tuck Back", "0.5", true)),
 		chromedp.Click(`#cancel-btn`, chromedp.ByQuery),
 		poll(formHome),
 		chromedp.Evaluate(savedSkills(0, "shape"), &shapes),
@@ -223,7 +265,7 @@ func TestEditInTheSecondColumnInABrowser(t *testing.T) {
 		chromedp.Evaluate(`document.querySelector('.builder-add-waiting').textContent`, &waiting),
 		chromedp.Evaluate(`(() => { const card = document.querySelectorAll('#routine-skills-b .routine-skill-container')[2].getBoundingClientRect(), form = document.getElementById('main-form').getBoundingClientRect(); return form.left >= card.left && form.right <= card.right; })()`, &fits),
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(2)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
+		poll(headShows("3. Pike Back", "0.6", true)+` && !!document.querySelector('#routine-skills-b .editing #update-btn')`),
 		chromedp.Click(`#update-btn`, chromedp.ByQuery),
 		poll(savedSkills(1, "shape")+` === 'Tuck,Tuck,Pike,Tuck'`),
 		poll(formHome+` && document.activeElement?.dataset.edit === 'b:2'`),
@@ -249,8 +291,13 @@ func TestEditInTheCardOnAPhoneInABrowser(t *testing.T) {
 	defer srv.Close()
 
 	var before, after float64
-	var fits, sideways bool
+	var fits, sideways, headFit bool
 	var shapes string
+	// Update and Cancel, in place of ↑, ↓, Edit and ✕, fit the head beside
+	// the tariff: all in the card, the buttons side by side, level with it.
+	const headFits = `(() => { const head = document.querySelector('.routine-skill-container.editing .card-head'), box = head.getBoundingClientRect();
+		const update = head.querySelector('#update-btn').getBoundingClientRect(), cancel = head.querySelector('#cancel-btn').getBoundingClientRect(), tariff = [...head.querySelectorAll('.card-tariff')].find((el) => el.offsetParent).getBoundingClientRect();
+		return update.right <= cancel.left && Math.abs(update.top - cancel.top) < 1 && tariff.right <= update.left && cancel.right <= box.right + 0.5 && box.left >= 0 && box.right <= window.innerWidth; })()`
 	step(t, ctx, "changing the fifth skill on a phone",
 		openBuilder(srv.URL, 390, 844, true, cardRoutines(8, false)),
 		chromedp.Evaluate(`document.querySelector('[data-edit="a:4"]').scrollIntoView({block: 'center'}); 0`, nil),
@@ -263,7 +310,8 @@ func TestEditInTheCardOnAPhoneInABrowser(t *testing.T) {
 		chromedp.Evaluate(`(() => { const card = document.querySelectorAll('#routine-skills .routine-skill-container')[4].getBoundingClientRect(); return [...document.querySelectorAll('#main-form *')].every((el) => { const r = el.getBoundingClientRect(); return r.width === 0 || (r.left >= card.left - 0.5 && r.right <= card.right + 0.5); }); })()`, &fits),
 		chromedp.Evaluate(`document.documentElement.scrollWidth > window.innerWidth`, &sideways),
 		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(3)`, chromedp.ByQuery),
-		poll(`document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Straight Back'`),
+		poll(headShows("5. Straight Back", "0.6", true)),
+		chromedp.Evaluate(headFits, &headFit),
 		chromedp.Click(`#update-btn`, chromedp.ByQuery),
 		poll(formHome),
 		chromedp.Evaluate(savedSkills(0, "shape"), &shapes),
@@ -274,13 +322,17 @@ func TestEditInTheCardOnAPhoneInABrowser(t *testing.T) {
 	if !fits || sideways {
 		t.Errorf("the form should fit the card (%v), and the page not scroll sideways (%v)", fits, sideways)
 	}
+	if !headFit {
+		t.Error("the head's name, tariff, Update and Cancel should fit on one row, in the card")
+	}
 	if shapes != "Tuck,Tuck,Tuck,Tuck,Straight,Tuck,Tuck,Tuck" {
 		t.Errorf("the shapes are %s", shapes)
 	}
 }
 
 // A card opened low on the screen is brought up, once, as far as its form
-// needs and no further: Update in sight and the card's head still on screen.
+// needs and no further: Build or adjust in sight and the card's head (with
+// Update) still on screen.
 func TestEditBringsTheFormIntoViewInABrowser(t *testing.T) {
 	ctx := browser(t)
 	srv := httptest.NewServer(routes())
@@ -293,15 +345,43 @@ func TestEditBringsTheFormIntoViewInABrowser(t *testing.T) {
 		chromedp.Evaluate(`document.querySelector('[data-edit="a:2"]').scrollIntoView({block: 'end'}); 0`, nil),
 		chromedp.Sleep(100*time.Millisecond),
 		chromedp.Click(`[data-edit="a:2"]`, chromedp.ByQuery),
-		poll(inCard("routine-skills", 2)+` && document.getElementById('update-btn')?.getBoundingClientRect().bottom <= window.innerHeight`),
+		poll(inCard("routine-skills", 2)+` && document.getElementById('skill-builder')?.getBoundingClientRect().bottom <= window.innerHeight`),
 		chromedp.Sleep(600*time.Millisecond),
 		chromedp.Evaluate(headTop("routine-skills", 2), &head),
-		chromedp.Evaluate(`document.getElementById('update-btn').getBoundingClientRect().bottom <= window.innerHeight`, &updateSeen),
+		chromedp.Evaluate(`document.getElementById('skill-builder').getBoundingClientRect().bottom <= window.innerHeight && document.getElementById('update-btn').getBoundingClientRect().top >= 0`, &updateSeen),
 		chromedp.Evaluate(`window.scrollY`, &settled),
 		chromedp.Sleep(400*time.Millisecond),
 		chromedp.Evaluate(`window.scrollY`, &later),
 	)
 	if head < 0 || !updateSeen || later != settled {
-		t.Errorf("the card's head is at %v, Update in sight %v; the page went on from %v to %v", head, updateSeen, settled, later)
+		t.Errorf("the card's head is at %v, the form and Update in sight %v; the page went on from %v to %v", head, updateSeen, settled, later)
+	}
+}
+
+// In Levels mode, a voluntary's card is changed in its tab as in a routine:
+// the head shows the change, and Update saves it to the routine doing it.
+func TestEditInALevelInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := httptest.NewServer(routes())
+	defer srv.Close()
+
+	entry := `{"current":"e1","entries":[{"id":"e1","name":"L3","level":"builtin-level:bucs-l3","exercises":[{},{"routine":"r1"}],"open":"2:builtin:bucs-l3-second"}]}`
+	var shapes string
+	step(t, ctx, "changing a voluntary's second skill to pike",
+		chromedp.EmulateViewport(1300, 900),
+		chromedp.Navigate(srv.URL+"/"),
+		chromedp.Evaluate(`localStorage.clear(); localStorage.setItem('trampolineRoutines', `+"`"+cardRoutines(4, false)+"`"+`); localStorage.setItem('trampolineLevelEntries', `+"`"+entry+"`"+`); localStorage.setItem('builderMode', 'levels')`, nil),
+		chromedp.Reload(),
+		poll(`!!document.querySelector('#routine-skills [data-edit="a:1"]') && !!document.querySelector('.builder-add #skill-editor .skill-card-name')`),
+		chromedp.Click(`[data-edit="a:1"]`, chromedp.ByQuery),
+		poll(inCard("routine-skills", 1)+` && `+headShows("2. Tuck Back", "0.5", false)),
+		chromedp.Click(`#skill-form-wrapper .shape-segment:nth-child(2)`, chromedp.ByQuery),
+		poll(headShows("2. Pike Back", "0.6", true)),
+		chromedp.Click(`#update-btn`, chromedp.ByQuery),
+		poll(formHome+` && document.activeElement?.dataset.edit === 'a:1'`),
+		chromedp.Evaluate(savedSkills(0, "shape"), &shapes),
+	)
+	if shapes != "Tuck,Pike,Tuck,Tuck" {
+		t.Errorf("the voluntary's shapes are %s", shapes)
 	}
 }

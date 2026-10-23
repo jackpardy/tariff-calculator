@@ -205,7 +205,8 @@ func handleSkillForm(w http.ResponseWriter, r *http.Request) {
 
 // handleSkillInputs re-renders the editor (skill card and builder), either for a
 // common skill the user just chose or for the values currently in the form; the
-// label, edit index and builder state carry over from the form. While the form
+// label, edit index and builder state carry over from the form (changing a skill
+// in its card, the shape and label above the search come back too). While the form
 // holds something unscorable (e.g. a rotation being typed), it answers 204 so
 // htmx leaves the user's input alone; Add reports the problem.
 func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
@@ -254,7 +255,7 @@ func handleSkillInputs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	editor.Skill = prepared(s)
-	render(w, r, views.SkillEditorView(editor))
+	render(w, r, views.SkillInputsView(editor))
 }
 
 // followLanding is a body-landing tile's skill after the skill before the
