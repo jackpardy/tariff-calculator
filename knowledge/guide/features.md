@@ -14,7 +14,7 @@ generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
   (e.g. `8 2 3 /`) and its tariff. The maths is checked against every worked
   example in the Code of Points ([tariff](../domain/tariff.md)).
 - **Three ways to add a skill**: tap it in the picker (Jumps, Body landings,
-  Singles, Doubles, Triples); search by name ("barani", "back
+  Singles, Doubles, Triples, each opening its skills when tapped); search by name ("barani", "back
   s/s", "rudy") or by FIG notation ("8 1 1 <"); or build it yourself from
   somersault, twists, direction, take-off and seat landing.
 - **Shape made easy**: tuck, pike and straight are offered only where the shape
@@ -32,10 +32,13 @@ generated: { by: claude-code/cli, at: 2026-10-09T12:00:00Z }
   routine, a tenth skill that doesn't land on feet, and more than ten skills
   ([routine validation](../domain/routine-validation.md)).
 - **As many routines as you like**, saved on your phone, each with its own
-  name. Reorder skills by dragging or with ↑/↓, edit any skill, duplicate a
-  routine to try a change.
-- **Side by side**: show two routines together and edit both. Skills that
-  differ are shaded.
+  name. Reorder skills by dragging or with ↑/↓, remove one with ✕ (and undo
+  it), and duplicate a routine to try a change.
+- **Change a skill where it is**: Edit opens its card in the routine, which
+  shows the change as you make it (another skill from a search, the shape, a
+  label) until you tap Update.
+- **Side by side**: show two routines together and edit both. In the second,
+  skills that differ from the first are shaded, or turn the shading off.
 
 # Check against a competition
 
@@ -107,15 +110,20 @@ copy full of made-up clubs and gymnasts, with a link for each role.
   never a person in two places and with rest between their turns; it says
   when each day finishes, what doesn't fit and what would. Adjusted manually,
   printed for marshals and the chair of judges, and published to clubs and
-  gymnasts.
+  gymnasts. Once published, it lists what you've changed since, before you
+  publish again.
 - **Your competition**: one page for each gymnast with their events, card
   status, flights, place in the running order, rough routine times, their
   judging and the flights they're in (the whole timetable a link away).
 - **The officials rota**: every panel filled from the people who offered to
   judge and help, never while they compete, own-club judging shared fairly,
-  your rules about who does what, printed and shown to each official.
-- **For the organiser**: one table per level with every problem, each entry in
-  full, notes back to the club, printed competition cards, a CSV, and
+  your rules about who does what, printed and shown to each official. Judges
+  offer each role (execution, difficulty, chair) up to a level of their own,
+  and synchro is judged by trampoline's judges. Choosing who sits a seat, the
+  list says who's free then and who's busy, and a seat whose holder can't
+  have it any more (withdrawn, say) is flagged.
+- **For the organiser**: one table per level with every problem (men and
+  women apart where they rank apart), each entry in full, notes back to the club, printed competition cards, a CSV, and
   setting up in private, then opening and closing entries when you choose.
 - **Entry fees**: an amount per entry for each discipline and a club fee if
   you have one, payments recorded as they come in, and an invoice for each
