@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
@@ -309,10 +311,21 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 	var waiting, next, onNow string
 	var finished bool
 	step(t, ctx, "opening Panel 1's page and losing the signal",
+		// The phone's clock, stood still so the test says how long the taps
+		// wait. It's kept in the tab (sessionStorage) and put in place on every
+		// page load, so a reload of the page meanwhile doesn't lose it: on CI
+		// the taps now and then went with the real clock, as if just tapped.
+		chromedp.ActionFunc(func(c context.Context) error {
+			_, err := page.AddScriptToEvaluateOnNewDocument(`(() => {
+				const real = Date.now;
+				Date.now = () => { const v = sessionStorage.getItem('phoneNow'); return v ? Number(v) : real(); };
+				sessionStorage.setItem('loads', String(Number(sessionStorage.getItem('loads') || 0) + 1));
+			})()`).Do(c)
+			return err
+		}),
 		chromedp.Navigate(srv.URL+day+"&area=Panel+1"),
 		chromedp.WaitVisible(`#day-areas`, chromedp.ByQuery),
-		// The phone's clock, stood still so the test says how long the taps wait.
-		chromedp.Evaluate(`window.phoneNow = Date.now(); Date.now = () => window.phoneNow; true`, nil),
+		chromedp.Evaluate(`sessionStorage.setItem('phoneNow', String(Date.now())); true`, nil),
 		network.Enable(),
 		network.EmulateNetworkConditions(true, 0, -1, -1),
 	)
@@ -341,15 +354,21 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 	}
 
 	// Ten minutes later by the phone's clock, the signal comes back.
+	// What the taps waiting carry, and how many times the page loaded, so a
+	// failure says why.
+	var kept string
+	step(t, ctx, "reading the taps kept",
+		chromedp.Evaluate(`'page loads ' + sessionStorage.getItem('loads') + ', phone clock ' + sessionStorage.getItem('phoneNow') + ', taps ' + JSON.stringify(JSON.parse(localStorage.getItem('trampolineTaps') || '[]').map((t) => ({ tapped: t.tapped, label: t.label })))`, &kept),
+	)
 	step(t, ctx, "the signal coming back, and the taps sent",
-		chromedp.Evaluate(`window.phoneNow += 10 * 60 * 1000; true`, nil),
+		chromedp.Evaluate(`sessionStorage.setItem('phoneNow', String(Number(sessionStorage.getItem('phoneNow')) + 10 * 60 * 1000)); true`, nil),
 		network.EmulateNetworkConditions(false, 0, -1, -1),
 		chromedp.WaitNotVisible(`#day-taps`, chromedp.ByQuery),
 		chromedp.WaitNotPresent(`[data-tap-note]`, chromedp.ByQuery),
 	)
 	f := panelOne(t, h, day).Flights[0]
 	if f.Started != "09:50" || f.Up != "Cal" || f.UpLabel != "On now" {
-		t.Errorf("the taps landed at the time they were tapped, 09:50: %+v", f)
+		t.Errorf("the taps landed at the time they were tapped, 09:50: %+v (before sending: %s)", f, kept)
 	}
 	if !historyHas(t, h, admin, "Organiser", "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)") {
 		t.Error("the history says when it was tapped")

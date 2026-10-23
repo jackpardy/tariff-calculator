@@ -1,7 +1,7 @@
 ---
 type: Runbook
 title: Build and deploy
-description: How the app is built (a multi-stage Docker image that runs the tests), tested in CI on every pull request and push to master, and deployed to the self-hosted server at tariff.pardy.ie through an SSH forced command.
+description: How the app is built (a multi-stage Docker image), tested in CI on every pull request and push to master, and deployed to the self-hosted server at tariff.pardy.ie through an SSH forced command that loads the image CI built.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/.github/workflows/deploy.yml
 tags: [operations, deploy, ci, docker, self-hosted]
 generated: { by: claude-code/cli, at: 2026-10-05T14:20:00Z }
@@ -18,8 +18,10 @@ change later.
 
 The `Dockerfile` builds in two stages:
 
-1. `golang:1.26-alpine` downloads the modules, **runs `go test ./...`**, and
-   builds a static binary (`CGO_ENABLED=0`, `-trimpath`, stripped).
+1. `golang:1.26-alpine` downloads the modules and builds a static binary
+   (`CGO_ENABLED=0`, `-trimpath`, stripped), with Go's module and build
+   caches kept between builds. It doesn't run the tests: CI has (until
+   2026-10-23 it did, so a deploy ran them three times).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
    `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, then closes the database.
 
@@ -40,28 +42,44 @@ a PR cancels its older run.
 straight to `master`). Auto-merge is allowed, so a PR can be set to merge
 itself once its check passes.
 
-**test** job, which first looks at what changed: if only documents did
-(`knowledge/`, `docs/`, any `.md` or `.pdf`), it skips everything else and
-passes in seconds, so docs-only PRs can still merge, and nothing deploys
-(2026-10-08). Otherwise it:
+The jobs (2026-10-23): **changes** looks at what changed; then **test** and
+**image** run side by side; then, on `master`, **deploy**.
+
+**changes**: if only documents changed (`knowledge/`, `docs/`, any `.md` or
+`.pdf`), the rest is skipped: **test** still runs and passes in seconds (it's
+the required check), so docs-only PRs can still merge, and nothing deploys
+(2026-10-08).
+
+**test** job:
 - checks the generated templ code is current (`go tool templ generate` then
   `git diff --exit-code`),
 - `go vet ./...`,
 - `go test ./...`,
 - `govulncheck`, which fails on any known vulnerability our code can reach in
-  Go or a module (added 2026-10-15),
-- `docker build`, so a broken image is caught before deploy.
+  Go or a module (added 2026-10-15).
+
+**image** job, beside the tests: builds the Docker image (buildx, its layers
+cached between runs in GitHub's cache), labelled
+`org.opencontainers.image.revision` with the commit, so a broken image is
+caught before deploy. On `master` it keeps the image (`docker save`,
+gzipped, about 12 MB) as the run's artifact for the deploy.
 
 The Go version is go.mod's `toolchain` line (Go 1.26.9 since 2026-10-15),
 which CI and local builds both use; the image builds with the newest Go 1.26.
 Go supports its two newest releases, so move up when a new one comes out and
 govulncheck starts failing.
 
-**deploy** job (after test, never for a pull request, nor for documents
-alone): SSH to the server with
-a dedicated key. Deploys run one at a time in their own concurrency group, so a
-PR's tests never hold one up. The server
-forces the command `/srv/infra/scripts/deploy.sh tariff` whatever is asked for.
+**deploy** job (after test and image, never for a pull request, nor for
+documents alone): SSH to the server with a dedicated key, sending the image.
+Deploys run one at a time in their own concurrency group, so a PR's tests
+never hold one up. The server forces the command
+`/srv/infra/scripts/deploy.sh tariff` whatever is asked for; the job asks for
+`load-image` and sends the image on stdin. The script pulls `master`, and if
+the image's revision label is the commit it pulled, loads it and restarts
+`tariff` and `tariff-sandbox` without building (a few seconds; building on
+the 2-CPU server beside the live app took about 5 minutes). Any other image,
+or none, and it builds there as before (server repo, `scripts/deploy.sh`,
+2026-10-23).
 If the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
 After deploying it checks `https://tariff.pardy.ie/healthz` for up to two
 minutes, and fails if the app isn't healthy by then.

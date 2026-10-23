@@ -69,14 +69,32 @@ func browser(t *testing.T) context.Context {
 const stepTimeout = 15 * time.Second
 
 // step runs a browser test's step with its own timeout, failing the test
-// with the step's name if it doesn't finish.
+// with the step's name if it doesn't finish, and where the page was then (its
+// address, what had the focus, its notices), so a failure on CI, which can't
+// be watched, says what it was looking at.
 func step(t *testing.T, ctx context.Context, name string, actions ...chromedp.Action) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(ctx, stepTimeout)
+	stepCtx, cancel := context.WithTimeout(ctx, stepTimeout)
 	defer cancel()
-	if err := chromedp.Run(ctx, actions...); err != nil {
-		t.Fatalf("%s: %v", name, err)
+	if err := chromedp.Run(stepCtx, actions...); err != nil {
+		t.Fatalf("%s: %v\n  the page then: %s", name, err, pageState(ctx))
 	}
+}
+
+// pageState says where a browser test's page is, briefly, for a failure.
+func pageState(ctx context.Context) string {
+	quick, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer cancel()
+	var state string
+	if err := chromedp.Run(quick, chromedp.Evaluate(`(() => {
+		const el = document.activeElement;
+		const focus = el && el !== document.body ? el.outerHTML.slice(0, 160) : 'nothing';
+		const notes = [...document.querySelectorAll('.notification, [role=status], [role=alert]')].map((n) => n.textContent.trim()).filter(Boolean).slice(0, 3);
+		return location.pathname + location.search + '; focus: ' + focus + (notes.length ? '; notices: ' + notes.join(' | ') : '');
+	})()`, &state)); err != nil {
+		return "unreadable (" + err.Error() + ")"
+	}
+	return state
 }
 
 // sheetRoutine is the routine saved in the browser for the sheet to show: a

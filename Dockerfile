@@ -2,10 +2,12 @@
 FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
-RUN go test ./...
-RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/tariffCalculator .
+# The tests run in CI before an image is used (they ran here too, so three
+# times a deploy: CI, CI's image build and the server's), so not again here.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/tariffCalculator .
 
 FROM alpine:3.20
 RUN adduser -D -u 1000 app

@@ -17,7 +17,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  # Only documents changed (knowledge/, docs/, Markdown, the guide's PDFs):
+  # nothing to build, test or deploy.
+  changes:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.changes.outputs.code }}
@@ -25,9 +27,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      # Only documents changed (knowledge/, docs/, Markdown, the guide's
-      # PDFs): nothing to build, test or deploy. The job still reports, as
-      # "test" is a required check.
       - name: What changed
         id: changes
         env:
@@ -44,12 +43,23 @@ jobs:
           else
             echo "code=true" >> "$GITHUB_OUTPUT"
           fi
+
+  # The tests. It always runs and reports, as "test" is a required check;
+  # for documents alone its steps are skipped.
+  test:
+    needs: changes
+    runs-on: ubuntu-latest
+    env:
+      CODE: ${{ needs.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        if: env.CODE == 'true'
       - uses: actions/setup-go@v7
-        if: steps.changes.outputs.code == 'true'
+        if: env.CODE == 'true'
         with:
           go-version-file: go.mod
       - name: Check generated templ code is up to date
-        if: steps.changes.outputs.code == 'true'
+        if: env.CODE == 'true'
         run: |
           go tool templ generate
           git diff --exit-code -- '*_templ.go' || {
@@ -57,19 +67,46 @@ jobs:
             exit 1
           }
       - run: go vet ./...
-        if: steps.changes.outputs.code == 'true'
+        if: env.CODE == 'true'
       - run: go test ./...
-        if: steps.changes.outputs.code == 'true'
+        if: env.CODE == 'true'
       - name: Known vulnerabilities in the code's dependencies and Go
-        if: steps.changes.outputs.code == 'true'
+        if: env.CODE == 'true'
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  # The Docker image, built beside the tests rather than after them, with its
+  # layers cached between runs. On master it's kept for the deploy, which
+  # sends it to the server, so the server doesn't build it again.
+  image:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build the Docker image
-        if: steps.changes.outputs.code == 'true'
-        run: docker build -t tariff-calculator:ci .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: tariff:local
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Keep the image for the deploy
+        if: github.event_name != 'pull_request'
+        run: docker save tariff:local | gzip -1 > tariff-image.tar.gz
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          name: tariff-image
+          path: tariff-image.tar.gz
+          retention-days: 1
+          compression-level: 0
 
   deploy:
-    needs: test
-    if: github.event_name != 'pull_request' && needs.test.outputs.code == 'true'
+    needs: [changes, test, image]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.code == 'true'
     concurrency: deploy-tariff
     runs-on: ubuntu-latest
     env:
@@ -78,6 +115,9 @@ jobs:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
     steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: tariff-image
       - name: Deploy over SSH
         run: |
           if [ -z "$DEPLOY_HOST" ]; then
@@ -88,9 +128,11 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          # Server forces /srv/infra/scripts/deploy.sh tariff; the command text is ignored.
+          # Server forces /srv/infra/scripts/deploy.sh tariff. Asked for
+          # "load-image", it loads the image sent here (CI built it) rather
+          # than building one; the command text is only ever compared, never run.
           ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            "$DEPLOY_USER@$DEPLOY_HOST" deploy
+            "$DEPLOY_USER@$DEPLOY_HOST" load-image < tariff-image.tar.gz
       - name: Check the deployed app is healthy
         run: |
           if [ -z "$DEPLOY_HOST" ]; then exit 0; fi
