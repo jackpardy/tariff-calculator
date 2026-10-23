@@ -1,5 +1,7 @@
 # Update log
 
+New lines start as files in [log/](log/), one per change, and are moved here, under their dates, after they merge ([how](log/README.md)).
+
 ## 2026-10-23
 * **Update**: [CI and deploys](operations/deploy.md#ci) are faster and steadier. The tests and the Docker image build side by side (the image cached between runs), the image no longer runs the tests again, and a deploy sends the image CI built to the server, which loads it in seconds rather than building it for about 5 minutes. Two tests that failed now and then on CI are fixed (the sandbox member found by their row; the phone's stood-still clock kept through a reload), and a browser test that times out says where its page was.
 

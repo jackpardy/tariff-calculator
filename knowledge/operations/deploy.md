@@ -45,8 +45,9 @@ itself once its check passes.
 The jobs (2026-10-23): **changes** looks at what changed; then **test** and
 **image** run side by side; then, on `master`, **deploy**.
 
-**changes**: if only documents changed (`knowledge/`, `docs/`, any `.md` or
-`.pdf`), the rest is skipped: **test** still runs and passes in seconds (it's
+**changes**: checks the log's new lines (`scripts/log-entries.py --check`,
+[the log](../log/README.md)); if only documents changed (`knowledge/`,
+`docs/`, any `.md` or `.pdf`), the rest is skipped: **test** still runs and passes in seconds (it's
 the required check), so docs-only PRs can still merge, and nothing deploys
 (2026-10-08).
 
@@ -80,6 +81,10 @@ the image's revision label is the commit it pulled, loads it and restarts
 the 2-CPU server beside the live app took about 5 minutes). Any other image,
 or none, and it builds there as before (server repo, `scripts/deploy.sh`,
 2026-10-23).
+
+**Update log** (`.github/workflows/log.yml`), after a merge to `master` that
+added log lines: moves them from `knowledge/log/` into `knowledge/log.md` and
+pushes, with the `LOG_TOKEN` secret ([the log](../log/README.md)).
 If the `DEPLOY_HOST` secret is empty, the job **skips itself** with a notice.
 After deploying it checks `https://tariff.pardy.ie/healthz` for up to two
 minutes, and fails if the app isn't healthy by then.
