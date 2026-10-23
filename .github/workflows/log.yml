@@ -1,0 +1,56 @@
+name: Update log
+
+# A change adds its log line as a file of its own in knowledge/log/, so pull
+# requests never edit knowledge/log.md at the same place (they all conflicted).
+# After a merge to master this moves those lines into log.md, under their
+# dates, newest first, and deletes the files (scripts/log-entries.py).
+#
+# master only takes a push whose commit passed "test", or an admin's, so it
+# pushes with LOG_TOKEN, a fine-grained token of the repo's admin (Contents:
+# read and write, this repo only). Without it the lines wait in their files.
+on:
+  push:
+    branches: [master]
+    paths: ['knowledge/log/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-log
+  cancel-in-progress: false
+
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    env:
+      LOG_TOKEN: ${{ secrets.LOG_TOKEN }}
+    steps:
+      - name: The token to push with
+        if: env.LOG_TOKEN == ''
+        run: echo "::notice::LOG_TOKEN isn't set, so the log's new lines wait in knowledge/log/."
+      - uses: actions/checkout@v7
+        if: env.LOG_TOKEN != ''
+        with:
+          ref: master
+          token: ${{ secrets.LOG_TOKEN }}
+          fetch-depth: 0   # when each line was added, to put the newest first
+      - name: Move the new lines into knowledge/log.md
+        if: env.LOG_TOKEN != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Another merge may land meanwhile: start again from it, a few times.
+          for try in 1 2 3; do
+            git fetch -q origin master
+            git reset -q --hard origin/master
+            python3 scripts/log-entries.py
+            if git diff --quiet && git diff --cached --quiet; then exit 0; fi
+            git add -A knowledge/log.md knowledge/log
+            git commit -q -m "Log: the new lines moved into knowledge/log.md"
+            if git push -q origin HEAD:master; then exit 0; fi
+            sleep 5
+          done
+          echo "::error::Couldn't push the log after 3 tries."
+          exit 1
