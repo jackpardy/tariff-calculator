@@ -216,12 +216,15 @@ templ skillCard(i int, sv skills.SkillValidation, message string, last bool, sid
 					</span>
 					// Being changed, the skill as it will be (draft, read from the
 					// skill form as it changes), until Update.
+					// Empty but on the card being changed, so the others carry no
+					// hidden text ("1. undefined" before).
+					{{ mine := fmt.Sprintf("editingIndex === %d && editingSide === '%s' && draft", i, side.Side) }}
 					<span class="card-title card-draft">
 						<span class="skill-name">
-							<span x-text="(editingIndex + 1) + '. ' + draft?.name"></span>
-							<span class="card-official" x-bind:hidden="!draft?.official" x-text="draft?.official ? '· ' + draft.official : ''"></span>
+							<span x-text={ mine + " ? (editingIndex + 1) + '. ' + draft.name : ''" }></span>
+							<span class="card-official" x-bind:hidden={ "!(" + mine + " && draft.official)" } x-text={ mine + " && draft.official ? '· ' + draft.official : ''" }></span>
 						</span>
-						<span class="card-fig" x-text="draft?.fig"></span>
+						<span class="card-fig" x-text={ mine + " ? draft.fig : ''" }></span>
 						<span class="card-unsaved" x-bind:hidden="!draft?.changed">not saved</span>
 					</span>
 					// Flags a problem while the card is folded; the details say what it is.
