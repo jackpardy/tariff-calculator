@@ -9,7 +9,11 @@
 # ...except the guides, built by scripts/guide-pdfs.py.
 !/knowledge/guide/routine-guide.pdf
 !/knowledge/guide/competition-guide.pdf
+!/knowledge/guide/features.pdf
 
 # Local Claude Code settings
 .claude/settings.local.json
 .claude/worktrees/
+
+# Python caches (scripts/)
+__pycache__/
