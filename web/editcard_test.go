@@ -1,6 +1,8 @@
 package web
 
 import (
+	"context"
+	"fmt"
 	"math"
 	"net/http/httptest"
 	"strings"
@@ -36,9 +38,21 @@ func savedSkills(routine int, prop string) string {
 }
 
 // poll waits for a condition in the page. Alpine shows and hides things on
-// its next tick, so what it shows is polled for, not read straight away.
+// its next tick, so what it shows is polled for, not read straight away. If
+// it times out, it says which condition, and where the focus and the skill
+// form were then, so a failure on CI says what it was waiting for.
 func poll(cond string) chromedp.Action {
-	return chromedp.Poll(cond, nil, chromedp.WithPollingInterval(50*time.Millisecond))
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		err := chromedp.Poll(cond, nil, chromedp.WithPollingInterval(50*time.Millisecond)).Do(ctx)
+		if err == nil {
+			return nil
+		}
+		var state string
+		quick, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+		defer cancel()
+		_ = chromedp.Evaluate(`'focus ' + (document.activeElement?.outerHTML || '').slice(0, 120) + '; on the card: ' + (document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent || '') + '; results: ' + document.querySelectorAll('#search-results .picker-skill').length`, &state).Do(quick)
+		return fmt.Errorf("waiting for %s: %w (%s)", cond, err, state)
+	})
 }
 
 // openBuilder loads the builder at a size (a phone's, with mobile) with
