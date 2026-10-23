@@ -50,7 +50,7 @@ func poll(cond string) chromedp.Action {
 		var state string
 		quick, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		defer cancel()
-		_ = chromedp.Evaluate(`'focus ' + (document.activeElement?.outerHTML || '').slice(0, 120) + '; on the card: ' + (document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent || '') + '; results: ' + document.querySelectorAll('#search-results .picker-skill').length`, &state).Do(quick)
+		_ = chromedp.Evaluate(`'focus ' + (document.activeElement?.outerHTML || '').slice(0, 120) + '; on the card: ' + (document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent || '') + '; results: ' + document.querySelectorAll('#search-results .picker-skill').length + '; a mouse: ' + matchMedia('(hover: hover)').matches`, &state).Do(quick)
 		return fmt.Errorf("waiting for %s: %w (%s)", cond, err, state)
 	})
 }
@@ -139,7 +139,10 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 		chromedp.Evaluate(headTop("routine-skills", 3), &before),
 		chromedp.Click(`[data-edit="a:3"]`, chromedp.ByQuery),
 		poll(inCard("routine-skills", 3)+` && document.querySelector('#skill-form-wrapper .skill-card-name')?.textContent === 'Pike Back'`),
-		poll(`document.activeElement?.id === 'skill-search'`),
+		// With a mouse the search has the focus already; a browser without one
+		// (headless on CI) is treated as a touch screen, so it's clicked into.
+		poll(`!matchMedia('(min-width: 1024px) and (hover: hover)').matches || document.activeElement?.id === 'skill-search'`),
+		chromedp.Click(`#skill-search`, chromedp.ByQuery),
 		chromedp.SendKeys(`#skill-search`, "rudi\r", chromedp.ByQuery),
 		poll(`document.activeElement?.matches('#search-results .picker-skill') && document.activeElement.textContent.includes('Rudi')`),
 		// The typing's own search comes back after Enter's: the focus stays on the first result.
