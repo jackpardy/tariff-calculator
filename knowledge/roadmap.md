@@ -889,9 +889,12 @@ Notifications (7) are built; numbers 1–7 below are built.
     then. One flight's length can't be changed at all.
 
     **What's asked.**
-    - **Two averages for each discipline** in place of one: warm-up minutes
-      per competitor and competing minutes per competitor. The changeover
-      (clearing the area between flights) stays a fixed figure of its own.
+    - **Two averages** in place of one: warm-up minutes per competitor and
+      competing minutes per competitor, **for each discipline, and for an
+      event of its own** where it differs (Novice slower than Elite). The
+      changeover (clearing the area between flights) stays a fixed figure
+      of its own.
+    - **A least warm-up,** so a small flight still gets enough.
     - **A flight's own times:** for any flight, its warm-up and its
       competing time each set as a total in minutes, in place of what the
       averages give ("this flight warms up for 15 and competes for 50").
@@ -900,13 +903,20 @@ Notifications (7) are built; numbers 1–7 below are built.
       offers to plan the timetable again.
 
     **How it would work.**
-    1. **Setup.** The timings table becomes Warm-up per competitor,
-       Competing per competitor, Changeover and Largest flight. A flight is
-       its changeover, then its warm-up (gymnasts times the first), then its
-       competing (gymnasts times the second), each rounded up to a whole
-       minute. Timetables that exist keep their times: today's "between"
-       becomes the changeover, with 0 warm-up per competitor, until the
-       organiser sets them.
+    1. **Setup.** The timings table becomes Warm-up per competitor, Least
+       warm-up, Competing per competitor, Changeover and Largest flight, a
+       row for each discipline. Under a discipline, **Add an event's own
+       times** gives one event a row of its own (the two averages and the
+       least warm-up; changeover and largest flight stay the
+       discipline's), and removing the row puts it back on the
+       discipline's. A flight is its changeover, then its warm-up (gymnasts
+       times the first, but no less than the least), then its competing
+       (gymnasts times the second), each rounded up to a whole minute.
+       **Which figure counts:** a flight's own times, then its event's,
+       then its discipline's. The defaults stay as they are (decided
+       2026-11-10), and timetables that exist keep their times: today's
+       "between" becomes the changeover, with 0 warm-up per competitor and
+       no least warm-up, until the organiser sets them.
     2. **Three times for a flight,** not two: warm-up starts, competing
        starts, finishes about. Shown wherever a flight's times are: the
        timetable, My competition, the club's and a person's timetable, the
@@ -925,8 +935,9 @@ Notifications (7) are built; numbers 1–7 below are built.
        broken, nobody in two places, rest kept where it's a must, and an
        event's flights still back to back (ADR 0006). The notice says what
        moved ("3 flights on Panel 2 start 5 minutes later"). This holds for
-       one flight's times and for a discipline's averages alike, which
-       today only mark the timetable out of date.
+       one flight's times and for a discipline's or an event's averages
+       alike; today a change to the averages only marks the timetable out
+       of date.
     5. **When it doesn't fit, the organiser is asked first,** as for a
        manual change (9): what it would break, then **Plan again with these
        times**, **Make the change anyway** (what it breaks is listed with
@@ -948,24 +959,26 @@ Notifications (7) are built; numbers 1–7 below are built.
     blocked time after a manual change (`Retime`) first, as step 4 moves
     flights the same way.
 
-    **To decide.**
-    - **Averages by discipline only, or by event too** (Novice slower than
-      Elite)? Suggested: by discipline to start, as a flight's own times
-      cover the odd one out.
-    - **Defaults for a new competition.** Suggested: as today (10 minutes
-      fixed, 5 a competitor for trampoline) until there are real figures;
-      the dry run's Started and Finished taps would give some (14).
-    - **A least warm-up** for a small flight, so a flight of 2 isn't given
-      2 minutes?
-    - **A "Competing started" tap** for the marshal, so warm-up and
-      competing are measured apart on the day? Not in this; it could
-      follow.
+    **Decided 2026-11-10.** Averages by event as well as by discipline. The
+    defaults stay as they are (10 minutes fixed, 5 a competitor for
+    trampoline); the dry run's taps may give better ones (14). A least
+    warm-up is wanted.
 
-    **Size and when.** About 3 to 4 days on one branch: the timings and
-    the planner (1), the Setup and timetable pages with the ask (1 to 1½),
-    the pages and sheets that show a flight's times (½ to 1), tests, guide
-    and documents (½). Not needed for the dry run; wanted before ISTO's
-    timetable is drafted (February 2027).
+    **A second part, to decide: a "Warm-up over" tap.** Today the marshal
+    taps **Started** when a flight's warm-up begins and **Finished** at its
+    end, so the day measures a flight's whole length and can't say how
+    much of it was warm-up. One more tap between them, when the warm-up
+    ends and competing begins (one moment, one tap), would measure the two
+    apart: the page could say "warming up" or "competing" for each area,
+    and the day's real figures could be set against both averages. It
+    touches the taps kept without signal, so it would follow the first
+    part on its own branch (about a day).
+
+    **Size and when.** About 4 to 5 days on one branch: the timings, an
+    event's own and the planner (1½), the Setup and timetable pages with
+    the ask (1½), the pages and sheets that show a flight's times (½ to 1),
+    tests, guide and documents (½ to 1). Not needed for the dry run; wanted
+    before ISTO's timetable is drafted (February 2027).
 
 **Added 2026-10-08** (all wanted; ordered under Priorities above):
 
