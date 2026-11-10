@@ -1,0 +1,1 @@
+* **Update**: [Roadmap](roadmap.md) item 15 scoped, not built: warm-up and competing minutes per competitor as two averages for each discipline, a flight's own warm-up and competing times set by hand, before planning or after it, and a change that doesn't fit as the timetable stands asking first and offering to plan again.

@@ -699,7 +699,7 @@ builds on copying last year's.
 
 Then, by when ISTO needs them: link the calculator (before entries open),
 the "what ifs'" missing checks (8, built 2026-10-16) and saying what a manual change breaks
-(9, built 2026-10-16), judges' qualifications (built 2026-10-16), and details like better defaults (14);
+(9, built 2026-10-16), judges' qualifications (built 2026-10-16), and details like better defaults (14) and warm-up and competing times of their own (15);
 splitting an event by routine (10) if ISTO's timetable needs it. A dry run of the core tools in late 2026 (above), a full rehearsal of the day in March, and nothing but fixes in the last two weeks.
 After ISTO: copying last year's competition, results history, the club
 tools and the possible additions.
@@ -875,6 +875,97 @@ Notifications (7) are built; numbers 1–7 below are built.
     (clubs 2).
 14. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
+15. **Warm-up and competing times of their own, and a flight's times
+    changed by hand** (asked 2026-11-10; scoped here, not built).
+
+    **Today.** Each discipline has two figures: minutes per competitor (all
+    their turns) and minutes between flights, one fixed number for warm-up
+    and changeover together (`Timings`, [ADR 0005](../docs/adr/0005-multi-discipline-timetabling.md)
+    Decision 13). A flight's length is the second plus its gymnasts times
+    the first, so a flight of 4 gets the same warm-up as a flight of 12. A
+    flight keeps when its warm-up starts and when it ends; nothing says when
+    competing starts. Changing the timings after planning marks the
+    timetable out of date and offers Plan again, and nothing moves until
+    then. One flight's length can't be changed at all.
+
+    **What's asked.**
+    - **Two averages for each discipline** in place of one: warm-up minutes
+      per competitor and competing minutes per competitor. The changeover
+      (clearing the area between flights) stays a fixed figure of its own.
+    - **A flight's own times:** for any flight, its warm-up and its
+      competing time each set as a total in minutes, in place of what the
+      averages give ("this flight warms up for 15 and competes for 50").
+    - **Before the timetable is planned and after it.**
+    - **A change that fits is made; one that doesn't asks first,** and
+      offers to plan the timetable again.
+
+    **How it would work.**
+    1. **Setup.** The timings table becomes Warm-up per competitor,
+       Competing per competitor, Changeover and Largest flight. A flight is
+       its changeover, then its warm-up (gymnasts times the first), then its
+       competing (gymnasts times the second), each rounded up to a whole
+       minute. Timetables that exist keep their times: today's "between"
+       becomes the changeover, with 0 warm-up per competitor, until the
+       organiser sets them.
+    2. **Three times for a flight,** not two: warm-up starts, competing
+       starts, finishes about. Shown wherever a flight's times are: the
+       timetable, My competition, the club's and a person's timetable, the
+       marshal's and chair's sheets, On the day, the venue screen and the
+       calendar.
+    3. **Change the times,** in a flight's box on the timetable beside Move
+       or redraw: warm-up and competing in minutes, with what the averages
+       would give shown beside each, and **Back to the averages**. A
+       flight's own times stay with it (by its id) when it's moved, its
+       order redrawn or the timetable published. Moving a gymnast in or out
+       keeps them and says so.
+    4. **After planning, a change is tried on the draft as it stands.**
+       Later flights on that area move back only as far as they must, in
+       order and around blocked time. It's made when nothing new breaks: no
+       flight past the end of its day or in blocked time, no must rule
+       broken, nobody in two places, rest kept where it's a must, and an
+       event's flights still back to back (ADR 0006). The notice says what
+       moved ("3 flights on Panel 2 start 5 minutes later"). This holds for
+       one flight's times and for a discipline's averages alike, which
+       today only mark the timetable out of date.
+    5. **When it doesn't fit, the organiser is asked first,** as for a
+       manual change (9): what it would break, then **Plan again with these
+       times**, **Make the change anyway** (what it breaks is listed with
+       the timetable's problems) or **Leave it**. Planning again keeps a
+       flight's own times where the flight is still there afterwards (as
+       check-ins are kept, by `KeepIDs`), and the ask names any it would
+       drop.
+    6. **Once the day has begun** the timetable isn't planned again, as
+       now, so the choices are to make the change anyway or leave it. A
+       flight that has started keeps its planned times (Correct the times
+       is for those), and a hold-up is still the delay "what if".
+    7. **Drafts and notifications as now:** nothing reaches attendees until
+       it's published, and those whose times moved are told.
+
+    **Also touched.** The simulation; the delay "what if" (quicker turns
+    shorten competing, shorter changeovers the changeover); the fixes
+    offered for an event that doesn't fit; the demo; the guide. It amends
+    ADR 0005 Decision 13. It needs the audit's fix for a flight landing in
+    blocked time after a manual change (`Retime`) first, as step 4 moves
+    flights the same way.
+
+    **To decide.**
+    - **Averages by discipline only, or by event too** (Novice slower than
+      Elite)? Suggested: by discipline to start, as a flight's own times
+      cover the odd one out.
+    - **Defaults for a new competition.** Suggested: as today (10 minutes
+      fixed, 5 a competitor for trampoline) until there are real figures;
+      the dry run's Started and Finished taps would give some (14).
+    - **A least warm-up** for a small flight, so a flight of 2 isn't given
+      2 minutes?
+    - **A "Competing started" tap** for the marshal, so warm-up and
+      competing are measured apart on the day? Not in this; it could
+      follow.
+
+    **Size and when.** About 3 to 4 days on one branch: the timings and
+    the planner (1), the Setup and timetable pages with the ask (1 to 1½),
+    the pages and sheets that show a flight's times (½ to 1), tests, guide
+    and documents (½). Not needed for the dry run; wanted before ISTO's
+    timetable is drafted (February 2027).
 
 **Added 2026-10-08** (all wanted; ordered under Priorities above):
 
