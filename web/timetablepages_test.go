@@ -212,10 +212,10 @@ func TestClubsSeeTheirFlights(t *testing.T) {
 		}
 		return m[1]
 	}
-	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^Panel 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+	if at := flightOf("BUCS L3"); !regexp.MustCompile(`^Panel 1 · warm-up Saturday \d\d:\d\d · competing \d\d:\d\d$`).MatchString(at) {
 		t.Errorf("the comp sec sees the trampoline entry's flight, not repeating its level: %q", at)
 	}
-	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^Track 1 · warm-up Saturday \d\d:\d\d$`).MatchString(at) {
+	if at := flightOf("Tumbling Novice"); !regexp.MustCompile(`^Track 1 · warm-up Saturday \d\d:\d\d · competing \d\d:\d\d$`).MatchString(at) {
 		t.Errorf("the comp sec sees the tumbling entry's flight: %q", at)
 	}
 	if page := memberCompetitionPage(t, h, member); !regexp.MustCompile(`Panel 1 · warm-up Saturday \d\d:\d\d`).MatchString(page) {
@@ -235,7 +235,7 @@ func TestIndividualsMatchedByPerson(t *testing.T) {
 	redirected(t, h, enter, url.Values{"gymnast": {"Dara Ní Bhriain"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {"http://example.com" + dara}})
 	tt := admin + "/timetable"
 	page := do(t, h, http.MethodGet, redirected(t, h, tt+"/plan", url.Values{}), nil).Body.String()
-	times := regexp.MustCompile(`Warm-up (\d\d:\d\d) · finishes about (\d\d:\d\d)`).FindAllStringSubmatch(page, -1)
+	times := regexp.MustCompile(`Warm-up (\d\d:\d\d) · competing \d\d:\d\d · finishes about (\d\d:\d\d)`).FindAllStringSubmatch(page, -1)
 	if len(times) != 2 {
 		t.Fatalf("two flights: %v", times)
 	}

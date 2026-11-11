@@ -448,7 +448,8 @@ func seatRole(person string, competes bool) views.Role {
 }
 
 // dutiesOf are a person's seats on a published timetable, in time order,
-// e.g. "Saturday 10:40–11:50 · Panel 2 · BUCS L5 · Execution judge".
+// e.g. "Saturday 10:40–11:50 · competing from 10:50 · Panel 2 · BUCS L5 ·
+// Execution judge".
 func dutiesOf(c store.Competition, key string) []string {
 	t := c.Published
 	if t == nil || key == "" {
@@ -458,8 +459,9 @@ func dutiesOf(c store.Competition, key string) []string {
 }
 
 // dutiesIn are a person's seats, in time order, one line for the flights of
-// an event they hold a seat for, e.g. "Friday 09:30–15:15 · Panel 2 · BUCS
-// L7 Men · all 5 flights · Execution judge".
+// an event they hold a seat for, e.g. "Friday 09:30–15:15 · competing from
+// 09:40 · Panel 2 · BUCS L7 Men · all 5 flights · Execution judge": the
+// first flight's competing.
 func dutiesIn(s competitions.Schedule, key string) []string {
 	type duty struct {
 		f    competitions.ScheduledFlight
@@ -506,7 +508,7 @@ func dutyLine(s competitions.Schedule, f competitions.ScheduledFlight, role stri
 	case n > 1:
 		name = fmt.Sprintf("%s · flights %d–%d of %d", f.Group(), last-n+1, last, f.Of)
 	}
-	return fmt.Sprintf("%s%s–%s · %s · %s · %s", day, competitions.Clock(f.Start), competitions.Clock(f.End), f.Area, name, competitions.RoleName(role))
+	return fmt.Sprintf("%s%s–%s · competing from %s · %s · %s · %s", day, competitions.Clock(f.Start), competitions.Clock(f.End), competitions.Clock(f.CompetingStarts(s.Setup)), f.Area, name, competitions.RoleName(role))
 }
 
 // rotaSheet is each person's duties, for the noticeboard.

@@ -89,10 +89,21 @@ type AreaForm struct {
 	Name, Discipline string
 }
 
-// TimingForm is a discipline's timings.
+// TimingForm is a discipline's timings, with its events that have times of
+// their own.
 type TimingForm struct {
 	Key, Name                         string
+	WarmUp, LeastWarmUp               string
 	PerCompetitor, Between, MaxFlight string
+	Events                            []EventTimingForm
+	Choices                           []string // its events without times of their own, to give some
+}
+
+// EventTimingForm is an event's own times; Index numbers its fields in the
+// form (event-<i>).
+type EventTimingForm struct {
+	Index                                    int
+	Name, WarmUp, LeastWarmUp, PerCompetitor string
 }
 
 // ReportView is what the plan falls short on, and what would fix it.
@@ -180,11 +191,43 @@ type ItemView struct {
 	Discipline string // the flight's, for where its gymnasts can move to
 	Name       string
 	Start, End string
+	Competing  string // when a flight's competing starts, after its changeover and warm-up
 	Gymnasts   []TimetableGymnast
 	Pairs      bool       // synchro: each entry a pair
 	Seats      []SeatView // its panel
 	InRun      bool       // one of its event's flights: moving it moves them all
 	Earlier    bool       // not its event's first flight, so it can go earlier
+	Times      FlightTimesForm
+}
+
+// FlightTimesForm is a flight's warm-up and competing in minutes, for Change
+// the times (roadmap 15): what it has, what the averages give, whether they're
+// its own, and whether it has started or finished on the day (Fixed), when its
+// times stay as they are.
+type FlightTimesForm struct {
+	WarmUp, Competing               int
+	AverageWarmUp, AverageCompeting int
+	Own, Fixed                      bool
+}
+
+// FlightTimes says a flight's times the one way every page says them: "Warm-up
+// 09:50 · competing 10:02 · finishes about 10:50", without competing if it
+// isn't known.
+func FlightTimes(start, competing, end string) string {
+	out := "Warm-up " + start
+	if competing != "" {
+		out += " · competing " + competing
+	}
+	return out + " · finishes about " + end
+}
+
+// lowerFirst is a line such as FlightTimes says inside a sentence: its first
+// letter small.
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
 }
 
 // TimetableGymnast is a gymnast in a running order.
@@ -534,22 +577,63 @@ templ setupSections(p TimetablePage) {
 	@changeLine("Timings and rest", timingsNow(p), false) {
 		<form method="post" action={ templ.SafeURL(p.Base + "/timetable/setup/timings") } class="mt-3">
 			@versionField(p.Version)
+			// Enter in a figure saves, rather than the first button below.
+			<button type="submit" class="comp-enter-saves" tabindex="-1" aria-hidden="true">Save</button>
 			<div class="table-container">
-				<table class="table is-narrow comp-stack">
-					<thead><tr><th></th><th>Minutes per competitor</th><th>Minutes between flights</th><th>Largest flight</th></tr></thead>
+				<table class="table is-narrow comp-stack comp-timings">
+					<thead><tr><th></th><th>Warm-up per competitor</th><th>Least warm-up</th><th>Competing per competitor</th><th>Changeover</th><th>Largest flight</th><th></th></tr></thead>
 					<tbody>
 						for _, t := range p.Setup.Timings {
 							<tr>
 								<td>{ t.Name }</td>
-								<td data-label="Minutes per competitor"><input class="input is-small comp-num" type="number" step="0.5" min="0.5" name={ "per-" + t.Key } value={ t.PerCompetitor } aria-label={ t.Name + " minutes per competitor" }/></td>
-								<td data-label="Minutes between flights"><input class="input is-small comp-num" type="number" min="0" name={ "between-" + t.Key } value={ t.Between } aria-label={ t.Name + " minutes between flights" }/></td>
-								<td data-label="Largest flight"><input class="input is-small comp-num" type="number" min="1" name={ "max-" + t.Key } value={ t.MaxFlight } aria-label={ t.Name + " largest flight" }/></td>
+								<td data-label="Warm-up per competitor"><input class="input is-small comp-num" type="number" step="0.5" min="0" max="30" name={ "warm-" + t.Key } value={ t.WarmUp } aria-label={ t.Name + " warm-up minutes per competitor" }/></td>
+								<td data-label="Least warm-up"><input class="input is-small comp-num" type="number" min="0" max="120" name={ "least-" + t.Key } value={ t.LeastWarmUp } aria-label={ t.Name + " least warm-up in minutes" }/></td>
+								<td data-label="Competing per competitor"><input class="input is-small comp-num" type="number" step="0.5" min="0.5" max="30" name={ "per-" + t.Key } value={ t.PerCompetitor } aria-label={ t.Name + " competing minutes per competitor" }/></td>
+								<td data-label="Changeover"><input class="input is-small comp-num" type="number" min="0" max="120" name={ "between-" + t.Key } value={ t.Between } aria-label={ t.Name + " changeover in minutes" }/></td>
+								<td data-label="Largest flight"><input class="input is-small comp-num" type="number" min="1" max="60" name={ "max-" + t.Key } value={ t.MaxFlight } aria-label={ t.Name + " largest flight" }/></td>
+								<td></td>
 							</tr>
+							for _, e := range t.Events {
+								<tr class="comp-timings-event">
+									<td>
+										<input type="hidden" name={ fmt.Sprintf("event-%d", e.Index) } value={ e.Name }/>
+										{ e.Name }
+									</td>
+									<td data-label="Warm-up per competitor"><input class="input is-small comp-num" type="number" step="0.5" min="0" max="30" name={ fmt.Sprintf("event-%d-warm", e.Index) } value={ e.WarmUp } aria-label={ e.Name + " warm-up minutes per competitor" }/></td>
+									<td data-label="Least warm-up"><input class="input is-small comp-num" type="number" min="0" max="120" name={ fmt.Sprintf("event-%d-least", e.Index) } value={ e.LeastWarmUp } aria-label={ e.Name + " least warm-up in minutes" }/></td>
+									<td data-label="Competing per competitor"><input class="input is-small comp-num" type="number" step="0.5" min="0.5" max="30" name={ fmt.Sprintf("event-%d-per", e.Index) } value={ e.PerCompetitor } aria-label={ e.Name + " competing minutes per competitor" }/></td>
+									// The discipline's, shown but changed on its row.
+									<td data-label="Changeover" class="has-text-grey">{ t.Between }</td>
+									<td data-label="Largest flight" class="has-text-grey">{ t.MaxFlight }</td>
+									<td><button class="button is-small is-text has-text-danger" type="submit" name="removeEvent" value={ e.Name } aria-label={ "Remove " + e.Name + "'s own times" }>Remove</button></td>
+								</tr>
+							}
+							if len(t.Choices) > 0 {
+								<tr class="comp-timings-add">
+									<td colspan="7">
+										<div class="comp-setup-row">
+											<div class="select is-small">
+												<select name={ "add-" + t.Key } aria-label={ t.Name + " event to give times of its own" }>
+													for _, e := range t.Choices {
+														<option value={ e }>{ e }</option>
+													}
+												</select>
+											</div>
+											<button class="button is-small" type="submit" name="addEvent" value={ t.Key }>Add an event's own times</button>
+										</div>
+									</td>
+								</tr>
+							}
 						}
 					</tbody>
 				</table>
 			</div>
-			<p class="help mb-3">Minutes per competitor cover all their turns (both rounds; a pair, for synchro). Between flights is each flight's warm-up and changeover.</p>
+			<p class="help mb-3">
+				A flight is its changeover (clearing the area), then its warm-up, then its competing. Warm-up is its gymnasts times the warm-up per competitor, but never less than the least warm-up. Competing is its gymnasts times the competing per competitor, which covers all their turns (both rounds; a pair, for synchro). Each is rounded up to a whole minute. What counts is a flight's own times, then its event's, then its discipline's.
+				if p.Planned {
+					Once planned, a change is tried on the timetable as it stands, and if something would break you're asked first. A new largest flight needs planning again.
+				}
+			</p>
 			<div class="comp-setup-row">
 				<label class="label is-small mb-0" for="setup-rest">Rest between a person's turns</label>
 				<input class="input is-small comp-num" id="setup-rest" type="number" min="0" name="rest" value={ strconv.Itoa(p.Setup.Rest) }/>
@@ -892,7 +976,12 @@ func joinNames(names []string) string {
 templ flightBox(p TimetablePage, f ItemView) {
 	<div class="box comp-flight" data-list-group>
 		<p class="mb-1"><strong>{ f.Name }</strong></p>
-		<p class="is-size-7 has-text-grey mb-2">Warm-up { f.Start } · finishes about { f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</p>
+		<p class="is-size-7 has-text-grey mb-2">
+			{ FlightTimes(f.Start, f.Competing, f.End) } · { flightCount(len(f.Gymnasts), f.Pairs) }
+			if f.Times.Own {
+				· its own times
+			}
+		</p>
 		<ol class="comp-order">
 			for _, g := range f.Gymnasts {
 				<li value={ strconv.Itoa(g.No) } data-entry={ g.ID } { ListRow{Name: g.Name}.Attrs()... }>
@@ -951,8 +1040,43 @@ templ flightBox(p TimetablePage, f ItemView) {
 				</div>
 			</form>
 		}
+		@changeTimes(p, f)
 		</div>
 	</div>
+}
+
+// changeTimes is a flight's Change the times (roadmap 15): its warm-up and
+// competing in minutes, with what the averages give beside each, and Back
+// to the averages when they're its own. A flight that has started or
+// finished keeps its times: On the day corrects them.
+templ changeTimes(p TimetablePage, f ItemView) {
+	if f.Times.Fixed {
+		<p class="help">Correct the times is on On the day.</p>
+	} else {
+		@opens("", "", "Change the times", false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/timetable/times") } class="comp-flight-times">
+				@versionField(p.Version)
+				<input type="hidden" name="flight" value={ strconv.Itoa(f.Index) }/>
+				<div class="comp-setup-row">
+					<label class="is-size-7" for={ fmt.Sprintf("flight-%d-warm", f.Index) }>Warm-up</label>
+					<input class="input is-small comp-num" type="number" min="0" max="120" id={ fmt.Sprintf("flight-%d-warm", f.Index) } name="warmUp" value={ strconv.Itoa(f.Times.WarmUp) }/>
+					<span class="is-size-7 has-text-grey">min · the averages give { strconv.Itoa(f.Times.AverageWarmUp) }</span>
+				</div>
+				<div class="comp-setup-row">
+					<label class="is-size-7" for={ fmt.Sprintf("flight-%d-competing", f.Index) }>Competing</label>
+					<input class="input is-small comp-num" type="number" min="1" max="600" id={ fmt.Sprintf("flight-%d-competing", f.Index) } name="competing" value={ strconv.Itoa(f.Times.Competing) }/>
+					<span class="is-size-7 has-text-grey">min · the averages give { strconv.Itoa(f.Times.AverageCompeting) }</span>
+				</div>
+				<div class="buttons mb-1">
+					<button class="button is-small" type="submit" name="action" value="save">Save times</button>
+					if f.Times.Own {
+						<button class="button is-small" type="submit" name="action" value="averages">Back to the averages</button>
+					}
+				</div>
+				<p class="help">Later flights on its area move back only as far as they must. If that would break something, you're asked first.</p>
+			</form>
+		}
+	}
 }
 
 // blockBox is blocked time on an area, with its panel if it needs one.
@@ -1143,6 +1267,7 @@ func gymnastCount(n int) string {
 // Placement is where an attendee competes, on a published timetable.
 type Placement struct {
 	Flight, Panel, Time string
+	Competing           string // when its competing starts, e.g. "09:52"
 	// Part is which of its event's flights it is ("Flight 2 of 4"), "" for
 	// an event of one, for a line beside the level, which needn't repeat it.
 	Part string
@@ -1152,7 +1277,12 @@ type Placement struct {
 templ placementLine(p *Placement) {
 	if p != nil {
 		<div class="notification is-info is-light">
-			<p><strong>{ p.Flight }</strong> · { p.Panel } · warm-up { p.Time }</p>
+			<p>
+				<strong>{ p.Flight }</strong> · { p.Panel } · warm-up { p.Time }
+				if p.Competing != "" {
+					· competing { p.Competing }
+				}
+			</p>
 		</div>
 	}
 }
@@ -1167,14 +1297,24 @@ templ runNo(n int) {
 // changeovers take, and the rest between a person's turns.
 func timingsNow(p TimetablePage) string {
 	var each []string
+	events := 0
 	for _, t := range p.Setup.Timings {
-		each = append(each, t.Name+" "+t.PerCompetitor)
+		if t.WarmUp != "" && t.WarmUp != "0" {
+			each = append(each, t.Name+" "+t.WarmUp+" warm-up and "+t.PerCompetitor+" competing")
+		} else {
+			each = append(each, t.Name+" "+t.PerCompetitor)
+		}
+		events += len(t.Events)
 	}
 	rest := "preferred"
 	if p.Setup.RestMust {
 		rest = "a must"
 	}
-	return strings.Join(each, ", ") + fmt.Sprintf(" min a competitor; %d min rest between turns, %s", p.Setup.Rest, rest)
+	out := strings.Join(each, ", ") + " min a competitor"
+	if events > 0 {
+		out += ", " + Count(events, "event with times of its own", "events with times of their own")
+	}
+	return out + fmt.Sprintf("; %d min rest between turns, %s", p.Setup.Rest, rest)
 }
 
 // listSummary is a setup section's line: what's in it, the first few by
@@ -1215,6 +1355,14 @@ type ChangeCheckPage struct {
 	DayMarks []string
 	Anyway   string
 	Help     string
+	// A change to the times (roadmap 15) can plan the timetable again with
+	// them instead: the change as posted to do that (Plan, nil when it isn't
+	// offered) and what planning again does (PlanSays); or Begun says why it
+	// isn't offered. Leave names the way out, if not Cancel.
+	Plan     []FormValue
+	PlanSays []string
+	Begun    string
+	Leave    string
 }
 
 // ChangeFix is another change that does what was meant without breaking
@@ -1241,6 +1389,21 @@ templ ChangeCheck(p ChangeCheckPage) {
 					}
 				</ul>
 			</div>
+		}
+		if len(p.Plan) > 0 {
+			<div class="box">
+				for _, say := range p.PlanSays {
+					<p class="mb-2">{ say }</p>
+				}
+				<form method="post" action={ templ.SafeURL(p.Action) } class="is-inline">
+					for _, v := range p.Plan {
+						<input type="hidden" name={ v.Name } value={ v.Value }/>
+					}
+					<button class="button is-small" type="submit">Plan again with these times</button>
+				</form>
+			</div>
+		} else if p.Begun != "" {
+			<p class="notification is-light">{ p.Begun }</p>
 		}
 		if len(p.Fixes) > 0 {
 			<div class="box">
@@ -1271,7 +1434,13 @@ templ ChangeCheck(p ChangeCheckPage) {
 					}
 				</button>
 			</form>
-			<a class="button is-small" href={ templ.SafeURL(p.Back) }>Cancel</a>
+			<a class="button is-small" href={ templ.SafeURL(p.Back) }>
+				if p.Leave != "" {
+					{ p.Leave }
+				} else {
+					Cancel
+				}
+			</a>
 		</div>
 		if p.Help != "" {
 			<p class="help">{ p.Help }</p>

@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -36,12 +37,25 @@ func setupForm(c competitions.Competition, s competitions.Setup, people []compet
 		f.Days = append(f.Days, views.DayForm{Name: d.Name, Start: d.Start, End: d.End, Areas: areas})
 		f.DayNames = append(f.DayNames, d.Name)
 	}
+	minutes := func(m float64) string { return strconv.FormatFloat(m, 'f', -1, 64) }
+	n := 0 // the events with times of their own so far, numbering their fields
 	for _, d := range c.Disciplines() {
 		t := s.TimingsFor(d)
-		f.Timings = append(f.Timings, views.TimingForm{
-			Key: offerKey(d), Name: competitions.DisciplineName(d), PerCompetitor: strconv.FormatFloat(t.PerCompetitor, 'f', -1, 64),
-			Between: strconv.Itoa(t.Between), MaxFlight: strconv.Itoa(t.MaxFlight),
-		})
+		tf := views.TimingForm{
+			Key: offerKey(d), Name: competitions.DisciplineName(d), WarmUp: minutes(t.WarmUp), LeastWarmUp: strconv.Itoa(t.LeastWarmUp),
+			PerCompetitor: minutes(t.PerCompetitor), Between: strconv.Itoa(t.Between), MaxFlight: strconv.Itoa(t.MaxFlight),
+		}
+		for _, l := range c.LevelNames(d) {
+			ev := competitions.EventName(d, l)
+			e, own := s.EventTimes[ev]
+			if !own {
+				tf.Choices = append(tf.Choices, ev)
+				continue
+			}
+			tf.Events = append(tf.Events, views.EventTimingForm{Index: n, Name: ev, WarmUp: minutes(e.WarmUp), LeastWarmUp: strconv.Itoa(e.LeastWarmUp), PerCompetitor: minutes(e.PerCompetitor)})
+			n++
+		}
+		f.Timings = append(f.Timings, tf)
 	}
 	for _, b := range s.Blocks {
 		f.Blocks = append(f.Blocks, describeBlock(b, s.Days))
@@ -215,10 +229,18 @@ func (p *competitionPages) setupAreas(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// setupTimings saves each discipline's timings (per-, between-, max-<key>),
-// rest (rest, restMust) and separate men's and women's flights.
+// setupTimings saves each discipline's timings (warm-, least-, per-,
+// between-, max-<key>; a form without warm- and least- leaves those as they
+// are), events' own times (event-<i> its name, with -warm, -least, -per),
+// rest (rest, restMust) and separate men's and women's flights. addEvent=<key>
+// gives the discipline's event chosen (add-<key>) times of its own, starting
+// from the discipline's; removeEvent=<event> puts an event back on its
+// discipline's. Before planning, that's all. After, the flights are timed
+// again in place (tryTimes), unless the largest flight or separate men's and
+// women's flights changed: those need the flights made again, so the
+// timetable is marked out of date, as any other setup change marks it.
 func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) {
-	c, ok := p.admin(w, r)
+	c, draft, entries, ok := p.timetableOf(w, r)
 	if !ok {
 		return
 	}
@@ -227,6 +249,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	posted := map[string]competitions.Timings{} // the figures posted, by discipline
+	warmPosted := map[string]bool{}             // disciplines whose warm-up figures were posted
 	for _, d := range c.Disciplines() {
 		key := offerKey(d)
 		per, err1 := strconv.ParseFloat(r.FormValue("per-"+key), 64)
@@ -236,30 +259,138 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 			back(w, r, "Nothing was changed: timings should be numbers.")
 			return
 		}
-		posted[d] = competitions.Timings{PerCompetitor: per, Between: between, MaxFlight: most}
+		t := competitions.Timings{PerCompetitor: per, Between: between, MaxFlight: most}
+		if r.Form.Has("warm-"+key) || r.Form.Has("least-"+key) {
+			var err4, err5 error
+			t.WarmUp, err4 = strconv.ParseFloat(orZero(r.FormValue("warm-"+key)), 64)
+			t.LeastWarmUp, err5 = strconv.Atoi(orZero(r.FormValue("least-" + key)))
+			if err4 != nil || err5 != nil {
+				back(w, r, "Nothing was changed: timings should be numbers.")
+				return
+			}
+			warmPosted[d] = true
+		}
+		posted[d] = t
+	}
+	events := map[string]competitions.EventTimes{} // events' own times posted, by event
+	for i := 0; r.Form.Has(fmt.Sprintf("event-%d", i)); i++ {
+		field := func(part string) string { return orZero(r.FormValue(fmt.Sprintf("event-%d-%s", i, part))) }
+		warm, err1 := strconv.ParseFloat(field("warm"), 64)
+		least, err2 := strconv.Atoi(field("least"))
+		per, err3 := strconv.ParseFloat(r.FormValue(fmt.Sprintf("event-%d-per", i)), 64)
+		if err1 != nil || err2 != nil || err3 != nil {
+			back(w, r, "Nothing was changed: timings should be numbers.")
+			return
+		}
+		events[r.FormValue(fmt.Sprintf("event-%d", i))] = competitions.EventTimes{WarmUp: warm, LeastWarmUp: least, PerCompetitor: per}
 	}
 	rest, err := strconv.Atoi(r.FormValue("rest"))
 	if err != nil {
 		back(w, r, "Nothing was changed: rest should be a number of minutes.")
 		return
 	}
-	p.saveSetup(w, r, c, "Timings saved.", func(s *competitions.Schedule, _ *setupChange) error {
-		// The warm-up figures aren't on the form: they stay as they are.
+	notice := "Timings saved."
+	removed, added := r.FormValue("removeEvent"), ""
+	if key := r.FormValue("addEvent"); key != "" {
+		added = r.FormValue("add-" + key)
+	}
+	switch {
+	case added != "":
+		notice = added + " has times of its own: change them on its row."
+	case removed != "":
+		notice = removed + " is back on its discipline's times."
+	}
+	// apply makes the posted timings the setup's; the figures not on the
+	// form stay as they are.
+	apply := func(s *competitions.Setup) error {
 		timings := map[string]competitions.Timings{}
-		for d, p := range posted {
-			t := s.Setup.TimingsFor(d)
-			t.PerCompetitor, t.Between, t.MaxFlight = p.PerCompetitor, p.Between, p.MaxFlight
+		for d, pt := range posted {
+			t := s.TimingsFor(d)
+			t.PerCompetitor, t.Between, t.MaxFlight = pt.PerCompetitor, pt.Between, pt.MaxFlight
+			if warmPosted[d] {
+				t.WarmUp, t.LeastWarmUp = pt.WarmUp, pt.LeastWarmUp
+			}
 			if t != competitions.DefaultTimings(d) {
 				timings[d] = t
 			}
 		}
-		s.Setup.Timings = timings
-		s.Setup.Rest, s.Setup.RestMust = rest, r.FormValue("restMust") == "1"
+		own := maps.Clone(s.EventTimes)
+		if own == nil {
+			own = map[string]competitions.EventTimes{}
+		}
+		maps.Copy(own, events)
+		delete(own, removed)
+		if added != "" {
+			if _, has := own[added]; has || !slices.Contains(c.EventNames(), added) {
+				return staleTimetable
+			}
+			// Its discipline's figures, as posted, to change from.
+			for _, d := range c.Disciplines() {
+				if slices.ContainsFunc(c.LevelNames(d), func(l string) bool { return competitions.EventName(d, l) == added }) {
+					t, set := timings[d]
+					if !set {
+						t = competitions.DefaultTimings(d)
+					}
+					own[added] = competitions.EventTimes{WarmUp: t.WarmUp, LeastWarmUp: t.LeastWarmUp, PerCompetitor: t.PerCompetitor}
+				}
+			}
+		}
+		if len(own) == 0 {
+			own = nil
+		}
+		s.Timings, s.EventTimes = timings, own
+		s.Rest, s.RestMust = rest, r.FormValue("restMust") == "1"
 		if r.Form.Has("separate") {
-			s.Setup.Separate = postedSplit(r, "separate", "separateLevel")
+			s.Separate = postedSplit(r, "separate", "separateLevel")
 		}
 		return nil
+	}
+	// Before planning, or when the flights need making again, as any other
+	// change to the setup.
+	next := draft.Setup
+	if err := apply(&next); err != nil {
+		changed(w, r, err, "")
+		return
+	}
+	reform := next.Separate.Mode != draft.Setup.Separate.Mode || !slices.Equal(next.Separate.Levels, draft.Setup.Separate.Levels)
+	for _, d := range c.Disciplines() {
+		reform = reform || next.TimingsFor(d).MaxFlight != draft.Setup.TimingsFor(d).MaxFlight
+	}
+	if !draft.Planned || reform {
+		if draft.Planned {
+			notice += " The flights need making again for it: plan again to use it."
+		}
+		p.saveSetup(w, r, c, notice, func(s *competitions.Schedule, _ *setupChange) error { return apply(&s.Setup) })
+		return
+	}
+	marks, err := p.dayMarksOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	p.tryTimes(w, r, c, draft, entries, marks, timesChange{
+		what: "Change the timings", menu: menuSetup,
+		change: func(s *competitions.Schedule, fixed func(string) bool) ([]competitions.FlightShift, error) {
+			next := s.Setup
+			if err := apply(&next); err != nil {
+				return nil, err
+			}
+			if err := next.Check(c.EventNames()); err != nil {
+				return nil, err
+			}
+			s.Setup = next
+			return s.SetTimes(next.Timings, next.EventTimes, fixed), nil
+		},
+		done: notice, back: timetablePath(r) + "/setup",
 	})
+}
+
+// orZero is a number from a form, "" being 0.
+func orZero(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return "0"
+	}
+	return v
 }
 
 // setupBlocks adds blocked time (add=1: name, minutes, day, at or from and

@@ -335,7 +335,7 @@ func Delay(p DelayPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" aria-label=\"Minutes breaks can be shortened by\"> <span class=\"is-size-7\">min</span></div><div class=\"comp-sim-grid\"><label class=\"comp-sim-row\"><span>Minutes between flights (empty: as set up)</span> <input class=\"input is-small comp-num\" name=\"between\" type=\"number\" min=\"0\" max=\"60\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" aria-label=\"Minutes breaks can be shortened by\"> <span class=\"is-size-7\">min</span></div><div class=\"comp-sim-grid\"><label class=\"comp-sim-row\"><span>Changeover minutes (empty: as set up)</span> <input class=\"input is-small comp-num\" name=\"between\" type=\"number\" min=\"0\" max=\"60\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -348,7 +348,7 @@ func Delay(p DelayPage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"></label> <label class=\"comp-sim-row\"><span>Quicker turns: % less time per competitor</span> <input class=\"input is-small comp-num\" name=\"quicker\" type=\"number\" min=\"0\" max=\"50\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"></label> <label class=\"comp-sim-row\"><span>Quicker turns: % less competing time per competitor</span> <input class=\"input is-small comp-num\" name=\"quicker\" type=\"number\" min=\"0\" max=\"50\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

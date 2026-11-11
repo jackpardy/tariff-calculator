@@ -31,6 +31,7 @@ func (p *competitionPages) registerTimetable(handle func(string, http.HandlerFun
 	handle("POST /competitions/admin/{token}/timetable/setup/rules", p.setupRules)
 	handle("POST /competitions/admin/{token}/timetable/plan", p.planTimetable)
 	handle("POST /competitions/admin/{token}/timetable/flight", p.editFlight)
+	handle("POST /competitions/admin/{token}/timetable/times", p.flightTimes)
 	handle("POST /competitions/admin/{token}/timetable/entry", p.moveEntry)
 	handle("POST /competitions/admin/{token}/timetable/officials", p.editRota)
 	handle("POST /competitions/admin/{token}/timetable/publish", p.publishTimetable)
@@ -168,8 +169,9 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 				if f.Day != d || f.Area != a.Name {
 					continue
 				}
-				it := views.ItemView{Flight: true, Index: i, Discipline: f.Discipline, Name: f.Name(), Start: competitions.Clock(f.Start), End: competitions.Clock(f.End), Seats: seatsOf(f, people, names),
-					Pairs: f.Discipline == competitions.Synchro, InRun: f.Of > 1, Earlier: f.Number > 1}
+				it := views.ItemView{Flight: true, Index: i, Discipline: f.Discipline, Name: f.Name(), Seats: seatsOf(f, people, names),
+					Pairs: f.Discipline == competitions.Synchro, InRun: f.Of > 1, Earlier: f.Number > 1, Times: timesForm(s.Setup, f)}
+				it.Start, it.Competing, it.End = flightClocks(s.Setup, f)
 				for n, id := range f.Entries {
 					e, ok := byID[id]
 					if !ok {
@@ -209,6 +211,22 @@ func itemsOf(s competitions.Schedule, entries []store.Entry, people []competitio
 	return out
 }
 
+// flightClocks are a flight's three times as the pages say them: when its
+// warm-up starts, when its competing starts and when it finishes about. A
+// flight in a timetable saved before competing had a time of its own starts
+// competing after its changeover (CompetingStarts).
+func flightClocks(s competitions.Setup, f competitions.ScheduledFlight) (start, competing, end string) {
+	return competitions.Clock(f.Start), competitions.Clock(f.CompetingStarts(s)), competitions.Clock(f.End)
+}
+
+// timesForm is a flight's warm-up and competing for Change the times: what it
+// has and what the averages give.
+func timesForm(s competitions.Setup, f competitions.ScheduledFlight) views.FlightTimesForm {
+	_, warmUp, competing := s.FlightTimes(f)
+	avgWarmUp, avgCompeting := s.AverageTimes(f)
+	return views.FlightTimesForm{WarmUp: warmUp, Competing: competing, AverageWarmUp: avgWarmUp, AverageCompeting: avgCompeting, Own: f.OwnTimes()}
+}
+
 func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 	c, s, entries, ok := p.timetableOf(w, r)
 	if !ok {
@@ -223,9 +241,9 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuTimetable), Notice: r.URL.Query().Get("notice"),
 		Setup: setupForm(c.Competition, s.Setup, people), Planned: s.Planned, Stale: s.Stale, Published: c.Published != nil, Changes: c.Published != nil && !sameTimetable(s, *c.Published), Entries: len(entries), Version: s.Version(),
 	}
-	if c.Published != nil && s.Stale {
-		marks, err := p.dayMarksOf(r.Context(), c.ID)
-		if err != nil {
+	var marks dayMarks
+	if c.Published != nil {
+		if marks, err = p.dayMarksOf(r.Context(), c.ID); err != nil {
 			failed(w, r, err)
 			return
 		}
@@ -261,6 +279,16 @@ func (p *competitionPages) timetable(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		page.Days = itemsOf(s, entries, officials)
+		// A flight started or finished on the day keeps its times.
+		for d := range page.Days {
+			for a := range page.Days[d].Areas {
+				for k, it := range page.Days[d].Areas[a].Items {
+					if it.Flight && it.Index < len(s.Flights) {
+						page.Days[d].Areas[a].Items[k].Times.Fixed = marks.underWay(competitions.FlightKey(s.Flights[it.Index]))
+					}
+				}
+			}
+		}
 		page.SeatBusy = seatsBusy(s, &page, people, officials)
 		page.OpenDay, _ = todayIndex(c, &s, p.now())
 		for i, f := range s.Flights {
@@ -341,30 +369,35 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		if c.Published != nil {
 			then += " Clubs, gymnasts and officials keep seeing what you last published until you publish again."
 		}
-		p.askBefore(w, r, c, menuSetup, views.AskFirstPage{
-			What: "Plan the timetable again",
-			Says: "Planning again starts afresh: every flight, running order and seat is made anew, and what you changed by hand is lost.",
+		ask := views.AskFirstPage{
+			What: "Plan the timetable again", Says: planAgainNote,
 			Then: then, Do: "Plan again", Back: timetablePath(r) + "/setup",
-		})
+		}
+		// Flights' own times stay where the flight does: planned on a copy,
+		// to name those it would drop.
+		if slices.ContainsFunc(slices.Concat(draft.Flights, draft.Unplaced), competitions.ScheduledFlight.OwnTimes) {
+			plan := draft.Copy()
+			if dropped, err := p.replan(c, &plan, entries, people, same, marks); err == nil && len(dropped) > 0 {
+				ask.Says += " It drops the own times of these flights, which it doesn't make again:"
+				for _, f := range dropped {
+					ask.Items = append(ask.Items, f.Name())
+				}
+			}
+		}
+		p.askBefore(w, r, c, menuSetup, ask)
 		return
 	}
 	notice := fmt.Sprintf("Planned %s.", gymnastsWord(len(entries)))
 	err = p.changeDraft(r, c, func(s *competitions.Schedule) error {
-		if err := s.Setup.Check(c.EventNames()); err != nil {
-			return refused("Fix the setup first: " + strings.Join(sentences(err), " "))
+		dropped, err := p.replan(c, s, entries, people, same, marks)
+		if err != nil {
+			return err
 		}
-		// The flights it replaces, the published ones first, for what's
-		// marked on the day to stay with them.
-		var old []competitions.ScheduledFlight
-		if c.Published != nil {
-			old = slices.Clone(c.Published.Flights)
-		}
-		old = slices.Concat(old, s.Flights, s.Unplaced)
-		*s = competitions.PlanStaffed(schedEntries(entries, same), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
-		s.KeepIDs(old, func(id string) bool { return !marks.underWay(id) })
-		p.staff(s, c, entries, people, same)
 		if n := len(s.Unplaced) + len(s.UnplacedBlocks); n > 0 {
 			notice += " Some of it doesn't fit: see below."
+		}
+		if len(dropped) > 0 {
+			notice += " Own times dropped: " + flightNames(dropped) + "."
 		}
 		return nil
 	})
@@ -514,13 +547,26 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	notice, anchor := "", ""
 	apply := func(s *competitions.Schedule) error {
+		var own []string // the flights it changes with times of their own, which keep them
 		if from, ok := s.Find(id); ok {
 			anchor = flightAnchor(s.Flights[from])
+			if s.Flights[from].OwnTimes() {
+				own = append(own, s.Flights[from].Name())
+			}
+		}
+		keeps := func() string {
+			switch len(own) {
+			case 0:
+				return ""
+			case 1:
+				return " " + own[0] + " keeps its own times."
+			}
+			return " " + own[0] + " and " + own[1] + " keep their own times."
 		}
 		if to == "" {
 			s.RemoveEntry(id)
 			s.Retime()
-			notice = "Took " + name + " out of the timetable."
+			notice = "Took " + name + " out of the timetable." + keeps()
 			return nil
 		}
 		flight, err := strconv.Atoi(to)
@@ -532,10 +578,13 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 			return refused("They can only move to a flight of their own discipline; nothing was changed.")
 		}
 		dest := s.Flights[flight]
+		if dest.OwnTimes() {
+			own = append(own, dest.Name())
+		}
 		if !s.MoveEntry(id, flight) {
 			return refused("That flight has moved since; nothing was changed.")
 		}
-		notice, anchor = "Moved "+name+" to "+dest.Name()+".", flightAnchor(dest)
+		notice, anchor = "Moved "+name+" to "+dest.Name()+"."+keeps(), flightAnchor(dest)
 		return nil
 	}
 	// A move that breaks something asks first, offering the event's other
@@ -691,7 +740,7 @@ func placement(c store.Competition, entryID string) *views.Placement {
 	if f.Of > 1 {
 		part = fmt.Sprintf("Flight %d of %d", f.Number, f.Of)
 	}
-	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start), Part: part}
+	return &views.Placement{Flight: f.Name(), Panel: f.Area, Time: day + competitions.Clock(f.Start), Competing: competitions.Clock(f.CompetingStarts(t.Setup)), Part: part}
 }
 
 // seatsBusy marks each flight's seats on the page with the flights the seat
@@ -764,8 +813,18 @@ func unpublishedChanges(draft, published competitions.Schedule, entries []store.
 }
 
 // sameTimetable says whether a draft is what's published.
+// A flight's competing time kept by one and not the other (a timetable saved
+// before it was kept, timed again since) isn't a difference.
 func sameTimetable(draft, published competitions.Schedule) bool {
 	draft.Published, published.Published = false, false
+	if len(draft.Flights) == len(published.Flights) {
+		draft.Flights, published.Flights = slices.Clone(draft.Flights), slices.Clone(published.Flights)
+		for i := range draft.Flights {
+			if a, b := &draft.Flights[i], &published.Flights[i]; (a.CompetingAt == 0) != (b.CompetingAt == 0) {
+				a.CompetingAt, b.CompetingAt = 0, 0
+			}
+		}
+	}
 	a, err1 := json.Marshal(draft)
 	b, err2 := json.Marshal(published)
 	return err1 == nil && err2 == nil && string(a) == string(b)

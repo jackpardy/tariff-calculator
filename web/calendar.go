@@ -53,6 +53,7 @@ type calendarSlot struct {
 	flight     bool
 	day        int
 	start, end int
+	competing  int // when a flight's competing starts
 	location   string
 	entries    []string // a flight's, by id
 	officials  []competitions.Duty
@@ -78,7 +79,7 @@ func calendarSlots(s competitions.Schedule) []calendarSlot {
 	var out []calendarSlot
 	for _, f := range s.Flights {
 		id := fmt.Sprintf("flight|%s|%s|%s|%d", f.Discipline, f.Event, f.Category, f.Number)
-		out = append(out, calendarSlot{id: id, title: f.Name(), flight: true, day: f.Day, start: f.Start, end: f.End, location: f.Area, entries: f.Entries, officials: f.Officials})
+		out = append(out, calendarSlot{id: id, title: f.Name(), flight: true, day: f.Day, start: f.Start, end: f.End, competing: f.CompetingStarts(s.Setup), location: f.Area, entries: f.Entries, officials: f.Officials})
 	}
 	for _, b := range s.Blocks {
 		out = append(out, calendarSlot{id: fmt.Sprintf("block|%s|%d", b.Name, b.Day), title: b.Name, day: b.Day, start: b.Start, end: b.End, location: strings.Join(b.Areas, ", "), officials: b.Officials})
@@ -122,6 +123,10 @@ func calendarEventsOf(c store.Competition, s competitions.Schedule, whose string
 				lines = append(lines, s.Setup.Days[slot.day].Name)
 			}
 			lines = append(lines, when)
+			// The event starts at the warm-up; when competing starts is said.
+			if slot.flight {
+				lines = append(lines, "Competing from "+clock(slot.competing))
+			}
 			if cl.note != "" {
 				lines = append(lines, cl.note)
 			}

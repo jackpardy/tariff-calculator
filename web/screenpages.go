@@ -205,13 +205,13 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		case n.Flight != nil:
 			f := *n.Flight
 			v.Now, v.Planned = f.Name(), n.Planned
-			v.NowTimes = competitions.Clock(f.Start) + "–" + competitions.Clock(f.End)
+			v.NowTimes = views.FlightTimes(flightClocks(s.Setup, f))
 			v.Gymnasts = gymnasts(f)
 		case n.Break != "":
 			v.Now = n.Break
 		}
 		if n.Next != nil {
-			v.Next, v.NextWarmUp = n.Next.Name(), competitions.Clock(n.Next.Start)
+			v.Next, v.NextWarmUp, v.NextCompeting = n.Next.Name(), competitions.Clock(n.Next.Start), competitions.Clock(n.Next.CompetingStarts(s.Setup))
 			v.NextGymnasts = gymnasts(*n.Next)
 		}
 		v.Idle, v.Finished = n.Idle, n.Flight == nil && n.Break == "" && n.Next == nil

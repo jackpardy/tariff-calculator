@@ -110,17 +110,17 @@ func delayEasing(d *competitions.Delay, page views.DelayPage) ([]string, error) 
 		out = append(out, "the held-up areas work through their breaks")
 	}
 	if page.Between != "" {
-		n, err := number(page.Between, "Minutes between flights")
+		n, err := number(page.Between, "Changeover minutes")
 		if err != nil {
 			return nil, err
 		}
 		d.Between = &n
-		out = append(out, fmt.Sprintf("%d min between flights", n))
+		out = append(out, fmt.Sprintf("%d min changeovers", n))
 	}
 	if d.Quicker, err = number(page.Quicker, "Quicker turns"); err != nil {
 		return nil, err
 	} else if d.Quicker > 0 {
-		out = append(out, fmt.Sprintf("turns %d%% quicker", d.Quicker))
+		out = append(out, fmt.Sprintf("competing %d%% quicker", d.Quicker))
 	}
 	if d.MaxFlight, err = number(page.MaxFlight, "Flight size"); err != nil {
 		return nil, err

@@ -152,17 +152,17 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 				mine = append(mine, fl)
 				warmUp[j.ID] = fl.Day*1440 + fl.Start
 				pos := slices.Index(fl.Entries, j.ID)
-				timing := t.Setup.TimingsFor(fl.Discipline)
 				ev.Flight, ev.Area = fl.Name(), fl.Area
 				if fl.Day < len(t.Setup.Days) {
 					ev.Day = t.Setup.Days[fl.Day].Name
 				}
-				ev.WarmUp = competitions.Clock(fl.Start)
+				ev.WarmUp, ev.Competing, _ = flightClocks(t.Setup, fl)
 				ev.Position, ev.Of = pos+1, len(fl.Entries)
-				// Their turns, if every turn takes its share of the time (half
-				// of each competitor's minutes per round): a guide only.
-				half := timing.PerCompetitor / 2
-				first := fl.Start + timing.Between
+				// Their turns, if every turn takes its share of the flight's
+				// competing (half of it each round): a guide only.
+				_, _, competing := t.Setup.FlightTimes(fl)
+				half := float64(competing) / float64(2*max(len(fl.Entries), 1))
+				first := fl.CompetingStarts(t.Setup)
 				ev.Turn = competitions.Clock(first + int(math.Floor(float64(pos)*half)))
 				ev.Turn2 = competitions.Clock(first + int(math.Floor(float64(len(fl.Entries)+pos)*half)))
 			}

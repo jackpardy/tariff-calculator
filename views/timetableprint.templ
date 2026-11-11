@@ -97,7 +97,7 @@ templ TimetablePrint(s TimetableSheets) {
 						// Each flight says so too, as a day's sheet runs over pages.
 						@draftMark(s.From)
 					</h2>
-					<p class="is-size-7 mb-1">Warm-up { f.Start } · finishes about { f.End }</p>
+					<p class="is-size-7 mb-1">{ FlightTimes(f.Start, f.Competing, f.End) }</p>
 					if len(f.Seats) > 0 {
 						<p class="is-size-7 mb-1">{ panelLine(f.Seats) }</p>
 					}
@@ -284,6 +284,7 @@ type TimelineCell struct {
 	Row, Rows, Column, Columns int
 	Kind                       string
 	Name, Time                 string // for a seat: who, and the role, flight and time
+	Competing                  string // when a flight's competing starts
 	Flight                     bool
 	Gymnasts                   int  // entries: pairs, for synchro
 	Pairs                      bool // synchro
@@ -309,7 +310,11 @@ func (c TimelineCell) title() string {
 		return c.Name + " · " + c.Time
 	}
 	if c.Flight {
-		return strings.Join(append([]string{c.Name + " · " + c.Time + " · " + flightCount(c.Gymnasts, c.Pairs)}, c.Notes...), "\n")
+		line := c.Name + " · " + c.Time
+		if c.Competing != "" {
+			line += " · competing " + c.Competing
+		}
+		return strings.Join(append([]string{line + " · " + flightCount(c.Gymnasts, c.Pairs)}, c.Notes...), "\n")
 	}
 	return c.Name + " · " + c.Time
 }
@@ -474,6 +479,7 @@ type ScoreSheets struct {
 // ScoreFlight is one flight's score sheet.
 type ScoreFlight struct {
 	Name, Day, Area, Start string
+	Competing              string     // when its competing starts
 	Seats                  []SeatView // who's on its panel
 	Marks                  []string // each routine's columns: "E1"…, "D", "HD", "S1"…, "Pen", "Total"
 	Rows                   []FlightGymnast
@@ -500,7 +506,13 @@ templ ScorePrint(s ScoreSheets) {
 		for _, f := range s.Flights {
 			<section class="comp-sheet">
 				<h1 class="title is-5 mb-1 comp-score-heading">{ f.Name }</h1>
-				<p class="mb-1">{ s.Competition.Name } · { f.Area } · { f.Day } · warm-up { f.Start } · Recorder's score sheet</p>
+				<p class="mb-1">
+						{ s.Competition.Name } · { f.Area } · { f.Day } · warm-up { f.Start }
+						if f.Competing != "" {
+							· competing { f.Competing }
+						}
+						· Recorder's score sheet
+					</p>
 				if len(f.Seats) > 0 {
 					<p class="is-size-7 mb-2">{ panelLine(f.Seats) }</p>
 				}

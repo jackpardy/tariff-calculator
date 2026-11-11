@@ -323,10 +323,20 @@ a **Change** button to open it.
    for a competition over a weekend.
 2. **Areas:** name each trampoline panel, tumbling track and DMT bed. Synchro
    runs on trampoline areas.
-3. **Timings:** for each discipline, minutes per competitor (both rounds;
-   5 is a starting point for trampoline, 2½ per synchro pair, who do one
-   routine, and 2 for tumbling and DMT), minutes
-   between flights (warm-up and changeover), and the largest flight. Set the
+3. **Timings:** a flight is its changeover (clearing the area), then its
+   warm-up, then its competing. For each discipline: **Warm-up per
+   competitor** and **Least warm-up** (so a small flight still gets enough;
+   both none to begin with), **Competing per competitor** (both rounds; 5 is
+   a starting point for trampoline, 2½ per synchro pair, who do one
+   routine, and 2 for tumbling and DMT), the **Changeover** (10 minutes) and
+   the **Largest flight**. Where one event is slower or quicker than the
+   rest of its discipline (Novice slower than Elite), choose it under the
+   discipline and tap **Add an event's own times**, then change its row;
+   **Remove** puts it back on the discipline's. A flight goes by its own
+   times if you've given it some (see step 7), then its event's, then its
+   discipline's. Once planned, saving the timings times the flights again
+   where they are, as for a flight's own times; a new largest flight needs
+   **Plan** again. Set the
    **rest** a person gets between their events (from the end of one flight
    to the start of the next one's warm-up), and whether it's a must. Someone
    with little rest goes early in their first flight and late in the next. Where
@@ -398,6 +408,20 @@ a **Change** button to open it.
    changes that break nothing (another day or area for the event, another
    of the event's flights for the gymnast, someone else free for the seat),
    and has **Make the change anyway** and **Cancel**.
+   Each flight shows three times: "Warm-up 09:50 · competing 10:02 ·
+   finishes about 10:50". To give a flight times of its own ("this flight
+   warms up for 15 and competes for 50"), open its **Change the times**,
+   beside **Move or redraw**: **Warm-up** and **Competing** in minutes, each
+   with what the averages give beside it, then **Save times**. Its box then
+   says "its own times", and **Back to the averages** undoes it. Later
+   flights on its area move back only as far as they must, and the notice
+   says what moved ("1 flight on Panel 2 starts 5 minutes later"). If that
+   would break something, **Before you change it** says what, and offers
+   **Plan again with these times** (it names any flight whose own times
+   planning again would drop), **Make the change anyway** or **Leave it**.
+   Once the competition has begun there's no planning again, and a flight
+   that has started keeps its times (correct them on **On the day**).
+   Moving a gymnast in or out of a flight keeps its own times.
 8. Under **Your rules**, **Officials: who does what** says who does what, as a
    must or a prefer: e.g. Mary **is** Chair of judges at Elite Women, Tom
    **doesn't officiate**, Ann **officiates only** on Saturday from 12:00. Then
@@ -422,7 +446,8 @@ a **Change** button to open it.
    first line and its name). Before you publish, they're of the draft,
    marked the same way. A chair of judges' link always gets what's published.
 10. **Publish** to show clubs, members and gymnasts entering on their own their
-   flight, area and warm-up time, and officials their duties. After that,
+   flight, area, warm-up time and when competing starts, and officials their
+   duties. After that,
    anything you change (planning again, moving flights or gymnasts, giving
    seats to officials, keeping a "what if") is a **draft**: everyone else
    still sees what you published until you tap **Publish changes**. The page
@@ -431,7 +456,8 @@ a **Change** button to open it.
    when there are many; **Discard changes** goes
    back to what's published, and **Unpublish** takes it down. Each asks
    first, on a page saying what it does, as does **Plan again** once the
-   timetable is planned.
+   timetable is planned (it also names any flight whose own times it would
+   drop: a flight keeps them when planning again makes it again).
    What's been marked on the day stays when you change the plan: check-ins
    stay with each gymnast, and a flight keeps its times, who's up and its
    panel's check-ins when you move it, and when you plan again if it keeps
@@ -551,8 +577,8 @@ let it. An event's flights stay together: if one would no longer finish
 before a break, the rest of the event waits for it too (unless events can run
 across breaks), and an event moves to another area with all its flights still
 to come. Flights that have already run, or are under way, never move. Under **Ease it**, try what you'd do on the day: move, shorten or
-work through lunch on those areas, fewer minutes between flights, quicker
-turns, merging an event's flights into bigger ones, or letting the day run
+work through lunch on those areas, shorter changeovers, quicker turns (less
+competing time; warm-ups stay as they are), merging an event's flights into bigger ones, or letting the day run
 over; it shows what that buys against the delay alone. Nothing is changed
 unless you tap **Keep this in the draft timetable**, below what happens; then
 publish the changes when you're ready.
@@ -785,7 +811,8 @@ To change it, open the discipline's row, then **Change your entry**, above
 its card. To pull out of one discipline, tap
 **Withdraw** under the card, tick **Withdraw this entry** and tap **Withdraw**. Notes from the organiser
 and your coach show on your entry, and once the organiser publishes the
-timetable, your flight, area and warm-up time, and under **Your duties**
+timetable, your flight, area, warm-up time and when competing starts, and
+under **Your duties**
 when and where you judge or help.
 
 **My competition** (the one link on the competition's page) is the page for

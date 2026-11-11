@@ -849,6 +849,13 @@ th .comp-draft-mark, h2 .comp-draft-mark { margin: 0 0 0 0.75rem; font-size: 0.7
 .comp-flight-moves { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; margin-top: 0.5rem; }
 .comp-flight-moves > details { margin: 0; }
 .comp-flight-moves > details[open] { flex-basis: 100%; }
+.comp-flight-moves > .help { margin: 0; align-self: center; }
+.comp-flight-times .comp-setup-row > label { min-width: 4.75rem; }
+/* Setup's timings: an event's own row under its discipline's; Enter in a
+   figure saves (comp-enter-saves, the form's first button, out of sight). */
+@media screen and (min-width: 769px) { .comp-timings .comp-timings-event > td:first-child { padding-left: 1.25rem; font-weight: 400; } }
+@media screen and (max-width: 768px) { table.comp-stack.comp-timings > tbody > tr.comp-timings-add { border: 0; padding: 0 0 0.25rem; } }
+.comp-enter-saves { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
 /* --- My competition (views/my.templ) --- */
 .comp-my-flight { border-left: 3px solid #485fc7; padding-left: 0.75rem; }

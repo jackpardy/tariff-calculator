@@ -30,12 +30,13 @@ type ScreenArea struct {
 	Name         string
 	Colour       int    // 0 to ScreenColours-1, by the area's place in the setup
 	Now          string // the flight on now, or the break's name; "" for nothing
-	NowTimes     string // the flight's time in the timetable, e.g. "09:30–10:40"
+	NowTimes     string // the flight's times in the timetable, as FlightTimes says them
 	Planned      bool   // Now is on by the plan only: nobody has marked it started
 	Gymnasts     []FlightGymnast
 	More         int    // gymnasts on now not named
 	Next         string // the next flight; "" for none
 	NextWarmUp   string // when its warm-up starts in the timetable, e.g. "10:45"
+	NextCompeting string // and its competing, e.g. "10:57"
 	NextGymnasts []FlightGymnast
 	NextMore     int    // gymnasts next not named
 	Idle         bool   // nothing on and nothing soon: shown as a strip
@@ -248,7 +249,13 @@ templ screenCard(a ScreenArea) {
 				<p class="screen-label">Next</p>
 				<p class="screen-flight">—</p>
 			} else {
-				<p class="screen-label">Next · warm-up { a.NextWarmUp }</p>
+				<p class="screen-label">
+					Next · warm-up { a.NextWarmUp }
+					// Wrapping as one, on a narrow card.
+					if a.NextCompeting != "" {
+						<span class="comp-nowrap">· competing { a.NextCompeting }</span>
+					}
+				</p>
 				<p class="screen-flight">{ a.Next }</p>
 				@screenNames(a.NextGymnasts, a.NextMore)
 			}

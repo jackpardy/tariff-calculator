@@ -104,7 +104,7 @@ func (s Schedule) CheckDelay(d Delay) error {
 	case d.Shorten < 0 || d.Shorten > 120:
 		errs = append(errs, errors.New("breaks can be shortened by 0 to 120 minutes"))
 	case d.Between != nil && (*d.Between < 0 || *d.Between > 60):
-		errs = append(errs, errors.New("minutes between flights should be from 0 to 60"))
+		errs = append(errs, errors.New("changeovers should be from 0 to 60 minutes"))
 	case d.Quicker < 0 || d.Quicker > 50:
 		errs = append(errs, errors.New("turns can be 0 to 50% quicker"))
 	case d.MaxFlight < 0 || d.MaxFlight > 40:

@@ -109,7 +109,10 @@ copy full of made-up clubs and gymnasts, with a link for each role.
 - **The timetable**: flights from the entries placed over the venue's days
   and areas, around lunch and other blocked time and the organiser's rules,
   never a person in two places and with rest between their turns; it says
-  when each day finishes, what doesn't fit and what would. Adjusted manually,
+  when each day finishes, what doesn't fit and what would. Warm-up and
+  competing timed apart, by discipline or by event, and any flight given
+  times of its own; a change after planning moves later flights only as far
+  as it must, or asks first. Adjusted manually,
   printed for marshals and the chair of judges, and published to clubs and
   gymnasts. Once published, it lists what you've changed since, before you
   publish again.

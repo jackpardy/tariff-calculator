@@ -286,7 +286,7 @@ func TestReportAndFixes(t *testing.T) {
 	if !fits["another trampoline panel"] {
 		t.Errorf("another panel fits it all: %+v", fits)
 	}
-	if fits["Trampoline at 4.5 minutes per competitor, not 5"] {
+	if fits["Trampoline competing at 4.5 minutes per competitor, not 5"] {
 		t.Error("half a minute less isn't enough")
 	}
 

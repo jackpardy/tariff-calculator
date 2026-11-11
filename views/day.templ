@@ -73,6 +73,7 @@ type DayFlight struct {
 	Key, Name string
 	ID        string // the id of its box on the page
 	Planned   string // e.g. "09:30–10:40"
+	Times     string // its three planned times, as FlightTimes says them
 	Started   string // when it started, "" if not yet
 	Finished  string
 	Who       string // who last marked it
@@ -440,9 +441,9 @@ templ dayCardFlight(p DayPage, a DayArea, f DayFlight) {
 		<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(a, f))</p>
 		<p class="is-size-7 has-text-grey mb-2">
 			if f.Started != "" {
-				Started { f.Started } · planned { f.Planned }
+				Started { f.Started } · planned: { lowerFirst(f.Times) }
 			} else {
-				Planned { f.Planned }
+				Planned: { lowerFirst(f.Times) }
 			}
 		</p>
 		if f.Up != nil && !f.Up.Waiting && f.Up.Name != "" {
@@ -537,7 +538,7 @@ templ dayOtherFlight(p DayPage, a DayArea, f DayFlight) {
 
 // dayFlightTimes is when a flight was planned, and started and finished.
 templ dayFlightTimes(f DayFlight) {
-	<p class="is-size-7 mb-1">Planned { f.Planned }</p>
+	<p class="is-size-7 mb-1">Planned: { lowerFirst(f.Times) }</p>
 	<p class="is-size-7 mb-2">
 		Started
 		if f.Started != "" {

@@ -187,11 +187,11 @@ func TestDutiesByEvent(t *testing.T) {
 			Officials: []competitions.Duty{{Role: competitions.RoleExecution, Person: "m:1"}}}
 	}
 	s := competitions.Schedule{Setup: competitions.Setup{Days: []competitions.Day{{Name: "Friday"}}}, Flights: []competitions.ScheduledFlight{flight(1, 570), flight(2, 630), flight(3, 690)}}
-	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–12:30 · Panel 2 · BUCS L7 Men · all 3 flights · Execution judge" {
+	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–12:30 · competing from 09:40 · Panel 2 · BUCS L7 Men · all 3 flights · Execution judge" {
 		t.Errorf("one line for the event: %q", got)
 	}
 	s.Flights[2].Officials[0].Person = "m:2"
-	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–11:30 · Panel 2 · BUCS L7 Men · flights 1–2 of 3 · Execution judge" {
+	if got := dutiesIn(s, "m:1"); len(got) != 1 || got[0] != "Friday 09:30–11:30 · competing from 09:40 · Panel 2 · BUCS L7 Men · flights 1–2 of 3 · Execution judge" {
 		t.Errorf("two of its flights: %q", got)
 	}
 }
