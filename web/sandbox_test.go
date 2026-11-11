@@ -89,6 +89,26 @@ func TestSandboxSeed(t *testing.T) {
 			t.Error("a gymnast on their own waits for their coach's sign-off")
 		}
 	})
+	t.Run("late entries", func(t *testing.T) {
+		late, err := s.st.LateRequests(ctx, day.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waiting, signed, replied := 0, 0, 0
+		for _, r := range late {
+			if r.Open() && r.SignedOff() {
+				signed++
+			} else if r.Open() {
+				waiting++
+				if k, err := s.st.Concern(ctx, day.ID, r.Thread); err == nil && len(k.Thread) > 0 {
+					replied++
+				}
+			}
+		}
+		if waiting != 1 || signed != 1 || replied != 1 {
+			t.Errorf("one waiting for sign-off, replied to; one signed off: %d, %d, %d", waiting, signed, replied)
+		}
+	})
 	t.Run("on the day", func(t *testing.T) {
 		if day.Date != now.Format("2006-01-02") || day.Published == nil || len(day.Published.Setup.Days) != 3 {
 			t.Fatalf("day 1 is today (%s) and three days are published", day.Date)

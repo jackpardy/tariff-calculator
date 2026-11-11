@@ -219,13 +219,7 @@ templ LateAdmin(p LateAdminPage) {
 				}
 				for _, t := range r.Thread {
 					<div class={ "comp-tell-post", templ.KV("is-organiser", t.Organiser) }>
-						<p class="is-size-7 has-text-grey">
-							if t.Organiser {
-								{ t.Who } replied, { t.At }
-							} else {
-								{ t.Who } replied, { t.At }
-							}
-						</p>
+						<p class="is-size-7 has-text-grey">{ t.Who } replied, { t.At }</p>
 						<p class="comp-feedback-text">{ t.Text }</p>
 					</div>
 				}
