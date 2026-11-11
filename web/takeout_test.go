@@ -12,7 +12,7 @@ import (
 // compIDOf is the id of a club's first competition.
 func compIDOf(t *testing.T, h http.Handler, club string) string {
 	t.Helper()
-	return regexp.MustCompile(regexp.QuoteMeta(club)+`/competitions/([^"/?]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
+	return regexp.MustCompile(regexp.QuoteMeta(club) + `/competitions/([^"/?]+)"`).FindStringSubmatch(do(t, h, http.MethodGet, club, nil).Body.String())[1]
 }
 
 func TestTakeOutOfACompetition(t *testing.T) {
