@@ -553,7 +553,8 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										}
 										if row.PartnerGone != "" {
 											<br/>
-											<span class="is-size-7 has-text-warning-dark">{ row.PartnerGone }</span>
+											@StateChip(Attention, "Partner gone")
+											<span class="is-size-7">{ row.PartnerGone }</span>
 										}
 										if row.AskLate != "" {
 											@askLateButton(row.AskLate, row.Discipline)
