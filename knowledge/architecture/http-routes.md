@@ -357,7 +357,10 @@ check rather than failing the request.
   except the two certificate uploads, which take a 3 MB certificate and the
   form around it (ADR 0007).
   A full routine is a few kilobytes.
-- Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s.
+- Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s. A request that
+  uploads (certificates, feedback with its picture) gets 90 s to send its body
+  (`allowSlowBody`, set per request in `Handler`); if it's cut short the page
+  says the connection was too slow or dropped, not that the file was too big.
 - Every incoming skill is normalised to its phase count and validated (rotation
   0–16, non-negative twists, known shape and positions). Errors are a
   `400` with the message alone, which the page shows to the user as the rest
