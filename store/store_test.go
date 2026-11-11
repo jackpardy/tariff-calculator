@@ -311,9 +311,9 @@ func TestSending(t *testing.T) {
 	}
 
 	now = now.Add(time.Hour)
-	n, err := s.Send(ctx, club.ID, c.ID, nil)
+	res, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	if n != 2 {
+	if n := len(res.Sent); n != 2 {
 		t.Errorf("sent %d, want 2", n)
 	}
 	list, err := s.Entries(ctx, c.ID)
@@ -338,8 +338,8 @@ func TestSending(t *testing.T) {
 
 	// Re-send just the changed one.
 	now = now.Add(time.Hour)
-	if n, err := s.Send(ctx, club.ID, c.ID, []string{a.ID}); err != nil || n != 1 {
-		t.Errorf("re-sent %d, %v", n, err)
+	if res, err := s.Send(ctx, club.ID, c.ID, []string{a.ID}); err != nil || len(res.Sent) != 1 {
+		t.Errorf("re-sent %d, %v", len(res.Sent), err)
 	}
 	if list, _ := s.Entries(ctx, c.ID); len(list) != 2 || list[0].Entry.Exercises[0].Option != "builtin:bucs-l3-option-2" {
 		t.Errorf("re-sent copy: %+v", list)
@@ -1416,9 +1416,9 @@ func TestRemovingEntries(t *testing.T) {
 
 	// Sending again: X stays removed, unchanged; Y unchanged isn't resent;
 	// changed, it waits for the organiser.
-	n, err := s.Send(ctx, club.ID, c.ID, nil)
+	res, err := s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	if n != 1 {
+	if n := len(res.Sent); n != 1 {
 		t.Errorf("only Y is sent: %d", n)
 	}
 	if gone, _ := s.RemovedEntries(ctx, c.ID); gone[1].Resent || gone[2].Resent {

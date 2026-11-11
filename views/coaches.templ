@@ -148,6 +148,7 @@ type CoachRow struct {
 	Problems      int
 	Signoff       SignoffView
 	Open          string // the entry's page
+	Unsent        string // what became of a change or entry that wasn't sent before it closed
 	List          ListRow // what the list's search and filters see
 }
 
@@ -199,7 +200,13 @@ templ CoachHome(p CoachPage) {
 								for _, r := range c.Rows {
 									<tr { r.List.Attrs()... }>
 										<td><a href={ templ.SafeURL(r.Open) }>{ r.Member }</a></td>
-										<td data-label="Level">{ r.Level }</td>
+										<td data-label="Level">
+											{ r.Level }
+											if r.Unsent != "" {
+												<br/>
+												<span class="is-size-7">{ r.Unsent }</span>
+											}
+										</td>
 										<td data-label="Problems">
 											// Empty when there are none, so a phone's card leaves the line out.
 											if r.Problems > 0 {
@@ -244,12 +251,24 @@ type SignoffPage struct {
 	Problems    []string
 	Cannot      string // why they can't sign it off, if they can't
 	Notice      string // what was just done
+	// Held says the entry shown is what the competition holds, and is posted
+	// back, so a form from before it changed isn't taken for it. Unsent is
+	// what the member changed it to, which can't be signed off: its line, who
+	// changed it, its card, and where to ask for a late change.
+	Held       string
+	Unsent     string
+	UnsentFor  string
+	UnsentCard *EntryCard
+	LateAsk    string
 }
 
 // signoffForm asks the coach to sign off the entry, or say not yet.
 templ signoffForm(p SignoffPage) {
 	@problemList(p.Problems)
 	<form method="post" action={ templ.SafeURL(p.Action) }>
+		if p.Held != "" {
+			<input type="hidden" name="held" value={ p.Held }/>
+		}
 		<p class="mb-2">Have you seen { p.Card.Gymnast } perform this safely and is it ready to compete?</p>
 		if p.AskName {
 			<div class="field">
@@ -292,6 +311,21 @@ templ SignoffEntry(p SignoffPage) {
 		}
 		@coachLates(p.Late)
 		@entryCardChecks(p.Card)
+		if p.Unsent != "" {
+			// The member's change, apart from the entry: for the coach to see, not to sign.
+			<div class="notification is-light mt-4">
+				<p>{ p.Unsent }</p>
+				if p.LateAsk != "" {
+					<p class="is-size-7 mt-1">{ p.UnsentFor } can ask for a late change, which comes to you to sign off.</p>
+				}
+				if p.UnsentCard != nil {
+					<details class="mt-2">
+						<summary>What { p.UnsentFor } changed it to, not sent</summary>
+						@entryCardChecks(cardUnder(*p.UnsentCard, 4))
+					</details>
+				}
+			</div>
+		}
 		if p.Cannot != "" {
 			<p class="has-text-grey mt-4">{ p.Cannot }</p>
 		} else if p.Competition.SignoffsOpen && p.Signoff.Signed && len(p.Problems) == 0 {

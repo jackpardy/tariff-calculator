@@ -157,7 +157,11 @@ pair's one routine), checked as the Routine Builder checks them.
   deadlines** on the Settings page): entries closing stops new entries; give **Changes to
   entries close** and **Coaches' sign-off closes** later dates to let clubs
   and gymnasts keep changing, withdrawing or sending again the entries
-  they've made, and coaches keep signing off, until then.
+  they've made, and coaches keep signing off, until then. New entries stay
+  closed: a club can't add one after the deadline, and an entry a club saved
+  but never sent isn't in the competition. A change a club saved but didn't
+  send before the closing time isn't either: the club's and the member's
+  pages show what you hold, with a line saying so.
 - **Late changes:** tap **Late changes** to choose what clubs and gymnasts
   can ask for once entries close (a **level change**, a **routine change**,
   or both), each with a fee charged only if you accept. Each request shows
@@ -667,7 +671,11 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   the card's, a missing coach sign-off where the competition needs one, and
   a synchro pair at the wrong level for their individual ones. Find a member
   with the search above the entries, or show only those with problems or
-  still to send. **Change**, under a member's name, opens their entry:
+  still to send. If a change, or a whole entry, wasn't sent before it closed,
+  the row shows what the competition holds, with a line under the level
+  ("Gus changed this to BUCS L4 on 6 Feb, but it wasn't sent before entries
+  closed. The competition has BUCS L3."); an entry never sent says it isn't in
+  the competition. **Change**, under a member's name, opens their entry:
   **Change the entry** sits above its card, by its problems, and
   **Withdraw** below it. To enter a member yourself, tap **Enter a member**,
   choose who and in what, and tap **Enter them**; for synchro, choose their
@@ -683,8 +691,10 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   since you sent them. A member's offer to judge or help that you haven't
   sent, or that changed since (or was withdrawn), counts too: the page says
   "2 offers to send" and the button's number includes them. **Send all again**, the quiet button beside it, sends
-  everyone's and takes back withdrawn ones. The organiser only sees what you
-  send, until entries close. What members offer to judge and help with goes
+  everyone's and takes back withdrawn ones. The notice says how many went
+  and, if any didn't, why ("1 wasn't sent: entries have closed for new
+  entries", "1 was removed by the organiser, so it wasn't sent"). The
+  organiser only sees what you send, until entries close. What members offer to judge and help with goes
   with every send.
 - **Coaches** (where it approves coaches): tick the coaches who'll sign off
   its entries (your members' coaches start ticked) and tap **Send
@@ -819,7 +829,9 @@ and it opens the club as their role there.
    Tumbling and DMT need only the level.
 4. Your entry shows checked, with any problems; a row with problems to fix opens
    by itself when you save. Your comp sec sends it to the competition: the
-   status says whether it's been sent, or changed since. Where it needs a
+   status says whether it's been sent, or changed since. If entries close
+   before your comp sec sends a change, your page shows what the competition
+   has, and says you changed it but it wasn't sent. Where it needs a
    coach's sign-off, it says who signs it off, or, if no coach of your club
    can, to ask your comp sec to add one.
 
@@ -1012,8 +1024,15 @@ the list by competition, level, problems or sign-off.
    **Not yet** with a note of what needs to change. The next entry waiting
    for you at that competition opens, until there's none left.
 
-If they change the entry, it needs signing off again. Where a competition needs
-sign-off, entries without it are flagged to the organiser.
+If they change the entry, it needs signing off again. If a member changed it
+but their club didn't send the change before entries closed, you sign off what
+the competition holds: its level and routine are the ones the organiser has. The
+member's change is under it, with a line saying it wasn't sent ("Gus changed
+this to BUCS L4 on 6 Feb, but it wasn't sent before entries closed. The
+competition has BUCS L3."); **What Gus changed it to, not sent** opens it so
+you can see it, but it isn't what you sign. Where the competition allows late
+changes, the page says they can ask for one, and it comes to you to sign off as
+usual. Where a competition needs sign-off, entries without it are flagged to the organiser.
 
 Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
 the members you see, with how many routines each keeps on their page and how

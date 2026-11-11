@@ -198,6 +198,21 @@ func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, d
 	})
 }
 
+// SignOffHeld records a coach's sign-off on the competition's copy of a
+// member's entry, when the member's own version can't be sent any more: the
+// copy is what the coach saw. seen is its Entry.ID as shown; if the copy has
+// since been replaced, nothing is signed and it returns ErrNotFound.
+func (s *Store) SignOffHeld(ctx context.Context, c Coach, memberID, competitionID, discipline, seen string, signed bool, note string) error {
+	var at any
+	if signed {
+		at = s.stamp()
+	}
+	return affected(s.db.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4
+		WHERE id = $5 AND club_id = $6 AND member_id = $7 AND competition_id = $8 AND discipline = $9
+		AND (SELECT signs_off FROM coaches WHERE id = $4)`,
+		at, c.Name, note, c.ID, seen, c.ClubID, memberID, competitionID, discipline))
+}
+
 // SetCoachSignsOff says whether one of a club's coaches signs off routines.
 func (s *Store) SetCoachSignsOff(ctx context.Context, clubID, coachID string, on bool) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE coaches SET signs_off = $1 WHERE id = $2 AND club_id = $3`, on, coachID, clubID))

@@ -371,6 +371,18 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
+		// After the deadline, with changes open later, only an entry the
+		// competition already holds can be changed: a new one can't be sent.
+		if s.open(ctx, tx, competitionID, entering) != nil {
+			var held int
+			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM entries WHERE competition_id = $1 AND member_id = $2 AND discipline = $3`,
+				competitionID, memberID, e.Discipline).Scan(&held); err != nil {
+				return err
+			}
+			if held == 0 {
+				return ErrClosed
+			}
+		}
 		// A synchro entry gets a partner link; naming a different partner
 		// makes a new one, unconfirmed.
 		token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
@@ -455,10 +467,10 @@ func (s *Store) ClubEntries(ctx context.Context, clubID, competitionID string) (
 // Send sends a club's members' entries to a competition, until its deadline:
 // the competition keeps a copy of each as it is now. memberIDs chooses whose
 // (nil for everyone's); sending everyone's also takes back entries the club
-// sent for members who have since withdrawn or been removed. It returns how
-// many entries were sent.
-func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberIDs []string) (int, error) {
-	sent := 0
+// sent for members who have since withdrawn or been removed. It says which
+// entries it sent and which it left out, and why.
+func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberIDs []string) (SendResult, error) {
+	var result SendResult
 	err := s.tx(ctx, func(tx *sql.Tx) error {
 		var name string
 		err := tx.QueryRowContext(ctx, `SELECT c.name FROM clubs c
@@ -529,12 +541,15 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 
 		now := s.stamp()
 		newOpen := s.open(ctx, tx, competitionID, entering) == nil // after the deadline, only entries already made
+		result = SendResult{}
 		kept := chosen[:0]
 		for _, p := range chosen {
+			key := SentEntry{MemberID: p.member, Discipline: p.discipline}
 			// An entry the organiser removed isn't sent again.
 			if removal, err := removalOf(ctx, tx, competitionID, p.member, p.discipline); err != nil {
 				return err
 			} else if removal == Removed {
+				result.Removed = append(result.Removed, key)
 				continue
 			}
 			if !newOpen {
@@ -544,6 +559,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 					return err
 				}
 				if n == 0 {
+					result.Closed = append(result.Closed, key)
 					continue
 				}
 			}
@@ -551,6 +567,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		}
 		chosen = kept
 		for _, p := range chosen {
+			result.Sent = append(result.Sent, SentEntry{MemberID: p.member, Discipline: p.discipline})
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
 				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach, entered_at)
 				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16, $8)
@@ -574,10 +591,23 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		if err := sendOffers(ctx, tx, clubID, name, competitionID, now); err != nil {
 			return err
 		}
-		sent = len(chosen)
 		return touch(ctx, tx, clubID, now)
 	})
-	return sent, err
+	if err != nil {
+		return SendResult{}, err
+	}
+	return result, nil
+}
+
+// SentEntry names a member's entry for a competition, by member and
+// discipline.
+type SentEntry struct{ MemberID, Discipline string }
+
+// SendResult is what sending did: the entries it sent, and those it left out
+// because the organiser removed them (Removed) or new entries have closed and
+// the competition holds no copy (Closed).
+type SendResult struct {
+	Sent, Closed, Removed []SentEntry
 }
 
 // Member is one of a club's members, by id.
