@@ -13,6 +13,7 @@ type OfferForm struct {
 	Recorder    bool
 	Marshal     bool
 	Summary     string // what they offer now, "" for nothing
+	Gone        string // that the offer names a level that has gone, "" for none
 	Sent        string // for a club's member: Not sent, Changed since sent or Sent; "" for anyone else
 	SentState   State
 	Note        string // e.g. that an individual's offer is the same on each of their entries
@@ -71,6 +72,9 @@ templ offerForm(f OfferForm) {
 			<p class="is-size-7 has-text-weight-semibold mb-1">From the organiser</p>
 			<p class="comp-wrap">{ f.Organiser }</p>
 		</div>
+	}
+	if f.Gone != "" {
+		<p class="mb-3">@StateChip(Attention, f.Gone)</p>
 	}
 	<form method="post" action={ templ.SafeURL(f.Action) } class="comp-offer">
 		for _, d := range f.Disciplines {
@@ -256,7 +260,8 @@ type OfficialRow struct {
 	Person                        string // their page
 	Qualified, Added              bool
 	Judging                       []JudgingRow // their judging qualifications, each with its certificate (ADR 0014)
-	Unqualified                   []string     // disciplines they offer to judge with no qualification in, by name
+	Gone                          string       // that the offer names a level that has gone, "" for none
+	Unqualified                   []string    // disciplines they offer to judge with no qualification in, by name
 	Who                           Role    // who they are on a seat: a gymnast, a club's judge or the organiser's own
 	List                          ListRow // what the People list's search and filters see
 }
@@ -360,6 +365,11 @@ templ CompetitionOfficials(p OfficialsPage) {
 										// What they've shown they're qualified to judge, to look at before ticking Qualified.
 										for _, q := range o.Judging {
 											<span class="is-block is-size-7">{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></span>
+										}
+										if o.Gone != "" {
+											<span class="is-block">
+												@StateChip(Attention, o.Gone)
+											</span>
 										}
 										if len(o.Unqualified) > 0 {
 											<span class="is-block">

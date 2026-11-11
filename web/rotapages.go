@@ -62,6 +62,11 @@ func rotaPeople(c competitions.Competition, officials []store.Official, entries 
 			p.Offer += "; " + words
 		}
 		p.Unqualified = c.Officials.Judge == competitions.JudgeQualified && !o.Qualified && (!seen || p.Unqualified)
+		for _, l := range c.GoneLevels(o.Offer) {
+			if !slices.Contains(p.Gone, l) {
+				p.Gone = append(p.Gone, l)
+			}
+		}
 		p.Recorder = p.Recorder || o.Offer.Recorder
 		p.Marshal = p.Marshal || o.Offer.Marshal
 		for _, d := range c.Disciplines() {

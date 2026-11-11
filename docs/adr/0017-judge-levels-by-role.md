@@ -70,3 +70,12 @@ can't be hd judge at ISTO Elite-Pro").
   It reads "Judge Tumbling (no role chosen yet)", and isn't counted as
   judging that discipline (Can do, Can judge, the panel's cover, the
   qualification flag) until the judge picks a role (2026-10-22).
+- **A level that has gone** (2026-11-11). An offer's "up to" level that the
+  competition no longer has (a tumbling or DMT level renamed, a trampoline
+  level unticked) used to let that judge take the role at every level.
+  It now fails closed: the role is taken at no level (HD and synchronisation
+  stay at any level). The offer shows "Says up to T2, which isn't a level
+  any more: ask them, or set it" on the Officials page and the judge's own
+  page, the seat dropdown's reason says the same, and a seat they hold is
+  reported by the holder checks. Offers aren't rewritten when the organiser
+  renames a level; someone sets the level again.

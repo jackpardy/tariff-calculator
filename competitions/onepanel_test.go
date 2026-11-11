@@ -99,7 +99,7 @@ func TestOnePanelPerEvent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(fills) != 1 || fills[0].Flight != "L1" || fills[0].Start != 9*60+20 || fills[0].End != 10*60 || len(fills[0].Steps) == 0 {
+	if len(fills) != 1 || fills[0].Flight != "L1 · from flight 2" || fills[0].Start != 9*60+20 || fills[0].End != 10*60 || len(fills[0].Steps) == 0 {
 		t.Fatalf("one fill, for the rest of L1: %+v", fills)
 	}
 	if out.Flights[0].Officials[0].Person != chair || out.Flights[1].Officials[0].Person == chair || out.Flights[1].Officials[0] != out.Flights[2].Officials[0] {

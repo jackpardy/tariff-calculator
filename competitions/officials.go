@@ -80,6 +80,12 @@ type OfficialSettings struct {
 	MarshalsChange  bool `json:"marshals_change,omitempty"`
 }
 
+// Stays says whether a seat in the role stays with an event's whole run:
+// every one does but a recorder's or marshal's the organiser lets change.
+func (s OfficialSettings) Stays(role string) bool {
+	return !(role == RoleRecorder && s.RecordersChange || role == RoleMarshal && s.MarshalsChange)
+}
+
 // Panel is a discipline's panel.
 func (s OfficialSettings) Panel(discipline string) Panel {
 	if p, ok := s.Panels[discipline]; ok {
@@ -229,7 +235,39 @@ func (c Competition) CanJudge(o Offer, qualified bool, discipline, level, role s
 		}
 	}
 	top := slices.Index(levels, upTo)
-	return top < 0 || at <= top
+	return top >= 0 && at <= top // a level the competition hasn't (any more): no level
+}
+
+// GoneLevels are the levels an offer says "up to" for a role that the
+// competition hasn't (any more), in the order the offer names them. Such a
+// role is taken at no level (ADR 0017, 2026-11-11).
+func (c Competition) GoneLevels(o Offer) []string {
+	var out []string
+	for _, d := range AllDisciplines {
+		j, ok := o.Judge[d]
+		if !ok || d == Synchro || !slices.Contains(c.Disciplines(), d) {
+			continue
+		}
+		levels := c.levelNames(d)
+		for _, role := range LevelRoles {
+			if upTo := j.UpTo[role]; upTo != "" && !slices.Contains(levels, upTo) && !slices.Contains(out, upTo) {
+				out = append(out, upTo)
+			}
+		}
+	}
+	return out
+}
+
+// GoneLine says that an offer names levels that have gone, e.g. "Says up to
+// T2, which isn't a level any more: ask them, or set it"; "" for none.
+func GoneLine(gone []string) string {
+	switch len(gone) {
+	case 0:
+		return ""
+	case 1:
+		return "Says up to " + gone[0] + ", which isn't a level any more: ask them, or set it"
+	}
+	return "Says up to " + JoinList(gone) + ", which aren't levels any more: ask them, or set it"
 }
 
 // For is the offer's judging for a discipline: trampoline's for synchro,
