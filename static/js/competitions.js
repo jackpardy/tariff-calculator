@@ -723,8 +723,11 @@
                     const notices = [];
                     let fresh = null;
                     for (const a of answers) {
-                        const doc = dayOf(a.text);
-                        if (doc) {
+                        const doc = a.gaveUp ? null : dayOf(a.text);
+                        if (a.gaveUp) {
+                            // The server kept failing on it for minutes.
+                            notices.push(DayTaps.givenUp(a.tap));
+                        } else if (doc) {
                             const n = doc.getElementById('day-notice')?.textContent.trim();
                             if (n) { notices.push(n); }
                             const u = new URL(a.url || location.href, location.href);
@@ -746,7 +749,7 @@
                     say(notices);
                 }
                 const left = taps.load();
-                DayTaps.markWaiting(left);
+                DayTaps.markWaiting(left, answers.filter((a) => a.gaveUp).map((a) => a.tap));
                 DayTaps.count(left.length);
             });
         };

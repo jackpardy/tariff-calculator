@@ -89,9 +89,9 @@ func TestFlightTapsKeptOnThePhone(t *testing.T) {
 	if to := mark("finish", 20*time.Minute); !strings.Contains(noticeOf(t, to), "earlier than the start (09:45)") {
 		t.Errorf("a Finished before its Started: %s", to)
 	}
-	// Refused: in the future (the phone's clock went back), over 12 hours
-	// old, or a time that can't be read.
-	if to := mark("finish", -time.Minute); !strings.Contains(noticeOf(t, to), "in the future") {
+	// Refused: in the future (the phone's clock went back more than two
+	// minutes), over 12 hours old, or a time that can't be read.
+	if to := mark("finish", -10*time.Minute); !strings.Contains(noticeOf(t, to), "in the future") {
 		t.Errorf("a tap in the future: %s", to)
 	}
 	if to := mark("finish", 13*time.Hour); !strings.Contains(noticeOf(t, to), "more than 12 hours old") {
@@ -105,10 +105,13 @@ func TestFlightTapsKeptOnThePhone(t *testing.T) {
 		t.Errorf("none of those finished it: %s", f)
 	}
 
-	// Sent at once, a tap is now, as ever; then an earlier kept Finished wins.
-	mark("finish", sentAtOnce)
+	// The phone's clock stepped back a minute while a tap waited: it counts
+	// as sent at once, so it's now; then an earlier kept Finished wins.
+	if to := mark("finish", -time.Minute); noticeOf(t, to) != "" {
+		t.Errorf("a clock stepped back a minute: %s", to)
+	}
 	if _, f := times(); f != "10:00" {
-		t.Errorf("a tap sent at once is now: %s", f)
+		t.Errorf("a tap with the clock stepped back a little is now: %s", f)
 	}
 	mark("finish", 2*time.Minute)
 	if _, f := times(); f != "09:58" {

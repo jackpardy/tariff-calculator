@@ -1504,9 +1504,16 @@ are sent one at a time, oldest first: straight away, on the browser's
 `online` event, when the page loads and every half minute; one phone's tabs
 take turns (`navigator.locks`). Each goes as the form it came from, plus
 `tapped` and `sent` (the phone's clock, in milliseconds). Without a signal
-the rest wait; a tap the server answers is dropped, whatever the answer (done,
-done already, or refused, with the notice saying why); one the server keeps
-failing on (a 500) is given up after 5 tries so it can't hold up the rest.
+the rest wait, kept for ever; a 502, 503 or 504 (the app restarting behind
+its proxy, as on every deploy) counts as no signal. A tap the server answers
+is dropped, whatever the answer (done, done already, or refused, with the
+notice saying why). One the server keeps failing on (another 500 or more)
+stops the rest there, in order, and is tried again; a try counts at most once
+every 30 seconds however often taps are sent, and it's given up after 10, so
+only once it has failed for about five minutes. Then the notice names it
+("Here for Katie Collins wasn't recorded: tap it again.": the gymnast's or
+official's name, or the flight's) and its buttons go back to how they were
+before the tap.
 When none are left the page shows the server's state (the last answer's page,
 or a fresh copy if the taps came from another day's page), with every notice.
 Without storage on the phone, a tap is sent at once as before.
@@ -1517,7 +1524,8 @@ doesn't matter, and records the tap at that time rather than when it arrived:
 a flight's start or finish, a check-in's time, who's up. A tap with no
 `tapped` (no JavaScript) is now, as before, and one sent as it's made is
 within milliseconds of it. Refused, with a notice and nothing changed: a time
-in the future (`sent` before `tapped`: the phone's clock went back), one more
+in the future (`sent` more than two minutes before `tapped`: the phone's clock
+went back; a smaller step back counts as sent at once), one more
 than 12 hours old, or one that can't be read. Taps before the competition's
 day aren't refused, so the page can be tried out (lateness leaves out times on
 another date anyway). The history says when a tap that waited a minute or

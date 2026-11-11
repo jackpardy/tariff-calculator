@@ -22,6 +22,11 @@ import (
 // ones are refused.
 const maxTapDelay = 12 * time.Hour
 
+// tapClockSlack is how far a phone's clock may step back between a tap and
+// its sending (as when it sets itself from the network) and the tap still be
+// recorded, as sent the moment it was made.
+const tapClockSlack = 2 * time.Minute
+
 // tapAt is when a tap on the day page was made. A tap sent as it's made is
 // now. One kept on the phone carries the phone's clock when tapped and when
 // sent (tapped and sent, in milliseconds); the difference, taken from now,
@@ -40,6 +45,9 @@ func (p *competitionPages) tapAt(r *http.Request) (at time.Time, why string) {
 		return now, "A tap wasn't recorded: its time couldn't be read."
 	}
 	delay := time.Duration(sent-tapped) * time.Millisecond
+	if delay < 0 && delay >= -tapClockSlack {
+		delay = 0
+	}
 	at = now.Add(-delay)
 	switch {
 	case delay < 0:
