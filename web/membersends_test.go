@@ -85,7 +85,7 @@ func TestMemberSendsEntries(t *testing.T) {
 	if page := unescape(clubEntriesPage(t, h, s.club)); !strings.Contains(page, "Student Open only takes entries sent by the club, so members' entries and requests wait for you to send them, whatever your club's settings.") {
 		t.Errorf("the club is told: %s", page)
 	}
-	if page := unescape(do(t, h, http.MethodGet, s.club+"/settings", nil).Body.String()); !strings.Contains(page, "Student Open only take entries sent by the club") {
+	if page := unescape(do(t, h, http.MethodGet, s.club+"/settings", nil).Body.String()); !strings.Contains(page, "Student Open only takes entries sent by the club") {
 		t.Errorf("the club's Settings say which competitions override them: %s", page)
 	}
 	if !dashboardHas(t, h, s.admin, "Zoe") {
