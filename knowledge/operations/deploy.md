@@ -65,7 +65,7 @@ cached between runs in GitHub's cache), labelled
 caught before deploy. On `master` it keeps the image (`docker save`,
 gzipped, about 12 MB) as the run's artifact for the deploy.
 
-The Go version is go.mod's `toolchain` line (Go 1.26.9 since 2026-10-15),
+The Go version is go.mod's `toolchain` line (Go 1.26.11 since 2026-11-11),
 which CI and local builds both use; the image builds with the newest Go 1.26.
 Go supports its two newest releases, so move up when a new one comes out and
 govulncheck starts failing.
