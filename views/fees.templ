@@ -12,7 +12,11 @@ type FeesPage struct {
 	GBP          bool
 	PerEntry     []FeeField
 	PerClub      string
-	Instructions string
+	// ChargeRemoved and RemovedFee are what an entry its club removes after
+	// entries close costs: its entry fee still, and a fee for removing it.
+	ChargeRemoved bool
+	RemovedFee    string
+	Instructions  string
 	Now          string // what's charged, in a line
 	Accounts     []AccountView
 	Due, Paid    string // everyone's
@@ -80,12 +84,23 @@ templ FeesAdmin(p FeesPage) {
 						<input class="input is-small comp-num" name="club" inputmode="decimal" value={ p.PerClub } placeholder="0" aria-label="Club fee"/>
 					</label>
 				</div>
+				<p class="label is-small mt-3 mb-1">An entry its club removes after entries have closed</p>
+				<div class="field mb-1">
+					<label class="checkbox"><input type="checkbox" name="charge_removed" value="1" checked?={ p.ChargeRemoved }/> Still charge its entry fee</label>
+				</div>
+				<div class="comp-sim-grid">
+					<label class="comp-sim-row">
+						<span>A fee for removing it</span>
+						<input class="input is-small comp-num" name="removed_fee" inputmode="decimal" value={ p.RemovedFee } placeholder="0" aria-label="Fee for removing an entry after entries close"/>
+					</label>
+				</div>
+				<p class="help">A club removes an entry by removing the gymnast from the club, or deleting the club. Before entries close it's never charged.</p>
 				<div class="field mt-3">
 					<label class="label is-small" for="fee-instructions">How to pay (on every invoice)</label>
 					<textarea class="textarea is-small" id="fee-instructions" name="instructions" rows="3" maxlength="500" placeholder="e.g. Bank transfer to ISTO, IBAN IE00 …, with your club's name as the reference, by 1 March">{ p.Instructions }</textarea>
 				</div>
 				<button class="button is-small is-primary" type="submit">Save</button>
-				<p class="help">Removed, held and withdrawn entries aren't charged. No money goes through here: record payments as they come.</p>
+				<p class="help">Removed, held and withdrawn entries aren't charged, but for what you set above. No money goes through here: record payments as they come.</p>
 			</form>
 		}
 		if p.On {

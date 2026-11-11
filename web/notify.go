@@ -79,6 +79,9 @@ type entryState struct {
 	Removal   string `json:"removal,omitempty"` // store.Removed or store.Held
 	Waiting   int    `json:"waiting,omitempty"` // its place on a waiting list
 	Late      string `json:"late,omitempty"`    // its latest late change: id, status and reason
+	// Again is why the organiser asked for another coach's sign-off, until
+	// one gives it.
+	Again string `json:"again,omitempty"`
 }
 
 // state is what's live for a competition now.
@@ -97,7 +100,7 @@ func (n *notifier) state(ctx context.Context, c store.Competition) (notifyState,
 	for _, e := range all {
 		es := entryState{
 			Gymnasts: e.Entry.Gymnasts(), Event: e.Entry.Level, Keys: keys[e.ID], Club: e.ClubID,
-			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal, Waiting: e.Waiting,
+			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal, Waiting: e.Waiting, Again: e.SignoffAgain,
 		}
 		if t := c.Published; t != nil {
 			if i, ok := t.Find(e.ID); ok {
@@ -238,6 +241,9 @@ func changes(was, now notifyState) []change {
 			} else {
 				add(store.AboutCards, e.Event+": late change not accepted: "+parts[2])
 			}
+		}
+		if e.Again != b.Again && e.Again != "" {
+			add(store.AboutCards, e.Event+": needs another coach's sign-off. "+e.Again)
 		}
 		switch {
 		case b.Waiting > 0 && e.Waiting == 0 && e.Removal == "":

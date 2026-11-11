@@ -81,6 +81,21 @@ func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([
 		}
 		out[i].entries = append(out[i].entries, e)
 	}
+	// An entry its club removed after entries closed is charged as the fees
+	// say: on the club's account, which it opens if it has nothing else.
+	removed := map[int][]competitions.Entry{}
+	for _, e := range all {
+		if !e.ClubRemoved() || !e.ClubRemovedLate || e.Individual || c.Fees.RemovedCost(e.Entry.Discipline) == 0 {
+			continue
+		}
+		key := clubPayer(e.ClubID)
+		i, ok := index[key]
+		if !ok {
+			i, index[key] = len(out), len(out)
+			out = append(out, account{key: key, name: e.ClubName, club: true})
+		}
+		removed[i] = append(removed[i], e.Entry)
+	}
 	for _, pay := range payments {
 		i, ok := index[pay.Payer]
 		if !ok {
@@ -95,6 +110,8 @@ func (p *competitionPages) accounts(ctx context.Context, c store.Competition) ([
 			entries = append(entries, e.Entry)
 		}
 		out[i].lines, out[i].due = c.Fees.Invoice(entries, out[i].club)
+		lines, due := c.Fees.RemovedLines(removed[i])
+		out[i].lines, out[i].due = append(out[i].lines, lines...), out[i].due+due
 	}
 	// Late changes accepted with a fee go on the payer's invoice.
 	late, err := p.st.LateRequests(ctx, c.ID)
@@ -167,7 +184,8 @@ func (p *competitionPages) renderFees(w http.ResponseWriter, r *http.Request, c 
 	base := adminPath(r.PathValue("token"))
 	f := c.Fees
 	page := views.FeesPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuFees), Notice: r.URL.Query().Get("notice"), Ask: ask, On: f.On(),
-		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions}
+		GBP: f.Currency == competitions.CurrencyGBP, PerClub: amountField(f.PerClub), Instructions: f.Instructions,
+		ChargeRemoved: f.ChargeRemoved, RemovedFee: amountField(f.RemovedFee)}
 	var charged []string // what's charged, for the line saying so
 	for _, d := range c.Disciplines() {
 		page.PerEntry = append(page.PerEntry, views.FeeField{Key: d, Name: competitions.DisciplineName(d), Amount: amountField(f.PerEntry[d])})
@@ -181,6 +199,12 @@ func (p *competitionPages) renderFees(w http.ResponseWriter, r *http.Request, c 
 	}
 	if f.PerClub > 0 {
 		charged = append(charged, "club fee "+f.Money(f.PerClub))
+	}
+	if f.ChargeRemoved {
+		charged = append(charged, "entries removed after the close still charged")
+	}
+	if f.RemovedFee > 0 {
+		charged = append(charged, f.Money(f.RemovedFee)+" for removing an entry after the close")
 	}
 	page.Now = "nothing charged yet"
 	if len(charged) > 0 {
@@ -228,7 +252,8 @@ func amountField(cents int) string {
 }
 
 // setFees saves the fees: currency (GBP or not), fee-<discipline>, club,
-// instructions.
+// charge_removed (1 to still charge an entry its club removes after
+// entries close), removed_fee, instructions.
 func (p *competitionPages) setFees(w http.ResponseWriter, r *http.Request) {
 	c, ok := p.admin(w, r)
 	if !ok {
@@ -253,6 +278,12 @@ func (p *competitionPages) setFees(w http.ResponseWriter, r *http.Request) {
 		problems = append(problems, "Club fee: "+err.Error()+".")
 	}
 	f.PerClub = cents
+	f.ChargeRemoved = r.FormValue("charge_removed") == "1"
+	cents, err = competitions.ParseMoney(r.FormValue("removed_fee"))
+	if err != nil {
+		problems = append(problems, "Fee for removing an entry: "+err.Error()+".")
+	}
+	f.RemovedFee = cents
 	back := adminPath(r.PathValue("token")) + "/fees"
 	if len(problems) > 0 {
 		noteRefused(w)

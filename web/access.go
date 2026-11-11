@@ -331,6 +331,14 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Changed the timetable's setup"
 	case strings.HasPrefix(path, "/officials"):
 		return "Changed the officials"
+	case strings.HasSuffix(path, "/signoff-again"):
+		name := "a coach"
+		if sent, err := p.st.CompetitionCoaches(r.Context(), c.ID); err == nil {
+			if i := slices.IndexFunc(sent, func(s store.SentCoach) bool { return s.CoachID == r.PathValue("coach") }); i >= 0 {
+				name = sent[i].Name
+			}
+		}
+		return "Asked for the entries " + name + " signed off to be signed off again"
 	case strings.HasPrefix(path, "/coaches/") || strings.HasPrefix(path, "/entry-coaches/"):
 		if what, ok := coachDecisions[f("action")]; ok {
 			return what

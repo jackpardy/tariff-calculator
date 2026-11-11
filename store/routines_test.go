@@ -86,7 +86,7 @@ func TestMemberRoutines(t *testing.T) {
 	}
 
 	// They go with the member.
-	must(t, s.RemoveMember(ctx, club.ID, m.ID))
+	must(t, s.RemoveMember(ctx, club.ID, m.ID, "Club admin"))
 	if got, _ := s.MemberRoutines(ctx, m.ID); len(got) != 0 {
 		t.Errorf("a removed member's routines stay: %d", len(got))
 	}

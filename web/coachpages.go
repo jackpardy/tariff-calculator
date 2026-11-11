@@ -22,7 +22,7 @@ func coachPath(token string) string { return "/clubs/coach/" + token }
 
 // memberSignoff is a member's entry's sign-off, as the pages show it.
 func memberSignoff(c competitions.Competition, e store.MemberEntry) views.SignoffView {
-	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote}
+	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote, Again: e.SignoffAgain}
 }
 
 // whoSignsOff says, on a member's entry waiting for a coach's sign-off
@@ -181,12 +181,12 @@ func (p *competitionPages) removeCoach(w http.ResponseWriter, r *http.Request) {
 	if p.askClub(w, r, club, clubCoaches, views.Ask{
 		Remove: true, // takes something away: red
 		Title:  "Remove " + coach.Name + " as a coach?",
-		Text:   "Their coach link stops working at once. Members who chose them have no coach until one is chosen; their sign-offs stay.",
+		Text:   "Their coach link stops working at once. Members who chose them have no coach until one is chosen; their sign-offs stay, and competitions they were sent to keep them, marked removed by the club. An organiser may ask for the entries they signed off to be signed off by another coach.",
 		Button: "Remove " + coach.Name, Back: clubCoachesPath(r.PathValue("token")) + "#" + coachAnchor(coach.ID),
 	}) {
 		return
 	}
-	if err := p.st.RemoveCoach(r.Context(), club.ID, coach.ID); err != nil {
+	if err := p.st.RemoveCoach(r.Context(), club.ID, coach.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}

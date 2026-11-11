@@ -134,14 +134,24 @@ func (s *Store) ReplaceCoachLink(ctx context.Context, clubID, coachID string) (s
 	return token, nil
 }
 
-// RemoveCoach removes a coach, and the shared links added on their page.
-// Their members have no coach until one is chosen; sign-offs they gave stay.
-func (s *Store) RemoveCoach(ctx context.Context, clubID, coachID string) error {
+// RemoveCoach removes a coach, by who (the club link's Who), and the shared
+// links added on their page. Their members have no coach until one is
+// chosen; sign-offs they gave stay, and count where a competition approved
+// them: each competition they were sent to keeps them, removed by the club
+// (keepCoaches).
+func (s *Store) RemoveCoach(ctx context.Context, clubID, coachID, who string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
+		club, err := clubName(ctx, tx, clubID)
+		if err != nil {
+			return err
+		}
+		if err := keepCoaches(ctx, tx, s.stamp(), who, club, `cc.coach_id = $3 AND cc.club_id = $4`, coachID, clubID); err != nil {
+			return err
+		}
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM coaches WHERE id = $1 AND club_id = $2`, coachID, clubID)); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
+		_, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
 		return err
 	})
 }
@@ -182,7 +192,8 @@ func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, d
 		at = s.stamp()
 	}
 	return s.tx(ctx, func(tx *sql.Tx) error {
-		if err := affected(tx.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5, signed_coach = $1
+		if err := affected(tx.ExecContext(ctx, fmt.Sprintf(`UPDATE member_entries SET signed_at = $3, signed_by = $4, sign_note = $5, signed_coach = $1,
+			signoff_again = CASE WHEN $3 IS NULL THEN signoff_again ELSE '' END
 			WHERE member_id = $6 AND competition_id = $7 AND discipline = $8 AND member_id IN (SELECT m.id FROM members m WHERE %s)
 			AND (SELECT signs_off FROM coaches WHERE id = $1)`, coachSees),
 			c.ID, c.ClubID, at, c.Name, note, memberID, competitionID, discipline)); err != nil {
@@ -190,7 +201,8 @@ func (s *Store) SignOff(ctx context.Context, c Coach, memberID, competitionID, d
 		}
 		// The competition's copy, if it's the entry the coach signed: so a
 		// sign-off reaches it without sending again, after changes close too.
-		_, err := tx.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4
+		_, err := tx.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4,
+			signoff_again = CASE WHEN $1 IS NULL THEN signoff_again ELSE '' END
 			WHERE member_id = $5 AND competition_id = $6 AND discipline = $7
 			AND entry = (SELECT entry FROM member_entries WHERE member_id = $5 AND competition_id = $6 AND discipline = $7)`,
 			at, c.Name, note, c.ID, memberID, competitionID, discipline)
@@ -207,7 +219,8 @@ func (s *Store) SignOffHeld(ctx context.Context, c Coach, memberID, competitionI
 	if signed {
 		at = s.stamp()
 	}
-	return affected(s.db.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4
+	return affected(s.db.ExecContext(ctx, `UPDATE entries SET signed_at = $1, signed_by = $2, sign_note = $3, signed_coach = $4,
+		signoff_again = CASE WHEN $1 IS NULL THEN signoff_again ELSE '' END
 		WHERE id = $5 AND club_id = $6 AND member_id = $7 AND competition_id = $8 AND discipline = $9
 		AND (SELECT signs_off FROM coaches WHERE id = $4)`,
 		at, c.Name, note, c.ID, seen, c.ClubID, memberID, competitionID, discipline))

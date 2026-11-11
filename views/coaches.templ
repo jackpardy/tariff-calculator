@@ -18,6 +18,9 @@ type SignoffView struct {
 	// one can; Coaches is where the comp sec adds or changes coaches, when
 	// no one can.
 	Waiting, Coaches string
+	// Again is why the organiser asked for another coach to sign it off,
+	// until one does: the coach who did was removed by the club.
+	Again string
 }
 
 // Problem is what's missing, as the organiser counts it, or "".
@@ -218,7 +221,7 @@ templ CoachHome(p CoachPage) {
 											if r.Signoff.By != "" && r.Signoff.By == p.Coach && !r.Signoff.Unapproved {
 												@StateChip(signoffState(r.Signoff))
 											} else {
-												@signoffLine(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved})
+												@signoffLine(SignoffView{Signed: r.Signoff.Signed, By: r.Signoff.By, Unapproved: r.Signoff.Unapproved, Again: r.Signoff.Again})
 											}
 										</td>
 									</tr>

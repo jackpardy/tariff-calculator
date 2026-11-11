@@ -83,7 +83,7 @@ func TestSkillMarks(t *testing.T) {
 	if c, _ := s.ClubByID(ctx, club.ID); !c.SkillsOpen {
 		t.Error("skills open")
 	}
-	must(t, s.RemoveMember(ctx, club.ID, m.ID))
+	must(t, s.RemoveMember(ctx, club.ID, m.ID, "Club admin"))
 	if marks, _ = s.MemberMarks(ctx, m.ID); len(marks) != 0 {
 		t.Error("a removed member's marks stay")
 	}

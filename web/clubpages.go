@@ -1016,15 +1016,22 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
+	text := "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition's organiser, marked removed by the club, and aren't in it any more."
+	if lines, err := p.removalCosts(r, m.ID); err != nil {
+		failed(w, r, err)
+		return
+	} else if len(lines) > 0 {
+		text += " " + strings.Join(lines, " ")
+	}
 	if p.askClub(w, r, club, clubMembers, views.Ask{
 		Remove: true, // takes something away: red
 		Title:  "Remove " + m.Name + "?",
-		Text:   "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition.",
+		Text:   text,
 		Button: "Remove " + m.Name, Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),
 	}) {
 		return
 	}
-	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID); err != nil {
+	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}
@@ -1060,11 +1067,67 @@ func (p *competitionPages) deleteClub(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, clubSettingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Type delete in the box to delete the club; nothing was deleted."), http.StatusSeeOther)
 		return
 	}
-	if err := p.st.DeleteClub(r.Context(), club.ID); err != nil {
+	if err := p.st.DeleteClub(r.Context(), club.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}
-	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries already sent stay with each competition.")
+	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries and coaches already sent stay with each competition's organiser, marked removed by the club.")
+}
+
+// removalCosts are the lines saying what removing a member costs the club,
+// a competition at a time: their entries the club sent to one whose
+// entries have closed, where its organiser charges for that.
+func (p *competitionPages) removalCosts(r *http.Request, memberID string) ([]string, error) {
+	sent, err := p.st.MemberSent(r.Context(), memberID)
+	if err != nil {
+		return nil, err
+	}
+	var order []string
+	byComp := map[string][]store.Entry{}
+	for _, e := range sent {
+		if _, ok := byComp[e.CompetitionID]; !ok {
+			order = append(order, e.CompetitionID)
+		}
+		byComp[e.CompetitionID] = append(byComp[e.CompetitionID], e)
+	}
+	now := p.now()
+	var out []string
+	for _, id := range order {
+		c, err := p.st.Competition(r.Context(), id)
+		if err != nil {
+			return nil, err
+		}
+		if !c.Live(now) || c.Open(now) {
+			continue // not closed: removing them costs nothing
+		}
+		total, each := 0, -1
+		for _, e := range byComp[id] {
+			cost := c.Fees.RemovedCost(e.Entry.Discipline)
+			total += cost
+			if each == -1 || each == cost {
+				each = cost
+			} else {
+				each = -2 // they differ
+			}
+		}
+		if total == 0 {
+			continue
+		}
+		n := len(byComp[id])
+		entries := "Their entry"
+		if n > 1 {
+			entries = fmt.Sprintf("Their %d entries", n)
+		}
+		switch {
+		case n == 1:
+			out = append(out, fmt.Sprintf("%s at %s was sent and entries have closed: the organiser charges %s for it.", entries, c.Name, c.Fees.Money(total)))
+		case each >= 0:
+			out = append(out, fmt.Sprintf("%s at %s were sent and entries have closed: the organiser charges %s for each.", entries, c.Name, c.Fees.Money(each)))
+		default:
+			out = append(out, fmt.Sprintf("%s at %s were sent and entries have closed: the organiser charges %s for them.", entries, c.Name, c.Fees.Money(total)))
+		}
+	}
+	return out, nil
 }
 
 // --- Entering a club in a competition ---

@@ -314,7 +314,7 @@ func signoffPath(token string) string { return "/competitions/signoff/" + token 
 
 // storedSignoff is a competition's entry's sign-off, as the pages show it.
 func storedSignoff(c competitions.Competition, e store.Entry) views.SignoffView {
-	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote, Unapproved: e.Unapproved}
+	return views.SignoffView{Required: c.Signoff, Signed: e.SignedOff(), By: e.SignedBy, Note: e.SignNote, Unapproved: e.Unapproved, Again: e.SignoffAgain}
 }
 
 // signoffEntry is the individual's entry a sign-off link opens, with its competition.

@@ -139,6 +139,10 @@ func (s *Store) DeleteCopy(ctx context.Context, id string) error {
 			ON CONFLICT DO NOTHING`, id); err != nil {
 			return err
 		}
+		// What its clubs sent to competitions not its own stays there.
+		if err := keepClubs(ctx, tx, s.stamp(), "", `id IN (SELECT id FROM sandbox_items WHERE copy_id = $3 AND kind = 'club')`, id); err != nil {
+			return err
+		}
 		for _, q := range []string{
 			`DELETE FROM competitions WHERE id IN (` + items + `'competition')`,
 			`DELETE FROM clubs WHERE id IN (` + items + `'club')`,

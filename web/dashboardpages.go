@@ -381,6 +381,14 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		}
 		// A withdrawn entry isn't live: it's listed, marked, but not counted.
 		switch {
+		case j.ClubRemoved():
+			d.Entries--
+			d.ClubRemoved++
+			if j.ClubRemovedLate {
+				d.RemovedLate = append(d.RemovedLate, views.LinkedLine{
+					Text: j.Entry.Entry.Gymnasts() + " · " + j.Entry.Entry.Event() + ", removed by " + j.club + " on " + clubRemovedText(j.Entry),
+					Href: d.Base + "/entries/" + j.ID})
+			}
 		case j.Withdrawn:
 			d.Entries--
 			d.Withdrawn++
@@ -402,7 +410,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		sentAt[j.ID] = j.SentAt
 		row := views.DashboardRow{
 			ID: j.ID, Gymnast: j.Entry.Entry.Gymnasts(), Club: j.club, Problems: j.problems, Coach: j.CoachName(),
-			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn,
+			Sent: j.SentAt.In(local).Format("2 Jan, 15:04"), Checked: j.Checked(), Note: j.Note, Withdrawn: j.Withdrawn, ClubRemoved: clubRemovedText(j.Entry),
 			Video: videoStatus(c.Competition, j), Signoff: storedSignoff(c.Competition, j.Entry), Category: j.Entry.Entry.Category,
 		}
 		if k := j.Entry.SignerKey(); k != "" {
@@ -678,7 +686,9 @@ func (p *competitionPages) csvExport(w http.ResponseWriter, r *http.Request) {
 			if j.Checked() {
 				row[8] = "yes"
 			}
-			if j.Withdrawn {
+			if j.ClubRemoved() {
+				row[12] = "removed by the club"
+			} else if j.Withdrawn {
 				row[12] = "yes"
 			}
 			if j.SignedOff() {
@@ -826,9 +836,26 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
-		Withdrawn: e.Withdrawn, Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
+		Withdrawn: e.Withdrawn, ClubRemoved: clubRemovedText(e), Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
 		List: listQuery(r.URL.Query()),
 	}))
+}
+
+// clubRemovedText says when the club removed an entry, by whom where its
+// history knows, and whether after entries closed, e.g. "11 Nov, 14:02, by
+// Club admin, after entries closed"; "" for one it hasn't.
+func clubRemovedText(e store.Entry) string {
+	if !e.ClubRemoved() {
+		return ""
+	}
+	out := e.ClubRemovedAt.In(local).Format("2 Jan, 15:04")
+	if e.ClubRemovedBy != "" {
+		out += ", by " + e.ClubRemovedBy
+	}
+	if e.ClubRemovedLate {
+		out += ", after entries closed"
+	}
+	return out
 }
 
 // checkedText says when an entry was marked checked, "" if it isn't.

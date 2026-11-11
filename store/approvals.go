@@ -40,7 +40,20 @@ type SentCoach struct {
 	// AllSignoffs says their sign-offs count whenever they were given, not
 	// just since they were last approved.
 	AllSignoffs bool
+	// RemovedAt is when the club removed them, by whom (the club link's
+	// Who, "" for the club's record expiring), zero if it hasn't: they stay,
+	// with the kinds of qualification sent (RemovedQualifications, by key
+	// in competitions.Qualifications) but not their certificates, which go
+	// with the club's record. AskedAgainAt is when the organiser asked for
+	// the entries they signed to be signed off again.
+	RemovedAt             time.Time
+	RemovedBy             string
+	RemovedQualifications []string
+	AskedAgainAt          time.Time
 }
+
+// Removed says whether the club removed the coach (RemovedAt).
+func (c SentCoach) Removed() bool { return !c.RemovedAt.IsZero() }
 
 // Approved says whether the coach can sign off at the competition.
 func (c SentCoach) Approved() bool { return c.Status == CoachApproved }
@@ -107,7 +120,8 @@ func (s *Store) SendCoaches(ctx context.Context, clubID, competitionID string, c
 			}
 			sent = append(sent, id)
 		}
-		rows, err := tx.QueryContext(ctx, `SELECT coach_id FROM competition_coaches WHERE competition_id = $1 AND club_id = $2`, competitionID, clubID)
+		// A coach the club removed isn't taken back: the organiser keeps them.
+		rows, err := tx.QueryContext(ctx, `SELECT coach_id FROM competition_coaches WHERE competition_id = $1 AND club_id = $2 AND removed_at = ''`, competitionID, clubID)
 		if err != nil {
 			return err
 		}
@@ -132,7 +146,8 @@ func (s *Store) SendCoaches(ctx context.Context, clubID, competitionID string, c
 	})
 }
 
-const sentCoachColumns = `cc.competition_id, cc.coach_id, cc.club_id, COALESCE(cl.name, ''), cc.name, cc.qualifications, cc.sent_at, cc.status, cc.note, COALESCE(cc.decided_at, ''), cc.counts_from`
+const sentCoachColumns = `cc.competition_id, cc.coach_id, cc.club_id, COALESCE(cl.name, cc.club_name), cc.name, cc.qualifications, cc.sent_at, cc.status, cc.note, COALESCE(cc.decided_at, ''), cc.counts_from,
+	cc.removed_at, cc.removed_by, cc.removed_qualifications, cc.asked_again_at`
 
 // sentCoaches reads coaches sent, filling in their qualifications.
 func (s *Store) sentCoaches(ctx context.Context, where string, args ...any) ([]SentCoach, error) {
@@ -146,10 +161,15 @@ func (s *Store) sentCoaches(ctx context.Context, where string, args ...any) ([]S
 	var sentIDs [][]string
 	for rows.Next() {
 		var c SentCoach
-		var quals, sent, decided, from string
-		if err := rows.Scan(&c.CompetitionID, &c.CoachID, &c.ClubID, &c.ClubName, &c.Name, &quals, &sent, &c.Status, &c.Note, &decided, &from); err != nil {
+		var quals, sent, decided, from, removed, removedQuals, asked string
+		if err := rows.Scan(&c.CompetitionID, &c.CoachID, &c.ClubID, &c.ClubName, &c.Name, &quals, &sent, &c.Status, &c.Note, &decided, &from,
+			&removed, &c.RemovedBy, &removedQuals, &asked); err != nil {
 			return nil, err
 		}
+		if err := json.Unmarshal([]byte(removedQuals), &c.RemovedQualifications); err != nil {
+			return nil, err
+		}
+		c.RemovedAt, c.AskedAgainAt = parseTime(removed), parseTime(asked)
 		var ids []string
 		if err := json.Unmarshal([]byte(quals), &ids); err != nil {
 			return nil, err
@@ -162,6 +182,9 @@ func (s *Store) sentCoaches(ctx context.Context, where string, args ...any) ([]S
 		return nil, err
 	}
 	for i := range out {
+		if out[i].Removed() {
+			continue // their qualifications went with them
+		}
 		now, err := s.coachQualifications(ctx, out[i].CoachID)
 		if err != nil {
 			return nil, err

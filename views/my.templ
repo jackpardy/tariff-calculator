@@ -247,6 +247,10 @@ type PersonAdmin struct {
 	Officiating *PersonOfficiating
 	Coaching    *PersonCoaching
 	Scratch     []string // scratch warnings that still stand for them
+	// Removed are their entries their club removed, the gymnast or the
+	// club itself, since sending them: out of the competition, a line
+	// each, linking to the entry.
+	Removed []LinkedLine
 }
 
 // PersonOfficiating is what someone offered to do, and where the timetable
@@ -299,7 +303,20 @@ templ MyCompetition(p MyCompetitionPage) {
 				for _, r := range p.Admin.Roles {
 					<span class={ "chip", "chip-who", "chip-who-" + roleClass(r), "mr-1" }>{ r }</span>
 				}
+				if len(p.Admin.Removed) > 0 {
+					@StateChip(Stopped, "Removed by the club")
+				}
 			</p>
+			if len(p.Admin.Removed) > 0 {
+				<div class="notification is-warning is-light">
+					<p class="mb-1"><strong>Removed by the club.</strong> These entries are out of the competition: not counted, charged (unless your fees say so), put in a flight or printed.</p>
+					<ul>
+						for _, l := range p.Admin.Removed {
+							<li><a href={ templ.SafeURL(l.Href) }>{ l.Text }</a></li>
+						}
+					</ul>
+				</div>
+			}
 		} else {
 			// Their own page: who they are and their tabs, as on their other
 			// pages, then the way back to the competition.

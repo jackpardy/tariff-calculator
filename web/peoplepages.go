@@ -316,6 +316,19 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		page.People = append(page.People, views.PersonRow{Name: dp.name, Club: dp.club, Href: personPath(base, dp.key), Does: dp.does(),
 			List: views.ListRow{Name: dp.name, Values: map[string][]string{"club": {clubValue(dp.club)}, "does": peopleDo(words), "judges": judging}}})
 	}
+	// Gymnasts their club removed, with nothing else here, are listed too:
+	// their page shows what the club removed.
+	removedSeen := map[string]bool{}
+	for _, e := range all {
+		k := e.Key()
+		if !e.ClubRemoved() || dir.byKey[k] != nil || removedSeen[k] {
+			continue
+		}
+		removedSeen[k] = true
+		page.People = append(page.People, views.PersonRow{Name: e.Entry.Gymnast, Club: clubOf(e), Href: personPath(base, k), Does: e.Entry.Event() + " · removed by the club",
+			List: views.ListRow{Name: e.Entry.Gymnast, Uncounted: true, Values: map[string][]string{"club": {clubValue(clubOf(e))}}}})
+	}
+	slices.SortStableFunc(page.People, func(a, b views.PersonRow) int { return competitions.CompareNames(a.Name, b.Name) })
 	render(w, r, views.People(page))
 }
 
@@ -340,18 +353,37 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dp := dir.byKey[key]
+	base := adminPath(r.PathValue("token"))
+	all, err := p.entriesOf(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	var removed []views.LinkedLine
+	var gone *store.Entry // one of their entries the club removed, for someone with nothing else here
+	for i, e := range all {
+		if e.ClubRemoved() && e.Key() == key {
+			removed = append(removed, views.LinkedLine{Text: e.Entry.Event() + ": removed by the club on " + clubRemovedText(e), Href: base + "/entries/" + e.ID})
+			gone = &all[i]
+		}
+	}
+	if dp == nil && gone != nil {
+		page.Name, page.Back, page.BackLabel, page.Menu = gone.Entry.Gymnast, base+"/people", "← People", p.menuFor(r, c, menuPeople)
+		page.Admin = &views.PersonAdmin{Club: clubOf(*gone), Roles: []string{"Gymnast"}, Removed: removed}
+		render(w, r, views.MyCompetition(page))
+		return
+	}
 	if dp == nil {
 		message(w, r, http.StatusNotFound, "Person not found", "Nobody with that link is at this competition now. They may have been taken off it: go back to the list of people.")
 		return
 	}
-	base := adminPath(r.PathValue("token"))
 	if dp.key != key { // another of their keys, such as a member's coach (ADR 0010)
 		http.Redirect(w, r, personPath(base, dp.key), http.StatusFound)
 		return
 	}
 	page.Name, page.Back, page.BackLabel, page.Menu = dp.name, base+"/people", "← People", p.menuFor(r, c, menuPeople)
 	_, tags := dp.roles()
-	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags}
+	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags, Removed: removed}
 	byID := entriesByID(f.entries)
 	for i, ev := range page.Events {
 		ev.Link = base + "/entries/" + ev.ID
