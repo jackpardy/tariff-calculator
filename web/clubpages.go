@@ -736,6 +736,9 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	if offers > 0 {
 		sentWhat = append(sentWhat, views.Count(offers, "offer to judge or help", "offers to judge or help"))
 	}
+	if changed != nil && n == 0 && offers == 0 {
+		noteRefused(w) // nothing went, so nothing to record
+	}
 	notice := fmt.Sprintf("Sent %s to %s.", strings.Join(sentWhat, " and "), c.Name)
 	// What it left out, and why.
 	if left := counted(result.Closed); left > 0 {
@@ -923,6 +926,7 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 	}
 	e, problems := postedEntry(r, c.Competition, m.Name)
 	if len(problems) > 0 {
+		noteRefused(w)
 		p.renderMemberEdit(w, r, club, m, c, existing, e, problems)
 		return
 	}
@@ -1550,6 +1554,7 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Coaches sent: the organiser approves them before they can sign off."
 	if len(r.Form["coach"]) == 0 {
+		noteRefused(w) // nothing to send
 		notice = "No coaches sent."
 	}
 	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id"))+"/coaches", notice)

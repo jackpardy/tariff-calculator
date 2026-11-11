@@ -255,6 +255,7 @@ func (p *competitionPages) setFees(w http.ResponseWriter, r *http.Request) {
 	f.PerClub = cents
 	back := adminPath(r.PathValue("token")) + "/fees"
 	if len(problems) > 0 {
+		noteRefused(w)
 		seeOther(w, r, back, strings.Join(problems, " ")+" Nothing was changed.")
 		return
 	}
@@ -285,6 +286,7 @@ func (p *competitionPages) addPayment(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("refund") == "1" {
 			again.Set("refund", "1")
 		}
+		noteRefused(w)
 		seeOther(w, r, back+"?"+again.Encode()+"#"+payerAnchor(payer), "Say how much was paid, like 12 or 12.50. Nothing was changed.")
 		return
 	}
@@ -339,7 +341,11 @@ func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request)
 				}))
 				return
 			}
-			if err := p.st.RemovePayment(r.Context(), c.ID, pay.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			switch err := p.st.RemovePayment(r.Context(), c.ID, pay.ID); {
+			case errors.Is(err, store.ErrNotFound):
+				// Removed in the meantime, by someone else.
+				noteRefused(w)
+			case err != nil:
 				failed(w, r, err)
 				return
 			}
@@ -347,6 +353,7 @@ func (p *competitionPages) removePayment(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	noteRefused(w)
 	seeOther(w, r, back, "That payment was removed already.")
 }
 

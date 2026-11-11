@@ -107,6 +107,16 @@ check('back', at(DayTaps.upStep(order, 'a', '2', -1)) === 'c1');
 check('nothing after the last', at(DayTaps.upStep(order, 'c', '2', 1)) === 'none');
 check('nothing before the first', at(DayTaps.upStep(order, 'a', '1', -1)) === 'none');
 
+// A synchro flight has one round, as the server's rows say with one routine
+// name each: the order ends after the last pair.
+const pairRow = (entry, state) => ({ dataset: { entry, no: '1', name: entry, club: '', routines: 'Routine', state } });
+const pairs = DayTaps.upOrder({ querySelectorAll: () => [pairRow('a', ''), pairRow('b', 'scratched'), pairRow('c', '')] }, (entry, shown) => shown);
+check('one round: first', at(DayTaps.upStep(pairs, '', '', 1)) === 'a1');
+check('one round: skipping the scratched', at(DayTaps.upStep(pairs, 'a', '1', 1)) === 'c1');
+check('one round: nothing after the last pair', at(DayTaps.upStep(pairs, 'c', '1', 1)) === 'none');
+check('one round: back', at(DayTaps.upStep(pairs, 'c', '1', -1)) === 'a1');
+check('one round: a position kept as a 2nd round counts as the pair\'s one', at(DayTaps.upStep(pairs, 'a', '2', 1)) === 'c1' && at(DayTaps.upStep(pairs, 'c', '2', 1)) === 'none');
+
 // A flight's state on the phone: Started, then Warm-up over, then Finished;
 // Next gymnast without Warm-up over moves it on to competing too, and Undo
 // takes back the latest.

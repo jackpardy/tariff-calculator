@@ -172,8 +172,10 @@ func (p *competitionPages) correctTimes(w http.ResponseWriter, r *http.Request) 
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
 	case why != "":
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, "The times for "+f.Name()+" weren't changed. "+why, anchor), http.StatusSeeOther)
 	case !applies:
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.SetFlightTimes(r.Context(), c.ID, competitions.FlightKey(f), t.started, t.warmUpOver, t.finished, linkOf(r).Name); err != nil {

@@ -534,7 +534,8 @@ a **Change** button to open it.
    box shows who's on, their club and which routine it is (such as Set or
    Voluntary), and the venue screen shows them with the next two. Everyone
    does their 1st routine in running order, then everyone their 2nd, and
-   scratched gymnasts are skipped. **Back** puts it right if you tapped too
+   scratched gymnasts are skipped. A synchro pair does one routine, so a
+   synchro flight goes through each pair once. **Back** puts it right if you tapped too
    soon. When the last routine is on, **Next gymnast** becomes **Finished**:
    tap it once they're done.
    **No signal?** Keep tapping. Each tap is kept on your phone with the time

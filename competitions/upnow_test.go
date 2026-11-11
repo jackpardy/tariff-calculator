@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -29,8 +30,8 @@ func TestUpOrder(t *testing.T) {
 	if _, ok := o.Back(r("a", 1)); ok {
 		t.Error("nothing before the first")
 	}
-	if !o.Has(r("b", 1)) || o.Open(r("b", 1)) || o.Has(r("x", 1)) || o.Has(r("a", 3)) {
-		t.Error("b is in the flight but doesn't compete; x isn't in it, and there's no 3rd round")
+	if !o.Has(r("b", 1)) || o.Open(r("b", 1)) || o.Has(r("x", 1)) {
+		t.Error("b is in the flight but doesn't compete; x isn't in it")
 	}
 	if o.No(r("c", 2)) != 3 {
 		t.Errorf("c's running number: %d", o.No(r("c", 2)))
@@ -66,16 +67,65 @@ func TestRoutineNames(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		entry Entry
-		want  [2]string
+		want  string
 	}{
-		{Entry{Level: "ISTO Novice"}, [2]string{"Set", "Voluntary"}},
-		{Entry{Level: "BUCS L3"}, [2]string{"Set", "Voluntary"}},
-		{Entry{Level: "FIG AG3 (17–21)"}, [2]string{"1st routine", "2nd routine"}}, // two voluntaries
-		{Entry{Level: "Not a level"}, [2]string{"1st routine", "2nd routine"}},
-		{Entry{Discipline: Tumbling, Level: "Novice"}, [2]string{"1st pass", "2nd pass"}},
+		{Entry{Level: "ISTO Novice"}, "Set Voluntary"},
+		{Entry{Level: "BUCS L3"}, "Set Voluntary"},
+		{Entry{Level: "FIG AG3 (17–21)"}, "1st routine 2nd routine"}, // two voluntaries
+		{Entry{Level: "Not a level"}, "1st routine 2nd routine"},
+		{Entry{Discipline: Tumbling, Level: "Novice"}, "1st pass 2nd pass"},
+		{Entry{Discipline: DMT, Level: "Open"}, "1st pass 2nd pass"},
+		{Entry{Discipline: Synchro, Level: "BUCS L3"}, "Routine"}, // one routine
 	} {
-		if got := RoutineNames(c, tc.entry); got != tc.want {
+		if got := strings.Join(RoutineNames(c, tc.entry), " "); got != tc.want {
 			t.Errorf("%s %s: %v, want %v", tc.entry.Discipline, tc.entry.Level, got, tc.want)
+		}
+	}
+}
+
+// A synchro pair does one routine: the flight has one round, and the order
+// ends after the last pair. Trampoline, tumbling and DMT flights have two.
+func TestUpOrderRounds(t *testing.T) {
+	for discipline, want := range map[string]int{Trampoline: 2, Tumbling: 2, DMT: 2, Synchro: 1} {
+		if got := Rounds(discipline); got != want {
+			t.Errorf("%q rounds: %d, want %d", discipline, got, want)
+		}
+	}
+	r := func(entry string, round int) Routine { return Routine{entry, round} }
+	show := func(rs ...Routine) string { return fmt.Sprint(rs) }
+	flight := func(discipline string) UpOrder {
+		f := ScheduledFlight{Flight: Flight{Entries: []string{"a", "b", "c"}}, Discipline: discipline}
+		return UpOrderOf(f, func(id string) bool { return id != "b" })
+	}
+
+	o := flight(Synchro)
+	if got := show(o.After(Routine{}, 10)...); got != show(r("a", 1), r("c", 1)) {
+		t.Errorf("a synchro flight, one round: %s", got)
+	}
+	if next, ok := o.Next(r("c", 1)); ok {
+		t.Errorf("the end after the last pair, not a second round: %v", next)
+	}
+	if back, ok := o.Back(r("c", 1)); !ok || back != r("a", 1) {
+		t.Errorf("back: %v", back)
+	}
+	// A position kept while every flight had two rounds: the 2nd round of a
+	// pair counts as their one.
+	if next, ok := o.Next(r("a", 2)); !ok || next != r("c", 1) {
+		t.Errorf("on from a stale 1st-of-two: %v", next)
+	}
+	if next, ok := o.Next(r("c", 2)); ok {
+		t.Errorf("nothing past the end from a stale position: %v", next)
+	}
+	if back, ok := o.Back(r("c", 2)); !ok || back != r("a", 1) {
+		t.Errorf("back from a stale position: %v", back)
+	}
+	if next, _ := o.Next(r("gone", 2)); next != r("a", 1) {
+		t.Errorf("from someone moved out of a one-round flight: %v", next)
+	}
+
+	for _, discipline := range []string{Trampoline, Tumbling, DMT} {
+		if got := show(flight(discipline).After(Routine{}, 10)...); got != show(r("a", 1), r("c", 1), r("a", 2), r("c", 2)) {
+			t.Errorf("%q: two rounds as before: %s", discipline, got)
 		}
 	}
 }

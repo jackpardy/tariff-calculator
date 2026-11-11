@@ -336,8 +336,10 @@ func (p *competitionPages) makeCoach(w http.ResponseWriter, r *http.Request) {
 	notice := coach.Name + " is a coach too: their member link opens the coach's page, with a tab for each."
 	switch {
 	case errors.Is(err, store.ErrTied):
+		noteRefused(w)
 		notice = "They're a coach already."
 	case errors.Is(err, store.ErrLimit):
+		noteRefused(w)
 		notice = "The club has as many coaches as it can: remove one first."
 	case err != nil:
 		failed(w, r, err)
@@ -354,6 +356,7 @@ func (p *competitionPages) removeClubTie(w http.ResponseWriter, r *http.Request)
 	}
 	notice := "Removed: their own link no longer opens these pages."
 	if err := p.st.RemoveClubTie(r.Context(), club.ID, r.FormValue("id")); errors.Is(err, store.ErrNotFound) {
+		noteRefused(w)
 		notice = "That was removed already."
 	} else if err != nil {
 		failed(w, r, err)

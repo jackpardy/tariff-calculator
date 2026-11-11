@@ -93,28 +93,33 @@ var judgingAt = regexp.MustCompile(`^judging(-[A-Za-z0-9_-]+)?$`)
 // going back with what happened.
 func addJudging(w http.ResponseWriter, r *http.Request, fallback, full string, add func(key, certType string, data []byte) error) {
 	back := func(notice string) { seeOther(w, r, judgingBack(r, fallback), notice) }
+	// nothing turns the qualification down, with why.
+	nothing := func(why string) {
+		noteRefused(w)
+		back("Nothing was added: " + why)
+	}
 	if problem := parseUpload(r); problem != "" {
-		back("Nothing was added: " + problem)
+		nothing(problem)
 		return
 	}
 	q, ok := competitions.JudgeQualificationByKey(r.FormValue("qualification"))
 	if !ok {
-		back("Nothing was added: choose the judging qualification.")
+		nothing("choose the judging qualification.")
 		return
 	}
 	data, certType, problem := postedFile(r)
 	if problem != "" {
-		back("Nothing was added: " + problem)
+		nothing(problem)
 		return
 	}
 	err := add(q.Key, certType, data)
 	switch {
 	case errors.Is(err, store.ErrLimit):
-		back(fmt.Sprintf("Nothing was added: a judge can have %d qualifications at most. Remove one first.", store.MaxQualifications))
+		nothing(fmt.Sprintf("a judge can have %d qualifications at most. Remove one first.", store.MaxQualifications))
 	case errors.Is(err, store.ErrCertificatesFull):
-		back("Nothing was added: " + full)
+		nothing(full)
 	case err != nil && certificateRefused(err) != "":
-		back("Nothing was added: " + certificateRefused(err))
+		nothing(certificateRefused(err))
 	case err != nil:
 		failed(w, r, err)
 	default:

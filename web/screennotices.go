@@ -54,6 +54,7 @@ func (p *competitionPages) showOnScreen(w http.ResponseWriter, r *http.Request) 
 	back := adminPath(r.PathValue("token")) + "/desk"
 	text, minutes, problem := noticeForm(r)
 	if problem != "" {
+		noteRefused(w)
 		seeOther(w, r, back, problem+" Nothing was shown.")
 		return
 	}

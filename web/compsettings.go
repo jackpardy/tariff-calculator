@@ -190,6 +190,7 @@ func (p *competitionPages) video(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Video proof changed."
 	if len(problems) > 0 {
+		noteRefused(w)
 		notice = "Video proof wasn't changed: " + strings.Join(problems, " ")
 	} else if err := p.st.SetVideo(r.Context(), c.ID, v); err != nil {
 		failed(w, r, err)
@@ -235,12 +236,14 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 	}
 	at, problem := postedLiveAt(r, p.now())
 	if problem != "" {
+		noteRefused(w)
 		back(problem)
 		return
 	}
 	changed := c.Competition
 	changed.LiveAt = at
 	if !at.IsZero() && changed.Validate() != nil {
+		noteRefused(w)
 		back("Entries must open before they close (" + c.Deadline.In(local).Format("Monday 2 January 2006, 15:04") + "): change the closing time first.")
 		return
 	}
@@ -273,11 +276,13 @@ func (p *competitionPages) deadline(w http.ResponseWriter, r *http.Request) {
 		changed := c.Competition
 		changed.Deadline = deadline
 		if err != nil {
+			noteRefused(w)
 			backToSettings(w, r, "Give the date and time entries close; the closing time wasn't changed.")
 			return
 		}
 		if bad := changed.Validate(); bad != nil {
 			// The real reason: by the end of the competition date, or after they open.
+			noteRefused(w)
 			backToSettings(w, r, strings.TrimSuffix(strings.Join(sentences(bad), " "), ".")+"; the closing time wasn't changed.")
 			return
 		}
@@ -314,12 +319,15 @@ func (p *competitionPages) laterDeadlines(w http.ResponseWriter, r *http.Request
 	changed.ChangesUntil, changed.SignoffsUntil = changes, signoffs
 	switch {
 	case !ok1 || !ok2:
+		noteRefused(w)
 		backToSettings(w, r, "Give each date as a date and time; nothing was changed.")
 		return
 	case !changes.IsZero() && changes.Before(c.Deadline), !signoffs.IsZero() && signoffs.Before(c.Deadline):
+		noteRefused(w)
 		backToSettings(w, r, "Changes and sign-offs can't close before entries do; nothing was changed.")
 		return
 	case changed.Validate() != nil:
+		noteRefused(w)
 		backToSettings(w, r, "Changes and sign-offs must close by the end of the competition date; nothing was changed.")
 		return
 	}
@@ -445,8 +453,10 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 	notice := "Events changed."
 	var err error
 	if changed.Synchro, err = competitions.PairLevels(changed.Synchro, pairs); err != nil {
+		noteRefused(w)
 		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
 	} else if err := changed.Validate(); err != nil {
+		noteRefused(w)
 		notice = "Events weren't changed: " + strings.Join(sentences(err), " ")
 	} else if err := p.st.SetEvents(r.Context(), c.ID, changed.Synchro, changed.Tumbling, changed.DMT); err != nil {
 		failed(w, r, err)
@@ -550,6 +560,7 @@ func (p *competitionPages) setSplit(w http.ResponseWriter, r *http.Request) {
 	changed.Split = split
 	notice := "Men and women changed."
 	if err := changed.Validate(); err != nil {
+		noteRefused(w)
 		notice = "Men and women weren't changed: " + strings.Join(sentences(err), " ")
 	} else if err := p.st.SetSplit(r.Context(), c.ID, split); err != nil {
 		failed(w, r, err)

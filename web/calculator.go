@@ -90,8 +90,10 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
 			limit = maxUploadBytes
+			r = allowSlowBody(w, r)
 		} else if r.Method == http.MethodPost && sendsFeedback(r.URL.Path) {
 			limit = maxFeedbackBytes
+			r = allowSlowBody(w, r)
 		} else if r.Method == http.MethodPost && keepsRoutines(r.URL.Path) {
 			limit = maxKeepBytes
 		}

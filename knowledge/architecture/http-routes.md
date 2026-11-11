@@ -169,7 +169,7 @@ transaction, and marks their club used (once a day) only when it's due.
 | `POST /competitions/admin/{token}/links` | `name`, `kind` (`cards`, `chair`, `timetable`, `everything`) | Makes a helper's link (ADR 0009) and shows it once |
 | `POST /competitions/admin/{token}/links/{id}/remove` | `anyway=1` | Stops a helper's link working; without `anyway`, Settings asking first (200) |
 | `POST /competitions/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening these pages through the admin link or a helper's (organiser only) |
-| `GET /competitions/admin/{token}/history` | — | Every change, when and by which link |
+| `GET /competitions/admin/{token}/history` | — | Every change, when and by which link. A POST under an admin link (or a club link, for the club's history) is recorded by its gate only if it was made: a handler that turns a change down calls `noteRefused(w)` (or `refuse(w, r, to, notice)`, which redirects with the notice too) as `noteAsked` does for asking first, `changed` does it for a `refused` error, and an answer of 400 or more is never recorded; the notice's wording is only a last fallback |
 | `POST /competitions/admin/{token}/concerns` | `text`, optional `entry` | Flags a concern for the organiser (any admin link) |
 | `POST /competitions/admin/{token}/concerns/{id}/resolve` | `note` (only organisers see it), optional `reply` (a message's sender sees it) | Marks a concern or message resolved; a message's sender is told by push or email if they asked to hear |
 | `POST /competitions/admin/{token}/concerns/{id}/received` | — | Tells a message's sender the organiser has it (once) |
@@ -357,7 +357,10 @@ check rather than failing the request.
   except the two certificate uploads, which take a 3 MB certificate and the
   form around it (ADR 0007).
   A full routine is a few kilobytes.
-- Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s.
+- Timeouts: read header 5 s, read 10 s, write 10 s, idle 60 s. A request that
+  uploads (certificates, feedback with its picture) gets 90 s to send its body
+  (`allowSlowBody`, set per request in `Handler`); if it's cut short the page
+  says the connection was too slow or dropped, not that the file was too big.
 - Every incoming skill is normalised to its phase count and validated (rotation
   0–16, non-negative twists, known shape and positions). Errors are a
   `400` with the message alone, which the page shows to the user as the rest

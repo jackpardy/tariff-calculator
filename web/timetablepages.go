@@ -113,6 +113,7 @@ func changedAt(w http.ResponseWriter, r *http.Request, err error, notice, anchor
 	var no refused
 	switch {
 	case errors.As(err, &no):
+		noteRefused(w)
 		backTo(w, r, string(no), anchor)
 	case err != nil:
 		failed(w, r, err)
@@ -524,6 +525,7 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 	id := r.FormValue("entry")
 	if id == "" {
 		// A flight's Move a gymnast left on "Choose a gymnast".
+		noteRefused(w)
 		back(w, r, "Choose a gymnast to move; nothing was changed.")
 		return
 	}
@@ -531,11 +533,13 @@ func (p *competitionPages) moveEntry(w http.ResponseWriter, r *http.Request) {
 	if !r.Form.Has("to") {
 		// The dropdown was left on "Choose a flight", which sends nothing:
 		// not the same as choosing to take them out.
+		noteRefused(w)
 		back(w, r, "Choose a flight to move them to; nothing was changed.")
 		return
 	}
 	to := r.FormValue("to")
 	if to != "" && !known {
+		noteRefused(w)
 		back(w, r, "That gymnast isn't entered any more.")
 		return
 	}
@@ -619,6 +623,7 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if !s.Planned {
+		noteRefused(w)
 		back(w, r, "Plan the timetable first.")
 		return
 	}
@@ -631,6 +636,7 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		// Not a draft someone has changed since the page was opened: that
 		// would publish what nobody has looked at.
 		if v, ok := r.PostForm["version"]; ok && (len(v) != 1 || v[0] != s.Version()) {
+			noteRefused(w)
 			back(w, r, string(staleTimetable))
 			return
 		}
@@ -693,6 +699,7 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		notice = "Unpublished: only you see the timetable."
 	case "discard":
 		if c.Published == nil {
+			noteRefused(w)
 			back(w, r, "There's nothing published to go back to.")
 			return
 		}
@@ -713,6 +720,7 @@ func (p *competitionPages) publishTimetable(w http.ResponseWriter, r *http.Reque
 		}
 		notice = "Changes discarded: the timetable is as published."
 	default:
+		noteRefused(w)
 		back(w, r, "")
 		return
 	}

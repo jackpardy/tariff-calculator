@@ -110,12 +110,14 @@ const DayTaps = (function () {
 
     // upOrder is a running flight's routines in order, as who's up goes
     // through them (competitions.UpOrder): everyone's first routine, then
-    // everyone's second, from the flight's check-in rows. scratched says
-    // whether an entry is scratched (waiting taps count).
+    // everyone's second, from the flight's check-in rows. The number of rounds
+    // is the server's (competitions.Rounds): one routine name a round in the
+    // rows. scratched says whether an entry is scratched (waiting taps count).
     function upOrder(box, scratched) {
         const rows = [...box.querySelectorAll('.comp-checkin-row[data-entry]')];
         const out = [];
-        for (const round of [1, 2]) {
+        const rounds = Math.max(...rows.map((row) => (row.dataset.routines || '').split('|').length), 1);
+        for (let round = 1; round <= rounds; round++) {
             for (const row of rows) {
                 out.push({
                     entry: row.dataset.entry, round: String(round), no: row.dataset.no, name: row.dataset.name || '',
@@ -131,12 +133,15 @@ const DayTaps = (function () {
     // (step -1) the one with this entry and round ("" before the first tap),
     // as UpOrder's Next and Back; null if there's none.
     function upStep(order, entry, round, step) {
+        // A round past the flight's last counts as its last.
+        const rounds = Math.max(...order.map((r) => Number(r.round)), 1);
+        if (entry !== '') { round = String(Math.min(Math.max(Number(round) || 1, 1), rounds)); }
         let i = order.findIndex((r) => r.entry === entry && r.round === round);
         if (i < 0) {
             if (step < 0) { return null; }
             // Before the first tap, the first; from someone moved out, the
             // first in their round.
-            i = entry === '' ? -1 : (Math.max(Number(round) || 1, 1) - 1) * (order.length / 2) - 1;
+            i = entry === '' ? -1 : (Number(round) - 1) * (order.length / rounds) - 1;
         }
         for (i += step; i >= 0 && i < order.length; i += step) {
             if (order[i].open) { return order[i]; }
