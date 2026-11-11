@@ -226,6 +226,15 @@ entry's link opens that page) and My competition. Not on home pages that
 list competitions, the club link's page (whose sender isn't known), or any
 admin page.
 
+**Who reads them.** Only the organiser's and the co-organisers'
+(everything) links see a message, its replies, the organiser's note on
+resolving it and any count of it, because only they can resolve concerns.
+The helper links (card checking, chairs of judges, timetable, venue screen)
+see the concerns helpers flagged, never the messages: they share a table
+(`concerns`, [ADR 0009](../../docs/adr/0009-helper-links.md)), but
+`concernViews` in `web/access.go` leaves messages out unless the link may
+resolve.
+
 **Named, never typed.** The form says who it's from, as the organiser will
 see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
 Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "Club admin, UCD"
@@ -838,6 +847,16 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   synchronisation, like HD, at any level (`Offer.For`). The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
+  offer counts as something to send like an entry: one the organiser doesn't
+  hold yet is **Not sent**, one that differs from what the organiser holds
+  (or that was withdrawn since) is **Changed since sent**, else **Sent**
+  (`offersUnsent`, comparing the offer with the organiser's copy in
+  `officials`: `ClubHeldOffers`). The club page's "2 offers to send", the
+  button's count, "All sent", the Judging and helping tab's chips and the
+  member's own page (the same words, under their offer) all go by it, and the
+  notice says what went: "Sent 1 entry and 2 offers to judge or help".
+  Judging qualifications and certificates aren't copied with the offer: the
+  organiser reads them from the member's, so they don't count as a change. An
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
   (`store.sameGymnast`), and withdrawing one entry moves it to another.
@@ -2349,6 +2368,13 @@ people with no record left).
   lists them (a set's rules and a level's exercises in words), with **Take
   off** and **Add from this browser** (those saved here not kept yet, in one
   go).
+- **Following the person** (2026-11-11). Kept requirements belong to the
+  person, not a link. Adding another of your links to your page moves what
+  that page kept onto yours (`moveKept`, `store/kept.go`; the newer of two with
+  the same kind and id stays; over the 50 limit all stay, and only new ones
+  are stopped); taking a role off again leaves them where they are. A new
+  link from the comp sec for a member or coach takes them to the new link,
+  unless another of that person's pages still exists, which keeps them.
 
 ## Routines on your page (ADR 0011)
 

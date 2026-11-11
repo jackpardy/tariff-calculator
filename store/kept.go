@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -108,6 +109,51 @@ func (s *Store) KeepRequirementsIn(ctx context.Context, personID, kind, source, 
 func (s *Store) DropKept(ctx context.Context, personID, kind, source string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM person_requirements WHERE person_id = $1 AND kind = $2 AND source = $3`, personID, kind, source)
 	return err
+}
+
+// moveKept moves one person's kept requirements to another's (from to to),
+// for when a record's person changes (a join, a new link). Where both keep
+// the same kind and source, the newer by updated_at stays, with its content.
+// The cap (MaxKept) isn't applied: past it, all are kept rather than losing
+// someone's work, and the cap only stops new ones.
+func moveKept(ctx context.Context, tx *sql.Tx, from, to string) error {
+	if from == to {
+		return nil
+	}
+	const theirs = `(SELECT f.%s FROM person_requirements f WHERE f.person_id = $1 AND f.kind = person_requirements.kind AND f.source = person_requirements.source)`
+	for _, q := range []string{
+		// Where the one moving is newer, the person's own takes its content...
+		`UPDATE person_requirements SET
+			name = ` + fmt.Sprintf(theirs, "name") + `, data = ` + fmt.Sprintf(theirs, "data") + `,
+			in_level = ` + fmt.Sprintf(theirs, "in_level") + `, updated_at = ` + fmt.Sprintf(theirs, "updated_at") + `
+		WHERE person_id = $2 AND EXISTS (SELECT 1 FROM person_requirements f WHERE f.person_id = $1 AND f.kind = person_requirements.kind
+			AND f.source = person_requirements.source AND f.updated_at > person_requirements.updated_at)`,
+		// ...then the doubles go, and the rest move over.
+		`DELETE FROM person_requirements WHERE person_id = $1 AND EXISTS (SELECT 1 FROM person_requirements t
+			WHERE t.person_id = $2 AND t.kind = person_requirements.kind AND t.source = person_requirements.source)`,
+		`UPDATE person_requirements SET person_id = $2 WHERE person_id = $1`,
+	} {
+		if _, err := tx.ExecContext(ctx, q, from, to); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// moveKeptIfLeft moves a person's kept requirements to another's when no
+// record has them as its person any more (the person's last record has
+// moved on), and leaves them when one does: that page still exists.
+func moveKeptIfLeft(ctx context.Context, tx *sql.Tx, from, to string) error {
+	var n int
+	if err := tx.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM members WHERE COALESCE(person_id, id) = $1)
+		+ (SELECT COUNT(*) FROM coaches WHERE COALESCE(person_id, id) = $1)
+		+ (SELECT COUNT(*) FROM individuals WHERE person_id = $1)`, from).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+	return moveKept(ctx, tx, from, to)
 }
 
 // dropOrphanedKept deletes the requirements of people who no longer have a

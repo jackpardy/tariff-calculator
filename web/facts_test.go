@@ -201,3 +201,27 @@ func TestFactsUnderLoad(t *testing.T) {
 	}
 	checkFacts(t, s.p, "the load")
 }
+
+// TestFactsLetGoAfterAPanic: a read of a competition's facts that panics
+// lets go of its lock, so the next page of it doesn't wait for ever.
+func TestFactsLetGoAfterAPanic(t *testing.T) {
+	p := &competitionPages{} // no store: reading the facts panics
+	read := func() (panicked bool) {
+		defer func() { panicked = recover() != nil }()
+		f, err := p.factsOf(context.Background(), "c1")
+		if err == nil {
+			f.mu.Unlock()
+		}
+		return false
+	}
+	if !read() {
+		t.Fatal("the read didn't panic")
+	}
+	again := make(chan bool)
+	go func() { again <- read() }()
+	select {
+	case <-again:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the second read waited on the first one's lock")
+	}
+}

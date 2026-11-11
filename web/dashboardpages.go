@@ -293,7 +293,7 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			d.Links.Individual = origin(r) + "/competitions/enter/" + c.IndividualLink
 		}
 	}
-	if d.Concerns, d.OpenConcerns, err = p.concernViews(r.Context(), c, d.Base); err != nil {
+	if d.Concerns, d.OpenConcerns, err = p.concernViews(r.Context(), r, c, d.Base); err != nil {
 		failed(w, r, err)
 		return
 	}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,8 +39,6 @@ func main() {
 		var err error
 		if st, err = store.Open(context.Background(), dir); err != nil {
 			log.Printf("COMPETITION STORAGE IS OFF: %v", err)
-		} else {
-			go web.DeleteExpired(st)
 		}
 	}
 	// "demo" fills the storage with a made-up competition to show off, then stops.
@@ -84,6 +83,11 @@ func main() {
 	// "sandbox-reset" resets the sandbox (ADR 0016) as its maintainer's
 	// button does, then stops.
 	if len(os.Args) > 1 && os.Args[1] == "sandbox-reset" {
+		// Run against the live service by mistake, it would put made-up
+		// clubs in the live database.
+		if !sandbox {
+			log.Fatal("sandbox-reset only runs in the sandbox: set SANDBOX=1.")
+		}
 		if st == nil {
 			log.Fatal("The sandbox needs competition storage: set DATA_DIR.")
 		}
@@ -94,6 +98,10 @@ func main() {
 		}
 		fmt.Printf("Reset the sandbox in %s.\n", took.Round(time.Second))
 		return
+	}
+	// Only when serving: the one-off commands above close the store straight away.
+	if st != nil {
+		go web.DeleteExpired(st)
 	}
 	app := web.New(st)
 	// SANDBOX=1 makes this the sandbox, a second instance with its own
@@ -118,20 +126,17 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 		MaxHeaderBytes:    web.MaxHeaderBytes,
 	}
-	// A deploy stops the app with SIGTERM: let the requests under way finish,
-	// and the emails and pushes queued, then close the database cleanly.
+	// A deploy stops the app with SIGTERM: let the requests under way finish
+	// (up to 15 seconds), and the emails and pushes queued, then close the
+	// database cleanly.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
-	go func() {
-		<-ctx.Done()
-		shutdown, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(shutdown); err != nil {
-			log.Printf("Shutting down: %v", err)
-		}
-	}()
+	l, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Printf("Starting server on :%s\n", port)
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+	if err := serve(srv, l, ctx.Done(), 15*time.Second); err != nil {
 		log.Fatal(err)
 	}
 	// Then let what's being emailed and pushed go, for a while.
@@ -142,6 +147,28 @@ func main() {
 		}
 	}
 	log.Print("Stopped")
+}
+
+// serve answers on l until stop, then stops taking requests and waits for
+// those under way to finish, for up to wait. It returns only once they
+// have, or the wait is over: Serve itself returns the moment Shutdown is
+// called, and the database mustn't be closed under a request still running.
+func serve(srv *http.Server, l net.Listener, stop <-chan struct{}, wait time.Duration) error {
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		<-stop
+		shutdown, cancel := context.WithTimeout(context.Background(), wait)
+		defer cancel()
+		if err := srv.Shutdown(shutdown); err != nil {
+			log.Printf("Shutting down: %v", err)
+		}
+	}()
+	if err := srv.Serve(l); !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	<-stopped
+	return nil
 }
 
 // The garbage collector's defaults for the app, unless GOGC or GOMEMLIMIT

@@ -79,3 +79,14 @@ the club's level editor (built the same day).
   people.
 - The club's level editor (ADR 0011 Decision 5, built 2026-10-15) is
   unaffected: a club's levels are the club's, not a person's.
+
+## Note, 2026-11-11
+
+Kept requirements follow the person. Joining another link to a page (ADR
+0010) moves what the other person kept onto it, the newer of two with the
+same id staying; undoing a join leaves them on the page they were joined to.
+A new link from the comp sec (a lost phone) takes them to the new person
+unless another page still has the old one, which then keeps them. A joined
+total over the 50 limit is kept whole, the limit stopping only new ones.
+Before this, all three left the rows with nobody and the six-hourly tidy-up
+deleted them.

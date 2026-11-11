@@ -112,12 +112,21 @@ func (s *Store) CoachByLink(ctx context.Context, token string) (Coach, error) {
 func (s *Store) ReplaceCoachLink(ctx context.Context, clubID, coachID string) (string, error) {
 	token := newToken()
 	err := s.tx(ctx, func(tx *sql.Tx) error {
+		var was string
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(person_id, id) FROM coaches WHERE id = $1 AND club_id = $2`, coachID, clubID).Scan(&was); err != nil {
+			return notFound(err)
+		}
+		person := newID()
 		if err := affected(tx.ExecContext(ctx, `UPDATE coaches SET token_hash = $1, person_id = $2 WHERE id = $3 AND club_id = $4`,
-			hash(token), newID(), coachID, clubID)); err != nil {
+			hash(token), person, coachID, clubID)); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
-		return err
+		if _, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID); err != nil {
+			return err
+		}
+		// Their kept requirements go with them, unless another page of the
+		// old person is still there (ADR 0013).
+		return moveKeptIfLeft(ctx, tx, was, person)
 	})
 	if err != nil {
 		return "", err

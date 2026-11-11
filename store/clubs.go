@@ -232,8 +232,12 @@ func (s *Store) ReplaceMemberLink(ctx context.Context, clubID, memberID string) 
 			OR record_id IN (SELECT id FROM coaches WHERE club_id = $2 AND person_id = $3)`, memberID, clubID, was); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `UPDATE coaches SET person_id = $1 WHERE club_id = $2 AND person_id = $3`, person, clubID, was)
-		return err
+		if _, err := tx.ExecContext(ctx, `UPDATE coaches SET person_id = $1 WHERE club_id = $2 AND person_id = $3`, person, clubID, was); err != nil {
+			return err
+		}
+		// Their kept requirements go with them, unless another page of the
+		// old person is still there (ADR 0013).
+		return moveKeptIfLeft(ctx, tx, was, person)
 	})
 	if err != nil {
 		return "", err
