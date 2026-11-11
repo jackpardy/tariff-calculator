@@ -1,8 +1,11 @@
 package web
 
 import (
+	"cmp"
+	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -418,14 +421,96 @@ func (p *competitionPages) removeOfficial(w http.ResponseWriter, r *http.Request
 	seeOther(w, r, officialsPath(r), "Removed.")
 }
 
+// offerNotSent and offerChanged are where a member's offer stands against
+// what the organiser holds: the words are the entries' (ui.md).
+const (
+	offerNotSent = "Not sent"
+	offerChanged = "Changed since sent"
+)
+
+// offersUnsent says which of a club's offers the organiser doesn't hold as
+// they are now: by member, offerNotSent for one the organiser has none of,
+// offerChanged for one that differs from theirs; and the ones withdrawn since
+// they were sent, still held. Sending the club's entries sends all of these.
+func offersUnsent(offers map[string]competitions.Offer, held map[string]store.HeldOffer) (status map[string]string, withdrawn []store.HeldOffer) {
+	status = map[string]string{}
+	for id, o := range offers {
+		if h, ok := held[id]; !ok {
+			status[id] = offerNotSent
+		} else if !reflect.DeepEqual(o, h.Offer) {
+			status[id] = offerChanged
+		}
+	}
+	for id, h := range held {
+		if _, ok := offers[id]; !ok {
+			withdrawn = append(withdrawn, h)
+		}
+	}
+	slices.SortFunc(withdrawn, func(a, b store.HeldOffer) int { return cmp.Compare(a.Name, b.Name) })
+	return status, withdrawn
+}
+
+// offersToSend is how many of a club's offers sending its entries would
+// send: new, changed and withdrawn since the last send.
+func (p *competitionPages) offersToSend(ctx context.Context, clubID, competitionID string) (int, error) {
+	offers, err := p.st.ClubOffers(ctx, clubID, competitionID)
+	if err != nil {
+		return 0, err
+	}
+	held, err := p.st.ClubHeldOffers(ctx, clubID, competitionID)
+	if err != nil {
+		return 0, err
+	}
+	status, withdrawn := offersUnsent(offers, held)
+	return len(status) + len(withdrawn), nil
+}
+
+// memberOfferSent says where a member's offer stands against what the
+// organiser holds, in the entries' words: Not sent, Changed since sent
+// (withdrawn counts) or Sent; "" while they offer nothing and nothing is held.
+func (p *competitionPages) memberOfferSent(ctx context.Context, m store.Member, c store.Competition, o competitions.Offer) (string, error) {
+	held, err := p.st.ClubHeldOffers(ctx, m.ClubID, c.ID)
+	if err != nil {
+		return "", err
+	}
+	h, ok := held[m.ID]
+	switch {
+	case o.Empty() && !ok:
+		return "", nil
+	case o.Empty() || (ok && !reflect.DeepEqual(o, h.Offer)):
+		return offerChanged, nil
+	case !ok:
+		return offerNotSent, nil
+	}
+	return "Sent", nil
+}
+
+// offerState is the chip's state for an offer's status: not sent is not yet,
+// changed needs the club to send it again, and sent waits on the organiser.
+func offerState(status string) views.State {
+	switch status {
+	case offerNotSent:
+		return views.NotYet
+	case offerChanged:
+		return views.Attention
+	}
+	return views.InProgress
+}
+
 // clubOffers are what a club's members offer at a competition, as the club
-// page lists them, and while offers can change, the members who haven't
-// offered, for the comp sec to add one (their offer page by their name).
-func (p *competitionPages) clubOffers(r *http.Request, base string, club store.Club, c store.Competition, members []store.Member) ([]views.ClubOfferRow, []views.FlightOption, error) {
+// page lists them, with how many wait to be sent; and while offers can
+// change, the members who haven't offered, for the comp sec to add one (their
+// offer page by their name).
+func (p *competitionPages) clubOffers(r *http.Request, base string, club store.Club, c store.Competition, members []store.Member) ([]views.ClubOfferRow, []views.FlightOption, int, error) {
 	offers, err := p.st.ClubOffers(r.Context(), club.ID, c.ID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
+	held, err := p.st.ClubHeldOffers(r.Context(), club.ID, c.ID)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	unsent, withdrawn := offersUnsent(offers, held)
 	var out []views.ClubOfferRow
 	var none []views.FlightOption
 	open := c.ChangesOpen(p.now()) && clubCan(r, store.ClubEnter) // a role without Enter only looks
@@ -437,11 +522,16 @@ func (p *competitionPages) clubOffers(r *http.Request, base string, club store.C
 			}
 			continue
 		}
-		row := views.ClubOfferRow{Member: m.Name, Offer: o.Describe()}
+		status := cmp.Or(unsent[m.ID], "Sent")
+		row := views.ClubOfferRow{Member: m.Name, Offer: o.Describe(), Status: status, State: offerState(status)}
 		if open {
 			row.Edit = base + "/members/" + m.ID + "/competitions/" + c.ID + "/offer"
 		}
 		out = append(out, row)
 	}
-	return out, none, nil
+	// Taken back since it was sent: the organiser still holds it until the club sends.
+	for _, h := range withdrawn {
+		out = append(out, views.ClubOfferRow{Member: h.Name, Offer: "Withdrawn: " + h.Offer.Describe(), Status: offerChanged, State: views.Attention})
+	}
+	return out, none, len(unsent) + len(withdrawn), nil
 }

@@ -85,12 +85,13 @@ type ClubMember struct {
 
 // ClubCompetition is a competition the club is entered in, with its members' entries.
 type ClubCompetition struct {
-	ID          string
-	Competition CompetitionSummary
-	Rows        []ClubEntryRow
-	Tools       ListTools // the search and filters of its entries
-	ToSend      int       // entries never sent, or changed since
-	Offers      []ClubOfferRow
+	ID           string
+	Competition  CompetitionSummary
+	Rows         []ClubEntryRow
+	Tools        ListTools // the search and filters of its entries
+	ToSend       int       // entries never sent, or changed since
+	OffersToSend int       // offers to judge and help never sent, changed since, or withdrawn since
+	Offers       []ClubOfferRow
 	// ApproveCoaches says the competition approves coaches; Coaches are the
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
 	ApproveCoaches bool
@@ -124,6 +125,22 @@ type ClubSendCoach struct {
 // ClubOfferRow is what a member offers to judge and help with.
 type ClubOfferRow struct {
 	Member, Offer, Edit string
+	Status              string // Not sent, Changed since sent or Sent
+	State               State
+}
+
+// sendState is where sending stands: a chip for the entries and one for the
+// offers still to send, or All sent.
+templ sendState(comp ClubCompetition) {
+	if comp.ToSend > 0 {
+		@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
+	}
+	if comp.OffersToSend > 0 {
+		@StateChip(Attention, Count(comp.OffersToSend, "offer to send", "offers to send"))
+	}
+	if comp.ToSend == 0 && comp.OffersToSend == 0 {
+		@StateChip(Done, "All sent")
+	}
 }
 
 // ClubEntryRow is one member's entry for a competition.
@@ -343,8 +360,8 @@ templ ClubAdmin(c ClubPage) {
 				<span class="is-block has-text-grey is-size-7">{ comp.Competition.Date }</span>
 				<span class="is-block is-size-7">
 					{ Count(len(comp.Rows), "entry", "entries") }
-					if comp.ToSend > 0 {
-						@StateChip(Attention, Count(comp.ToSend, "to send", "to send"))
+					if comp.ToSend+comp.OffersToSend > 0 {
+						@StateChip(Attention, Count(comp.ToSend+comp.OffersToSend, "to send", "to send"))
 					}
 					if n := clubProblems(comp); n > 0 {
 						@StateChip(Attention, strconv.Itoa(n)+" with problems")
@@ -390,11 +407,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 			// A role that can't send sees where sending stands.
 			<div class="comp-send">
 				<div class="comp-send-state">
-					if comp.ToSend > 0 {
-						@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
-					} else {
-						@StateChip(Done, "All sent")
-					}
+					@sendState(comp)
 					<span class="comp-send-note">The organiser sees only what the club sends.</span>
 				</div>
 			</div>
@@ -403,16 +416,12 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 			// sending everything again (rarely needed) as a quiet button.
 			<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="comp-send">
 				<div class="comp-send-state">
-					if comp.ToSend > 0 {
-						@StateChip(Attention, Count(comp.ToSend, "entry to send", "entries to send"))
-					} else {
-						@StateChip(Done, "All sent")
-					}
+					@sendState(comp)
 					<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
 				</div>
 				<div class="comp-send-actions">
-					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ comp.ToSend == 0 }>
-						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend) }
+					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ comp.ToSend+comp.OffersToSend == 0 }>
+						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend+comp.OffersToSend) }
 					</button>
 					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
 				</div>
@@ -662,6 +671,7 @@ templ ClubCompetitionOffers(c ClubPage, comp ClubCompetition) {
 								<tr>
 									<td>{ o.Member }</td>
 									<td>{ o.Offer }</td>
+									<td>@StateChip(o.State, o.Status)</td>
 									<td class="has-text-right">
 										if o.Edit != "" {
 											<a class="button is-small" href={ templ.SafeURL(o.Edit) }>Change</a>

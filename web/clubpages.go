@@ -647,10 +647,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				return nil, err
 			}
 		}
-		if !home {
-			if cc.Offers, cc.NoOffer, err = p.clubOffers(r, base, club, c, members); err != nil {
-				return nil, err
-			}
+		// Offers waiting to be sent count on the home page too.
+		if cc.Offers, cc.NoOffer, cc.OffersToSend, err = p.clubOffers(r, base, club, c, members); err != nil {
+			return nil, err
 		}
 		out = append(out, cc)
 	}
@@ -692,6 +691,12 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// Offers go with the entries: counted before, as they stand now.
+	offers, err := p.offersToSend(r.Context(), club.ID, compID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	n, err := p.st.Send(r.Context(), club.ID, compID, members)
 	if err != nil {
 		failed(w, r, err)
@@ -707,7 +712,14 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	if changed >= 0 {
 		n = changed
 	}
-	notice := fmt.Sprintf("Sent %s to %s.", views.Count(n, "entry", "entries"), c.Name)
+	var sentWhat []string
+	if n > 0 || offers == 0 {
+		sentWhat = append(sentWhat, views.Count(n, "entry", "entries"))
+	}
+	if offers > 0 {
+		sentWhat = append(sentWhat, views.Count(offers, "offer to judge or help", "offers to judge or help"))
+	}
+	notice := fmt.Sprintf("Sent %s to %s.", strings.Join(sentWhat, " and "), c.Name)
 	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice)
 }
 
@@ -1323,6 +1335,10 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		return mc, err
 	}
 	form := offerForm(c.Competition, offer, path+"/competitions/"+c.ID+"/offer")
+	if form.Sent, err = p.memberOfferSent(ctx, m, c, offer); err != nil {
+		return mc, err
+	}
+	form.SentState = offerState(form.Sent)
 	if form.Judging, err = p.memberJudging(ctx, c, m, path+"/judging", own, "Your"); err != nil {
 		return mc, err
 	}

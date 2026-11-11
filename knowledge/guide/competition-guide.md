@@ -679,7 +679,9 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   be sent: the organiser sees they aren't signed off.
 - **Send new and changed**, above the entries with how many are still to
   send, sends the entries the competition doesn't have yet, or that changed
-  since you sent them. **Send all again**, the quiet button beside it, sends
+  since you sent them. A member's offer to judge or help that you haven't
+  sent, or that changed since (or was withdrawn), counts too: the page says
+  "2 offers to send" and the button's number includes them. **Send all again**, the quiet button beside it, sends
   everyone's and takes back withdrawn ones. The organiser only sees what you
   send, until entries close. What members offer to judge and help with goes
   with every send.
@@ -690,7 +692,8 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   organiser to approve again.
 - **Judging and helping** lists what each member offers to do; **Change** corrects
   it, and **Add an offer** adds one for a member who told you rather than
-  adding it themselves.
+  adding it themselves. Each says **Not sent**, **Changed since sent** or
+  **Sent**, like an entry.
 - **Fees** says what's left to pay and how to pay first, then the invoice's
   lines (by gymnast) and payments; **Print the invoice** opens it to print or
   save as a PDF.
@@ -819,7 +822,7 @@ offers its HD (and in synchro, synchronisation) at any level; for
 **Execution**, **Difficulty** and **Chair**, choose no, any level, or up to a
 level, each on its own. Synchro goes with trampoline (**Judge Trampoline and
 synchro**): a synchro event by its hardest level, so up to ISTO Advanced takes
-in ISTO Intervanced/Advanced. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries.
+in ISTO Intervanced/Advanced. Any note from the organiser is above the form. Your comp sec can correct it, and sends it with the entries: under it the page says Not sent, Changed since sent or Sent.
 Below it, **Your judging qualifications**: tap **Add a judging
 qualification**, choose it and add a photo or PDF of its certificate. They're
 kept with you at the club for every competition; the organiser sees them with

@@ -284,6 +284,8 @@ who.
 | Problems on its card | 1 problem, 2 problems | the problems listed under the chip |
 | Removed / withdrawn | Removed / Withdrawn | "Removed by the organiser" |
 
+A member's offer to judge or help uses the same words (Not sent, Changed since sent, Sent; one withdrawn since it was sent is Changed since sent) and chips, on the club's Judging and helping tab and the member's page; the club's page counts them as "2 offers to send".
+
 **Sign-off**
 
 | State | Wording |
