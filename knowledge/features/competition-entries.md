@@ -1270,6 +1270,17 @@ its **warm-up**, then its **competing**, each rounded up to a whole minute
 - **The demo** gives DMT half a minute's warm-up a competitor, at least 5,
   with a 5-minute changeover, gives the first tumbling event its own times,
   and gives the timetable's first flight times of its own.
+- **Warm-up over** (the second part, built 2026-11-11): one more tap for the
+  marshal, between Started and Finished, when warm-up ends and competing
+  begins, so the day measures the two apart. A running flight says Warming
+  up or Competing on On the day, the venue screen, My competition and the
+  organiser's page of a person; Correct the times takes the third time;
+  lateness also says when competing began against the plan; and **Real times
+  today** on the day's overview sets each discipline's real minutes a
+  competitor beside Setup's figures. It can be skipped and is kept without
+  signal like the other taps: see [On the
+  day](#on-the-day-flights-started-and-finished). The sandbox's morning taps
+  it on most flights, and skips it on a few (and all morning on Track 1).
 
 ## What if there's a delay
 
@@ -1353,20 +1364,26 @@ today is a day of the timetable, else the first; tabs switch), as an
 **overview** of the areas with flights that day: a card for each, with how
 it's running, the flight it's on (the first not finished) with who's up and
 its check-in and panel counts, the next flight, the one tap that comes next
-(Started; Next gymnast; or Finished once the last routine is on, or no one
-is left), and **Open**, its own page (`/day?day=N&area=<name>`). An area's
-**own page** has that flight in full, in the order a marshal uses it:
-Started at the top, then who's up, Check-in and Panel as open sections,
-Finished and Undo at the bottom and Correct the times under them; then its
+(Started; Warm-up over; Next gymnast; or Finished once the last routine is
+on, or no one is left), and **Open**, its own page (`/day?day=N&area=<name>`).
+An area's **own page** has that flight in full, in the order a marshal uses
+it: Started at the top, then Warm-up over there until it's tapped, then who's
+up, Check-in and Panel as open sections, Finished and Undo at the bottom and
+Correct the times under them; then its
 later flights and those finished, each closed, opening to the same. Every
 form on an area's page posts the area too, and comes back to that page.
 **Find a name** on the overview searches everyone in each area's flights,
 shown only when found, each linking to their flight on its area's page; on
-an area's page it searches its check-in rows. Each flight shows the planned time (warm-up start to end), when it actually started and
-finished, and who tapped it. **Started** (a flight not yet started),
-**Finished** (started, not finished) and **Undo** (takes back the finish, else
-the start: it posts `undo-finish` or `undo-start`, so the same tap sent twice
-takes back only the one, and the repeat quietly changes nothing) post to
+an area's page it searches its check-in rows. Each flight shows its three
+planned times, when it actually started, its warm-up was over and it
+finished ("Started 09:02 · warm-up over 09:14 · finished —"), and who tapped
+it. Its chip says **Not started**, **Warming up**, **Competing** or
+**Finished** (running late is the area's chip). **Started** (a flight not yet
+started), **Warm-up over** (see below), **Finished** (started, not finished)
+and **Undo** (takes back the latest: the finish, else Warm-up over, else the
+start: it posts `undo-finish`, `undo-warm-up` or `undo-start`, so the same
+tap sent twice takes back only the one, and the repeat quietly changes
+nothing) post to
 `/day/flight`, which stores the time it was tapped (now, or earlier for a
 tap kept without signal: see below) (`flight_times`,
 one row per published flight, keyed by the flight's ID; see
@@ -1380,7 +1397,33 @@ Migration 34 gave timetables saved before then IDs (a draft flight taking
 its published flight's, by place or else by event and gymnasts) and moved
 the day's rows from each flight's place to its ID. Organiser, "everything", chair-of-judges and timetable links
 can use it, and each tap is in the history ("Marked a flight started: BUCS
-L3 · flight 1 of 2 (Panel 1)").
+L3 · flight 1 of 2 (Panel 1)"; "Marked a flight's warm-up over: …").
+
+**Warm-up over** (roadmap 15, built 2026-11-11) is the moment a flight's
+warm-up ends and its competing begins (`what=warm-up`, kept in
+`flight_times.warm_up_over_at`, migration 53, with who in the row's `who`
+as for the others). After Started it's the tap that comes next: big, at
+the top of the area's page and on the overview's card, with Finished beside
+it less marked and Next gymnast less marked in who's up. The flight says
+**Warming up** until it's tapped, then **Competing**. It can be skipped and
+never gets in the way: Finished, and the first Next gymnast, work without
+it as before. Once who's up has reached a gymnast without it, the flight
+says Competing, Warm-up over is no longer offered, and the warm-up is left
+unmeasured (no time is made up). Nothing else about a flight's states
+changes. It's refused without a Started ("BUCS L3 hasn't started, so
+Warm-up over wasn't recorded.", as Finished is), before the start or after
+the finish; and a Finished before it is refused. The links that may tap
+Started may tap it.
+
+**The day's real times.** On the overview, for links that can see the
+timetable, **Real times today** opens to a line for each discipline with a
+flight measured: its real warm-up and competing a competitor, beside
+Setup's figures ("Trampoline: warm-up 1.2 min a competitor (set 1),
+competing 4.6 (set 5), from 6 flights"; "set 0, at least 10 min" where
+Setup has a least warm-up; each with its own count when they differ). Warm-up is from Started to Warm-up over, competing from Warm-up
+over to Finished, over the flights' gymnasts (`competitions.MeasuredTimes`);
+a flight whose Warm-up over was skipped counts for neither, one not finished
+only for its warm-up.
 
 **How late an area is** (`competitions.Lateness`): on that day and area, take
 the flight with the latest recorded event (finishing beats starting for the
@@ -1390,7 +1433,10 @@ negative, and an area with nothing recorded says "Nothing started yet".
 Times marked on another date than the day's (trying the page before the
 competition, say) don't count: the area says "Not measured". The
 area's header reads "Running 15 min late", "On time" or "5 min early", with
-what it's measured from.
+what it's measured from, and when the measured flight's Warm-up over was
+tapped, when its competing began against the plan ("measured from BUCS L3
+finished at 09:30 · competing began 09:14, 4 min late"). Warm-up over
+doesn't change what lateness is measured from.
 
 Where an area is late, **What if: see the rest of the day** (for links that can
 use the timetable) opens the [delay](#what-if-theres-a-delay) page with the
@@ -1440,12 +1486,15 @@ posts go straight to the network.
 
 **Taps without signal** (built 2026-10-15, ready for the dry run). The
 venue's wifi drops, so the day page's taps (the forms marked `data-tap`:
-Started, Finished, Undo, Next gymnast and Back, a gymnast's or official's
-check-in, Still officiating/competing) are first kept on the phone, in
+Started, Warm-up over, Finished, Undo, Next gymnast and Back, a gymnast's or
+official's check-in, Still officiating/competing) are first kept on the
+phone, in
 `localStorage` (`static/js/taps.js`), with the phone's clock when tapped.
 The page shows each at once as done but waiting ("Started at 10:02: waiting
-to send"), with the buttons as they'll be once it's sent: Started waiting
-offers Finished, and shows who's up, which is on the page hidden for every
+to send"), with the buttons as they'll be once it's sent (`markFlight`: not
+started, warming up, competing, finished): Started waiting offers Warm-up
+over and Finished, Warm-up over or a Next gymnast waiting leaves Finished,
+and Started shows who's up, which is on the page hidden for every
 flight not yet started so the marshal can go on tapping **Next gymnast**;
 the phone works out who's next from the flight's check-in rows (which carry
 each gymnast's entry, running number, club, routine names and state),
@@ -1478,9 +1527,14 @@ more was made: "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)".
 - **Started**: the earliest wins. A Started earlier than the one recorded
   replaces it (if it's not after the finish); a later one changes nothing and
   says someone has already done it, as a second tap always has.
-- **Finished**: the earliest wins too, and one before the flight's start is
-  refused ("Finished for BUCS L3 wasn't recorded: it's earlier than the start
-  (09:45)"); one for a flight not started is refused.
+- **Warm-up over**: the earliest wins, as for Started; a later one says
+  someone has already done it. One before the start or after the finish is
+  refused ("Warm-up over for BUCS L3 wasn't recorded: it's earlier than the
+  start (09:45)"), as is one for a flight not started.
+- **Finished**: the earliest wins too, and one before the flight's start, or
+  before its Warm-up over, is refused ("Finished for BUCS L3 wasn't recorded:
+  it's earlier than the start (09:45)"); one for a flight not started is
+  refused.
 - **Undo**: as before, it takes back what it names if it's there.
 - **Here, Scratched, Clear** (gymnasts) and **Here, Missing, Clear**
   (officials, per flight of the run): the latest tap wins. One older than the
@@ -1500,14 +1554,17 @@ redirects to the day with a notice, and the queue moves on.
 
 **Correct the times** (built 2026-10-15). Under each flight, for when the
 paper sheet was used or a tap was wrong, the organiser and the links that can
-mark flights (everything, chair, timetable) can set when it started and
-finished as clock times on its day (`POST /day/times`; Finished empty for not
-finished, both empty to clear, which also clears who's up as Undo does).
-Refused with a notice: a finish before the start, a finish without a start,
-a time that isn't a clock time, and, once the flight's day has come, a time
-later than now. The times replace those recorded (`who` becomes the link's
+mark flights (everything, chair, timetable) can set when it started, its
+warm-up was over and it finished, as clock times on its day (`POST
+/day/times`; Warm-up over, between the other two, is optional: empty for
+not known; Finished empty for not finished, all empty to clear, which also
+clears who's up as Undo does). Refused with a notice: a finish before the
+start, a Warm-up over before the start or after the finish, a finish or a
+Warm-up over without a start, a time that isn't a clock time, and, once the
+flight's day has come, a time later than now. The times replace those recorded (`who` becomes the link's
 name), and the history says who: "Corrected a flight's times: BUCS L3 ·
-flight 1 of 2 (Panel 1): started 09:10, finished 09:40". Everything reads the
+flight 1 of 2 (Panel 1): started 09:10, warm-up over 09:22, finished 09:40"
+(the warm-up only where given). Everything reads the
 same `flight_times`, so lateness, the venue screen, the delay "what if" and
 the lines on attendees' pages follow the times put right.
 
@@ -1731,7 +1788,9 @@ Each card has:
   times marked count whatever date they were marked, as on On the day's
   pages, so a flight marked finished is never shown as next (a start tried
   out before the day shows until it's taken back with Undo or Correct the
-  times). Under it, the flight's gymnasts
+  times). A flight marked started says where it is beside "Now": "Now ·
+  Warming up" until Warm-up over is tapped, then "Now · Competing" (also
+  once who's up has reached a gymnast without it). Under it, the flight's gymnasts
   in running order with their clubs (none for those entering on their own),
   scratched ones struck through.
 - **On now** and **Up next**, only for a flight marked started and only
@@ -2647,7 +2706,11 @@ Tell me about changes), not the timetables and calendars as well.
   up (`byWarmUp`), any not in a flight last, each with its flight, area, day
   and warm-up, where
   they are in the running order ("3rd of 12"), and about when each routine
-  is, worked out from the flight's timings (a guide only).
+  is, worked out from the flight's timings (a guide only). While their
+  flight runs, a chip beside it says **Warming up** or **Competing**
+  (roadmap 15), and for a panel they sit on, a line at the top: "On your
+  panel now: BUCS L3 · Panel 1 [Competing]" ("On their panel now" on the
+  organiser's page of a person, which shows the same chips).
 - What they officiate, and the flights they're in or on the panel of (and
   blocked time they have a seat in), by day and area, with their name in bold
   (`theirItems`). **Show the whole timetable** (`?timetable=all`) shows every

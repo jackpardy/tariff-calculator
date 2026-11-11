@@ -403,7 +403,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 					box = box[:j]
 				}
 			}
-			key, start, end, ok := flightIn(box)
+			key, start, competing, end, ok := flightIn(box)
 			if !ok || done[key] {
 				s.fail("%s: no flight to start, or the last one didn't finish", area.name)
 				break
@@ -444,15 +444,30 @@ func Morning(h Clocked, admin string, today time.Time) error {
 			}
 			set(start + area.late)
 			s.post(admin+"/day/flight", url.Values{"flight": {key}, "what": {"start"}})
+			// Warm-up over as competing begins, a minute or two out; the
+			// marshal skips it now and then (and on Track 1 all morning).
+			skipped := area.name == "Track 1" || n%4 == 3
 			if !lastFlight {
+				if !skipped {
+					set(competing + area.late + n%3)
+					s.post(admin+"/day/flight", url.Values{"flight": {key}, "what": {"warm-up"}})
+				}
 				set(end + area.late)
 				s.post(admin+"/day/flight", url.Values{"flight": {key}, "what": {"finish"}})
 				continue
 			}
-			// The flight on now: a few routines in.
+			// The flight on now: a few routines in, or still warming up if
+			// its competing isn't due yet.
 			underWay[area.name] = key
+			if competing+area.late > morningUntil {
+				break
+			}
+			if !skipped {
+				set(competing + area.late)
+				s.post(admin+"/day/flight", url.Values{"flight": {key}, "what": {"warm-up"}})
+			}
 			for k := range 3 {
-				set(start + area.late + 4 + 3*k)
+				set(competing + area.late + 1 + 3*k)
 				box := s.get(admin + "/day?day=0&area=" + url.QueryEscape(area.name))
 				form := box[max(strings.Index(box, "/day/up\""), 0):]
 				entry, round := matches(form, `name="entry" value="([^"]*)"`), matches(form, `name="round" value="([^"]*)"`)
@@ -462,7 +477,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 				s.post(admin+"/day/up", url.Values{"flight": {key}, "what": {"next"}, "entry": {entry[0]}, "round": {round[0]}})
 			}
 			if late {
-				set(start + area.late + 8)
+				set(competing + area.late + 5)
 				s.post(admin+"/day/checkin", url.Values{"entry": {entries[2]}, "status": {"here"}})
 			}
 			break
@@ -495,15 +510,16 @@ func Morning(h Clocked, admin string, today time.Time) error {
 }
 
 // flightIn is the flight in a flight's box on the day page: its key, and
-// when it's planned to start and end, in minutes after midnight.
-func flightIn(box string) (key string, start, end int, ok bool) {
+// when it's planned to start, to begin competing and to end, in minutes
+// after midnight.
+func flightIn(box string) (key string, start, competing, end int, ok bool) {
 	keys := matches(box, `data-tap="flight:([^"]+)"`)
-	m := regexp.MustCompile(`Planned: warm-up (\d\d):(\d\d)[^<]*? finishes about (\d\d):(\d\d)`).FindStringSubmatch(box)
+	m := regexp.MustCompile(`Planned: warm-up (\d\d):(\d\d) · competing (\d\d):(\d\d) · finishes about (\d\d):(\d\d)`).FindStringSubmatch(box)
 	if len(keys) == 0 || m == nil {
-		return "", 0, 0, false
+		return "", 0, 0, 0, false
 	}
 	n := func(i int) int { v, _ := strconv.Atoi(m[i]); return v }
-	return keys[0], n(1)*60 + n(2), n(3)*60 + n(4), true
+	return keys[0], n(1)*60 + n(2), n(3)*60 + n(4), n(5)*60 + n(6), true
 }
 
 // matches are the first group of each match of a pattern in a page, as

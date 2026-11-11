@@ -925,6 +925,10 @@ var migrations = []string{
 	// offer each role up to a level of their own): competitions with it
 	// take the default, anyone as they offer.
 	`UPDATE competitions SET officials = json_remove(officials, '$.judge') WHERE json_extract(officials, '$.judge') = 'below';`,
+
+	// 53: the marshal's Warm-up over tap (roadmap 15): when a flight's
+	// warm-up ended and its competing began; empty for not yet, or skipped.
+	`ALTER TABLE flight_times ADD COLUMN warm_up_over_at TEXT NOT NULL DEFAULT '';`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

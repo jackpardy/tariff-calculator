@@ -27,6 +27,10 @@ type DayPage struct {
 	DayName     string         // the day shown, e.g. "Saturday", for the times put right
 	DayDate     string         // its date, e.g. "Saturday 27 February 2027"
 	People      bool           // this link opens people's pages: names link to them
+	// RealTimes are the day's real warm-up and competing a competitor, a
+	// line for each discipline measured, beside Setup's figures; none for a
+	// link that can't see the timetable.
+	RealTimes []string
 }
 
 // DayScratched is a scratched gymnast who also holds seats that day, or is
@@ -75,11 +79,14 @@ type DayFlight struct {
 	Planned   string // e.g. "09:30–10:40"
 	Times     string // its three planned times, as FlightTimes says them
 	Started   string // when it started, "" if not yet
+	WarmUpOver string // when its warm-up was over, "" if not yet or skipped
 	Finished  string
 	Who       string // who last marked it
+	Stage     string // "Warming up" or "Competing" while it's running; "" otherwise
 	CanStart  bool   // not started yet
+	CanWarmUp bool   // started, and neither Warm-up over nor who's up tapped yet: Warm-up over comes next
 	CanFinish bool   // started, not finished
-	Undo      string // what Undo takes back: undo-finish or undo-start; "" for nothing
+	Undo      string // what Undo takes back: undo-finish, undo-warm-up or undo-start; "" for nothing
 	Gymnasts  []DayGymnast
 	Seats     []DaySeat // its panel's seats, filled or not
 	Up        *DayUp // who's up now, for the marshal to tap on; nil unless it's running or yet to start
@@ -217,6 +224,17 @@ templ Day(p DayPage) {
 				}
 			</div>
 		}
+		if p.Area == "" && len(p.RealTimes) > 0 {
+			<details class="box comp-day-real">
+				<summary>Real times today</summary>
+				<p class="is-size-7 has-text-grey mt-2">Minutes a competitor, from the flights with Warm-up over tapped, beside the figures on Setup.</p>
+				<ul class="is-size-7 mt-1">
+					for _, l := range p.RealTimes {
+						<li>{ l }</li>
+					}
+				</ul>
+			</details>
+		}
 		// Keeps taps made without signal and sends them later; loaded by the
 		// time competitions.js runs dayPage, once the page has loaded.
 		<script defer src={ static.URL("js/taps.js") }></script>
@@ -248,16 +266,14 @@ func areaState(a DayArea) State {
 	return NotYet
 }
 
-// flightState is a flight's state and its label: not started, under way
-// (running late if its area is), or finished.
-func flightState(a DayArea, f DayFlight) (State, string) {
+// flightState is a flight's state and its label: not started, warming up or
+// competing (its stage), or finished. Running late is the area's chip.
+func flightState(f DayFlight) (State, string) {
 	switch {
 	case f.Finished != "":
 		return Done, "Finished"
-	case f.Started != "" && a.Late:
-		return Attention, "Running late"
-	case f.Started != "":
-		return InProgress, "Under way"
+	case f.Stage != "":
+		return InProgress, f.Stage
 	}
 	return NotYet, "Not started"
 }
@@ -434,13 +450,15 @@ templ dayAreaCard(p DayPage, a DayArea) {
 }
 
 // dayCardFlight is the flight an area is on, on its card: who's up, the
-// counts, and the one tap that comes next (Started, Next gymnast, or
-// Finished once the last routine is on).
+// counts, and the one tap that comes next (Started, Warm-up over, Next
+// gymnast, or Finished once the last routine is on).
 templ dayCardFlight(p DayPage, a DayArea, f DayFlight) {
 	<div class="comp-day-card-flight">
-		<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(a, f))</p>
+		<p class="mb-1"><strong>{ f.Name }</strong> @StateChip(flightState(f))</p>
 		<p class="is-size-7 has-text-grey mb-2">
-			if f.Started != "" {
+			if f.WarmUpOver != "" {
+				Started { f.Started } · warm-up over { f.WarmUpOver } · planned: { lowerFirst(f.Times) }
+			} else if f.Started != "" {
 				Started { f.Started } · planned: { lowerFirst(f.Times) }
 			} else {
 				Planned: { lowerFirst(f.Times) }
@@ -471,7 +489,7 @@ templ dayCardFlight(p DayPage, a DayArea, f DayFlight) {
 			}
 		</p>
 		switch {
-			case f.CanStart:
+			case f.CanStart, f.CanWarmUp:
 				@dayFlightForm(p, f, false)
 			case f.CanFinish && f.Up != nil && f.Up.Name != "" && !f.Up.Last:
 				<div class="comp-up">
@@ -493,7 +511,7 @@ templ dayAreaPage(p DayPage, a DayArea) {
 		@dayAreaStatus(a)
 		if cur := currentFlight(a); cur >= 0 {
 			<div class="box comp-flight comp-day-now" id={ a.Flights[cur].ID } data-list-group>
-				<p class="mb-1"><strong>{ a.Flights[cur].Name }</strong> @StateChip(flightState(a, a.Flights[cur]))</p>
+				<p class="mb-1"><strong>{ a.Flights[cur].Name }</strong> @StateChip(flightState(a.Flights[cur]))</p>
 				@dayFlightTimes(a.Flights[cur])
 				@dayFlightBody(p, a.Flights[cur], true)
 			</div>
@@ -526,7 +544,7 @@ templ dayOtherFlight(p DayPage, a DayArea, f DayFlight) {
 	<details class="box comp-flight comp-day-other" id={ f.ID } data-key={ "flight:" + f.Key } data-list-group>
 		<summary>
 			<strong>{ f.Name }</strong>
-			@StateChip(flightState(a, f))
+			@StateChip(flightState(f))
 			<span class="is-size-7 has-text-grey">{ f.Planned }</span>
 		</summary>
 		<div class="mt-2">
@@ -536,13 +554,20 @@ templ dayOtherFlight(p DayPage, a DayArea, f DayFlight) {
 	</details>
 }
 
-// dayFlightTimes is when a flight was planned, and started and finished.
+// dayFlightTimes is when a flight was planned, and started, its warm-up was
+// over and it finished.
 templ dayFlightTimes(f DayFlight) {
 	<p class="is-size-7 mb-1">Planned: { lowerFirst(f.Times) }</p>
 	<p class="is-size-7 mb-2">
 		Started
 		if f.Started != "" {
 			<strong>{ f.Started }</strong>
+		} else {
+			—
+		}
+		· warm-up over
+		if f.WarmUpOver != "" {
+			<strong>{ f.WarmUpOver }</strong>
 		} else {
 			—
 		}
@@ -559,11 +584,12 @@ templ dayFlightTimes(f DayFlight) {
 }
 
 // dayFlightBody is a flight's taps and lists, in the order they're used:
-// Started at the top until it is, then who's up, check-in and the panel,
+// Started at the top until it is, then Warm-up over there until it is (or
+// who's up moves on without it), then who's up, check-in and the panel,
 // with Finished at the bottom, and putting its times right after that. Open
 // shows the lists as they are, for the flight on now; otherwise each opens.
 templ dayFlightBody(p DayPage, f DayFlight, open bool) {
-	if f.CanStart {
+	if f.CanStart || f.CanWarmUp {
 		@dayFlightForm(p, f, true)
 	}
 	if f.Up != nil {
@@ -607,7 +633,7 @@ templ dayFlightBody(p DayPage, f DayFlight, open bool) {
 			</details>
 		}
 	}
-	if !f.CanStart && (f.CanFinish || f.Undo != "") && !finishesHere(f) {
+	if !f.CanStart && !f.CanWarmUp && (f.CanFinish || f.Undo != "") && !finishesHere(f) {
 		@dayFlightForm(p, f, true)
 	}
 	if p.Correct {
@@ -615,9 +641,11 @@ templ dayFlightBody(p DayPage, f DayFlight, open bool) {
 	}
 }
 
-// dayFlightForm is a flight's Started, Finished and Undo: one form, so a
-// tap kept on the phone shows the next as it will be (taps.js). Undo, which
-// takes back the last of them, only where the flight is in full.
+// dayFlightForm is a flight's Started, Warm-up over, Finished and Undo: one
+// form, so a tap kept on the phone shows the next as it will be (taps.js).
+// While Warm-up over is the tap that comes next, Finished is beside it, less
+// marked, for a marshal who skips it. Undo, which takes back the last of
+// them, only where the flight is in full.
 templ dayFlightForm(p DayPage, f DayFlight, undo bool) {
 	<form method="post" action={ templ.SafeURL(p.Base + "/day/flight") } class="buttons comp-day-flight-taps" data-tap={ "flight:" + f.Key }>
 		<input type="hidden" name="flight" value={ f.Key }/>
@@ -625,8 +653,11 @@ templ dayFlightForm(p DayPage, f DayFlight, undo bool) {
 		if f.CanStart {
 			<button class="button is-primary" type="submit" name="what" value="start">Started</button>
 		}
+		if f.CanWarmUp {
+			<button class="button is-primary is-medium" type="submit" name="what" value="warm-up">Warm-up over</button>
+		}
 		if f.CanFinish {
-			<button class={ "button is-primary", templ.KV("is-medium", finishesHere(f)) } type="submit" name="what" value="finish">Finished</button>
+			<button class={ "button", templ.KV("is-primary", !f.CanWarmUp), templ.KV("is-medium", finishesHere(f)) } type="submit" name="what" value="finish">Finished</button>
 		}
 		if undo && f.Undo != "" {
 			// Says which, so the same tap sent twice takes back only the one.
@@ -726,8 +757,8 @@ templ daySeatRows(p DayPage, f DayFlight) {
 	}
 }
 
-// dayCorrect puts a flight's start and finish right, for when the paper
-// sheet was used or a tap was wrong.
+// dayCorrect puts a flight's start, Warm-up over and finish right, for when
+// the paper sheet was used or a tap was wrong.
 templ dayCorrect(p DayPage, f DayFlight) {
 	<details class="comp-correct mt-2" data-key={ "times:" + f.Key }>
 		<summary class="is-size-7">Correct the times</summary>
@@ -742,6 +773,12 @@ templ dayCorrect(p DayPage, f DayFlight) {
 					</div>
 				</div>
 				<div class="field mb-0">
+					<label class="label is-small" for={ f.ID + "-warm-up" }>Warm-up over</label>
+					<div class="control">
+						<input class="input is-small" type="time" id={ f.ID + "-warm-up" } name="warmUpOver" value={ f.WarmUpOver }/>
+					</div>
+				</div>
+				<div class="field mb-0">
 					<label class="label is-small" for={ f.ID + "-finished" }>Finished</label>
 					<div class="control">
 						<input class="input is-small" type="time" id={ f.ID + "-finished" } name="finished" value={ f.Finished }/>
@@ -750,7 +787,7 @@ templ dayCorrect(p DayPage, f DayFlight) {
 				<button class="button is-small is-primary" type="submit">Save times</button>
 			</div>
 			<p class="help">
-				Clock times on { p.DayName }. Leave Finished empty if it hasn't finished, or both to clear them. The history says who changed them.
+				Clock times on { p.DayName }. Leave Finished empty if it hasn't finished, Warm-up over if it isn't known, or all three to clear them. The history says who changed them.
 			</p>
 		</form>
 	</details>
@@ -820,7 +857,8 @@ templ dayUpForm(p DayPage, f DayFlight, next bool) {
 		<input type="hidden" name="entry" value={ f.Up.Entry }/>
 		<input type="hidden" name="round" value={ f.Up.Round }/>
 		if next {
-			<button class="button is-primary is-medium" type="submit" name="what" value="next">Next gymnast</button>
+			// Less marked while Warm-up over comes first; it still works without it.
+			<button class={ "button", templ.KV("is-primary", !f.CanWarmUp), templ.KV("is-medium", next) } type="submit" name="what" value="next">Next gymnast</button>
 		}
 		if f.Up.CanBack {
 			<button class="button is-small" type="submit" name="what" value="back">Back</button>

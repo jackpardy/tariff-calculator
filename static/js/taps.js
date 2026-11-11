@@ -1,6 +1,6 @@
 // taps.js: taps on the On the day page (views/day.templ) kept on the phone
 // while there's no signal. The venue's wifi drops, so each tap (Started,
-// Finished, Next gymnast, Here, Scratched, an official's check-in, Still
+// Warm-up over, Finished, Next gymnast, Here, Scratched, an official's check-in, Still
 // here: the forms marked data-tap) is kept in this browser with the time it
 // was tapped, shown on the page at once as waiting to send, and sent in
 // order: straight away, when the signal comes back, when the page loads and
@@ -180,16 +180,17 @@ const DayTaps = (function () {
         for (const [key, list] of byForm) {
             const form = document.querySelector(`form[data-tap="${CSS.escape(key)}"]`);
             if (!form) { continue; }
-            try { showWaiting(key, form, list); } catch (e) { console.error('Showing a tap waiting to send:', e); } // never in the way of sending
+            try { showWaiting(key, form, list, taps); } catch (e) { console.error('Showing a tap waiting to send:', e); } // never in the way of sending
         }
     }
 
     // showWaiting shows taps kept on the phone on their form, as the server
-    // will show them once sent.
-    function showWaiting(key, form, list) {
+    // will show them once sent; taps are all those waiting.
+    function showWaiting(key, form, list, taps) {
         const last = list[list.length - 1];
         if (key.startsWith('flight:')) {
-            markFlight(form, list);
+            const flight = key.slice('flight:'.length);
+            markFlight(form, list, taps.some((t) => t.form === 'up:' + flight && t.value === 'next'));
         } else if (key.startsWith('up:')) {
             const g = list.map((t) => t.up).filter(Boolean).pop();
             if (g) { showUp(form.closest('.comp-up'), g); }
@@ -204,23 +205,44 @@ const DayTaps = (function () {
         form.after(note);
     }
 
-    // markFlight shows a flight's Started, Finished and Undo as they'll be
-    // once its waiting taps are sent, and who's up while it's running.
-    function markFlight(form, list) {
+    // flightState is where a flight is once its waiting taps (list) are
+    // sent, from where the server showed it (shown): waiting to start,
+    // warming up, competing or finished. Warming up ends at Warm-up over, or
+    // when Next gymnast is tapped without it (upMoved: one is waiting).
+    function flightState(shown, list, upMoved) {
+        let state = shown;
+        for (const tap of list) {
+            state = {
+                start: 'warming', 'warm-up': 'competing', finish: 'finished',
+                'undo-finish': 'competing', 'undo-warm-up': 'warming', 'undo-start': 'waiting',
+            }[tap.value] || state;
+        }
+        return state === 'warming' && upMoved ? 'competing' : state;
+    }
+
+    // markFlight shows a flight's Started, Warm-up over, Finished and Undo as
+    // they'll be once its waiting taps are sent, and who's up while it's
+    // running. upMoved says whether a Next gymnast for it is waiting.
+    function markFlight(form, list, upMoved) {
         const box = form.closest('.comp-flight');
         const has = (v) => !!form.querySelector(`button[value="${v}"]`);
         // As the server last showed it, before any taps were marked here.
-        form.dataset.shown ||= has('finish') ? 'running' : has('start') ? 'waiting' : 'finished';
-        let state = form.dataset.shown;
-        for (const tap of list) {
-            state = { start: 'running', finish: 'finished', 'undo-finish': 'running', 'undo-start': 'waiting' }[tap.value] || state;
-        }
-        button(form, 'start', 'Started', 'button is-success').hidden = state !== 'waiting';
-        button(form, 'finish', 'Finished', 'button is-success').hidden = state !== 'running';
+        form.dataset.shown ||= has('warm-up') ? 'warming' : has('finish') ? 'competing' : has('start') ? 'waiting' : 'finished';
+        const state = flightState(form.dataset.shown, list, upMoved);
+        const running = state === 'warming' || state === 'competing';
+        button(form, 'start', 'Started', 'button is-primary').hidden = state !== 'waiting';
+        button(form, 'warm-up', 'Warm-up over', 'button is-primary is-medium').hidden = state !== 'warming';
+        const finish = button(form, 'finish', 'Finished', 'button');
+        finish.hidden = !running;
+        // Less marked while Warm-up over comes first, as the server shows it.
+        finish.classList.toggle('is-primary', state !== 'warming');
         // Undo takes back what the page was showing, so it waits until then.
         form.querySelectorAll('button[value^="undo-"]').forEach((b) => { b.hidden = true; });
         const up = box?.querySelector('.comp-up');
-        if (up) { up.hidden = state !== 'running'; }
+        if (up) {
+            up.hidden = !running;
+            up.querySelector('button[value="next"]')?.classList.toggle('is-primary', state !== 'warming');
+        }
     }
 
     // count says how many taps are waiting, at the top of the page.
@@ -258,5 +280,5 @@ const DayTaps = (function () {
         return tap;
     }
 
-    return { queue, markWaiting, count, tapOf, upOrder, upStep, clock };
+    return { queue, markWaiting, count, tapOf, upOrder, upStep, clock, flightState, markFlight };
 })();

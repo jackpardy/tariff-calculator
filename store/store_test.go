@@ -1761,6 +1761,60 @@ func TestFlightTimes(t *testing.T) {
 	}
 }
 
+// Warm-up over (roadmap 15) is kept beside the start and finish: Undo takes
+// it back before the start, and not once the flight has finished; putting the
+// times right sets or clears it.
+func TestWarmUpOver(t *testing.T) {
+	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
+	s := open(t, &now)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	const key = "f1"
+	times := func() FlightTime {
+		t.Helper()
+		all, err := s.FlightTimes(ctx, c.ID)
+		must(t, err)
+		return all[key]
+	}
+	start := now
+	must(t, s.MarkFlight(ctx, c.ID, key, "start", "Ann"))
+	now = now.Add(12 * time.Minute)
+	must(t, s.MarkFlight(ctx, c.ID, key, "warm-up", "Bea"))
+	if got := times(); !got.Started.Equal(start) || !got.WarmUpOver.Equal(now) || !got.Finished.IsZero() || got.Who != "Bea" {
+		t.Errorf("warm-up over: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo-start", "Cal"))
+	if got := times(); got.Started.IsZero() {
+		t.Errorf("the start stays while the warm-up is over: %+v", got)
+	}
+	now = now.Add(30 * time.Minute)
+	must(t, s.MarkFlight(ctx, c.ID, key, "finish", "Bea"))
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo-warm-up", "Cal"))
+	if got := times(); got.WarmUpOver.IsZero() {
+		t.Errorf("a finished flight's warm-up stays: %+v", got)
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo-finish", "Bea"))
+	for range 2 { // the same tap sent twice
+		must(t, s.MarkFlight(ctx, c.ID, key, "undo-warm-up", "Bea"))
+		if got := times(); got.Started.IsZero() || !got.WarmUpOver.IsZero() {
+			t.Errorf("undo takes back the warm-up, and only that: %+v", got)
+		}
+	}
+	must(t, s.MarkFlight(ctx, c.ID, key, "undo-start", "Bea"))
+	if got := times(); !got.Started.IsZero() {
+		t.Errorf("then the start: %+v", got)
+	}
+
+	at := func(h, m int) time.Time { return time.Date(2027, 3, 13, h, m, 0, 0, time.UTC) }
+	must(t, s.SetFlightTimes(ctx, c.ID, key, at(9, 0), at(9, 10), at(9, 50), "Dee"))
+	if got := times(); !got.Started.Equal(at(9, 0)) || !got.WarmUpOver.Equal(at(9, 10)) || !got.Finished.Equal(at(9, 50)) || got.Who != "Dee" {
+		t.Errorf("put right: %+v", got)
+	}
+	must(t, s.SetFlightTimes(ctx, c.ID, key, at(9, 0), time.Time{}, at(9, 50), "Dee"))
+	if got := times(); !got.WarmUpOver.IsZero() || got.Started.IsZero() || got.Finished.IsZero() {
+		t.Errorf("cleared: %+v", got)
+	}
+}
+
 func TestCheckins(t *testing.T) {
 	now := time.Date(2027, 3, 13, 9, 0, 0, 0, time.UTC)
 	s := open(t, &now)

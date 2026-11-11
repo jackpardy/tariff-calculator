@@ -878,7 +878,8 @@ Notifications (7) are built; numbers 1–7 below are built.
 15. **Warm-up and competing times of their own, and a flight's times
     changed by hand** (asked 2026-11-10). The first part **built
     2026-11-11**: see [Flight times](features/competition-entries.md#flight-times-roadmap-15).
-    The second part, the "Warm-up over" tap (below), is still to build.
+    The second part, the "Warm-up over" tap (below), **built 2026-11-11**:
+    see [On the day](features/competition-entries.md#on-the-day-flights-started-and-finished).
 
     **Today.** Each discipline has two figures: minutes per competitor (all
     their turns) and minutes between flights, one fixed number for warm-up
@@ -966,7 +967,8 @@ Notifications (7) are built; numbers 1–7 below are built.
     trampoline); the dry run's taps may give better ones (14). A least
     warm-up is wanted.
 
-    **A second part: a "Warm-up over" tap** (decided 2026-11-11: wanted).
+    **A second part: a "Warm-up over" tap** (decided 2026-11-11: wanted;
+    **built 2026-11-11**).
     Today the marshal taps **Started** when a flight's warm-up begins and
     **Finished** at its end, so the day measures a flight's whole length
     and can't say how much of it was warm-up. One more tap between them,
