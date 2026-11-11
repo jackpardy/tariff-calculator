@@ -251,6 +251,9 @@ type PersonAdmin struct {
 	// club itself, since sending them: out of the competition, a line
 	// each, linking to the entry.
 	Removed []LinkedLine
+	// TakenBack says their club took back their offer to judge or help;
+	// "" if it didn't.
+	TakenBack string
 }
 
 // PersonOfficiating is what someone offered to do, and where the timetable
@@ -306,7 +309,13 @@ templ MyCompetition(p MyCompetitionPage) {
 				if len(p.Admin.Removed) > 0 {
 					@StateChip(Stopped, "Removed by the club")
 				}
+				if p.Admin.TakenBack != "" {
+					@StateChip(Stopped, "Offer taken back by the club")
+				}
 			</p>
+			if p.Admin.TakenBack != "" {
+				<div class="notification is-warning is-light">{ p.Admin.TakenBack }</div>
+			}
 			if len(p.Admin.Removed) > 0 {
 				<div class="notification is-warning is-light">
 					<p class="mb-1"><strong>Removed by the club.</strong> These entries are out of the competition: not counted, charged (unless your fees say so), put in a flight or printed.</p>

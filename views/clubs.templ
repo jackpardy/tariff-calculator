@@ -111,6 +111,12 @@ type ClubCompetition struct {
 	// NoSigner says the competition needs a coach's sign-off, but no coach
 	// of the club signs off routines, so every entry waits.
 	NoSigner bool
+	// TakeOut are the members with entries or an offer here, to take out of
+	// it (the member staying in the club), while changes are open, posting
+	// to TakeOutAction; TakeOutClosed says why not, once they've closed.
+	TakeOut       []FlightOption
+	TakeOutAction string
+	TakeOutClosed string
 }
 
 // ClubSendCoach is one of the club's coaches, to send to a competition.
@@ -175,6 +181,7 @@ type ClubEntryRow struct {
 	Signoff       SignoffView
 	Flight        string // where they compete, once the timetable is published
 	Unsent        string // what became of a change or entry that wasn't sent before it closed
+	PartnerGone   string // a synchro partner the club removed or took out, e.g. "Your partner Adam Brown is no longer a member of UCD: …"
 	Late          LateStatus // a late change, where it stands
 	LateAsk       string     // where to ask for a late change, once entries close, or to see one asked
 	AskLate       string     // where an entry never sent asks to enter late, in one tap; "" when it can't
@@ -264,6 +271,7 @@ type MemberEvent struct {
 	Form        EntryForm
 	Withdraw    string
 	Unsent      string // what became of a change or entry that wasn't sent before it closed
+	PartnerGone string // as ClubEntryRow's
 	NoChange    bool   // it can't be changed: new entries have closed and the competition holds none
 	AskLate     string // the late request page, to ask to enter late (one tap with a saved entry); "" when it can't
 }
@@ -487,6 +495,30 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 				</form>
 			}
 		}
+		if len(comp.TakeOut) > 0 {
+			@opens("", "The member stays in the club; you're asked first", "Take out of this competition", false) {
+				<form method="post" action={ templ.SafeURL(comp.TakeOutAction) } class="comp-flight-actions">
+					<div class="select is-small">
+						<select name="member" required aria-label="Member" data-search-select="Search the members">
+							<option value="" disabled selected>Choose a member</option>
+							for _, m := range comp.TakeOut {
+								<option value={ m.Value }>{ m.Label }</option>
+							}
+						</select>
+					</div>
+					<div class="select is-small">
+						<select name="what" aria-label="What to take out">
+							<option value="entries">Their entries</option>
+							<option value="offer">Their offer to judge or help</option>
+							<option value="both">Both</option>
+						</select>
+					</div>
+					<button class="button is-small" type="submit">Take out…</button>
+				</form>
+			}
+		} else if comp.TakeOutClosed != "" {
+			<p class="is-size-7 has-text-grey mb-3">{ comp.TakeOutClosed }</p>
+		}
 		if len(comp.Rows) == 0 {
 			@emptyLine("No member has entered yet.")
 		} else {
@@ -518,6 +550,10 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 										if row.Unsent != "" {
 											<br/>
 											<span class="is-size-7">{ row.Unsent }</span>
+										}
+										if row.PartnerGone != "" {
+											<br/>
+											<span class="is-size-7 has-text-warning-dark">{ row.PartnerGone }</span>
 										}
 										if row.AskLate != "" {
 											@askLateButton(row.AskLate, row.Discipline)
@@ -1221,6 +1257,9 @@ templ memberEvent(comp CompetitionSummary, ev MemberEvent) {
 				}
 				if ev.Unsent != "" {
 					<p class="mb-2">{ ev.Unsent }</p>
+				}
+				if ev.PartnerGone != "" {
+					<div class="notification is-warning is-light py-2 mb-2">{ ev.PartnerGone }</div>
 				}
 				if ev.Card != nil {
 					@askLateButton(ev.AskLate, ev.Discipline)

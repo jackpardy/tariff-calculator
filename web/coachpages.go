@@ -79,11 +79,20 @@ func memberProblems(c competitions.Competition, e store.MemberEntry, sent []stor
 			continue
 		}
 		if e.Sent() && !e.ChangedSinceSent() {
-			return entryProblems(c, s, all)
+			return withPartnerGone(cardProblems(c, s, all), e)
 		}
 		people = s.People()
 	}
-	return c.EntryProblems(competitions.Entered{Entry: e.Entry, People: people, Signoff: memberSignoff(c, e).Problem()}, all)
+	return withPartnerGone(c.EntryProblems(competitions.Entered{Entry: e.Entry, People: people, Signoff: memberSignoff(c, e).Problem()}, all), e)
+}
+
+// withPartnerGone adds to a member's entry's problems a partner the club
+// removed or took out, in their words (partnerGoneForThem).
+func withPartnerGone(problems []string, e store.MemberEntry) []string {
+	if line := partnerGoneForThem(e.PartnerGone); line != "" {
+		return append(problems, line)
+	}
+	return problems
 }
 
 // withSignoff adds an entry's sign-off to its card, and a missing one to its

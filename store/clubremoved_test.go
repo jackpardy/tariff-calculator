@@ -276,8 +276,10 @@ func TestRemovedStayMigrates(t *testing.T) {
 	must(t, s.AttachClub(ctx, club.ID, c.ID))
 	a, _, _ := s.Join(ctx, club.ID, "A")
 	ann, _, _ := s.CreateCoach(ctx, club.ID, "Ann")
-	must(t, s.SaveMemberEntry(ctx, a.ID, c.ID, entry("A")))
 	data, _ := json.Marshal(entry("A"))
+	_, err = s.db.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at) VALUES ($1, $2, '', $3, $4)`,
+		a.ID, c.ID, string(data), s.stamp())
+	must(t, err)
 	_, err = s.db.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at, entered_at)
 		VALUES ('e1', $1, $2, $3, '', 'UCD', FALSE, 'A', $4, $5, $5)`, c.ID, club.ID, a.ID, string(data), s.stamp())
 	must(t, err)

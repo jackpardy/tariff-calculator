@@ -138,10 +138,49 @@ func enteredAll(c competitions.Competition, entries []store.Entry) []competition
 // coach all see them (competitions.EntryProblems); all are enteredAll. A
 // withdrawn entry's pair isn't checked.
 func entryProblems(c competitions.Competition, e store.Entry, all []competitions.Entered) []string {
+	out := cardProblems(c, e, all)
+	if line := partnerGoneLine(e); line != "" {
+		out = append(out, line)
+	}
+	return out
+}
+
+// cardProblems are entryProblems but for a partner the club removed: what
+// the club's pages work out the same way, saying that in their own words.
+func cardProblems(c competitions.Competition, e store.Entry, all []competitions.Entered) []string {
 	if e.Withdrawn {
 		all = nil
 	}
 	return c.EntryProblems(entered(c, e), all)
+}
+
+// partnerGoneLine is the organiser's line for a pair's entry whose partner
+// the club removed, or took out of the competition, e.g. "Adam Brown was
+// removed by UCD on 11 Nov: this pair may need a new partner"; "" for none,
+// or an entry that's out.
+func partnerGoneLine(e store.Entry) string {
+	g := e.PartnerGone
+	if g == nil || e.Withdrawn {
+		return ""
+	}
+	how := "removed by " + g.Club
+	if g.TakenOut {
+		how = "taken out of this competition by " + g.Club
+	}
+	return fmt.Sprintf("%s was %s on %s: this pair may need a new partner", g.Name, how, g.At.In(local).Format("2 Jan"))
+}
+
+// partnerGoneForThem is the entrant's and their club's line for it, e.g.
+// "Your partner Adam Brown is no longer a member of UCD: tell the organiser,
+// or change your partner"; "" for none.
+func partnerGoneForThem(g *store.PartnerGone) string {
+	if g == nil {
+		return ""
+	}
+	if g.TakenOut {
+		return fmt.Sprintf("Your partner %s was taken out of this competition by %s: tell the organiser, or change your partner", g.Name, g.Club)
+	}
+	return fmt.Sprintf("Your partner %s is no longer a member of %s: tell the organiser, or change your partner", g.Name, g.Club)
 }
 
 // synchroLevels checks each synchro pair's level against their individual
@@ -394,6 +433,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 			d.Withdrawn++
 		case len(j.problems) > 0:
 			d.WithProblems++
+		}
+		if line := partnerGoneLine(j.Entry); line != "" {
+			d.PartnerGone = append(d.PartnerGone, views.LinkedLine{Text: j.Entry.Entry.Gymnasts() + " · " + j.Entry.Entry.Event() + ": " + line, Href: d.Base + "/entries/" + j.ID})
 		}
 		if !j.Checked() && !j.Withdrawn {
 			d.Unchecked++
@@ -838,7 +880,7 @@ func (p *competitionPages) entry(w http.ResponseWriter, r *http.Request) {
 		Base: adminPath(r.PathValue("token")), Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuEntries),
 		Card: shown, Sent: e.SentAt.In(local).Format("Monday 2 January, 15:04"),
 		ID: e.ID, Checked: checkedText(e), Note: e.Note, VideoReview: e.VideoReview, VideoNote: e.VideoNote,
-		Withdrawn: e.Withdrawn, ClubRemoved: clubRemovedText(e), Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
+		Withdrawn: e.Withdrawn, ClubRemoved: clubRemovedText(e), PartnerGone: partnerGoneLine(e), Access: access(r), Notice: r.URL.Query().Get("notice"), LetIn: e.LetIn,
 		List: listQuery(r.URL.Query()),
 	}))
 }
@@ -856,6 +898,16 @@ func clubRemovedText(e store.Entry) string {
 	}
 	if e.ClubRemovedLate {
 		out += ", after entries closed"
+	}
+	return out
+}
+
+// takenBackText says when a club took an official's offer back, and by
+// whom where its history knows, e.g. "11 Nov, 14:02, by Club admin".
+func takenBackText(o store.Official) string {
+	out := o.TakenBackAt.In(local).Format("2 Jan, 15:04")
+	if o.TakenBackBy != "" {
+		out += ", by " + o.TakenBackBy
 	}
 	return out
 }

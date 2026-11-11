@@ -28,6 +28,9 @@ type Dashboard struct {
 	// RemovedLate are the entries clubs removed after entries closed, a
 	// line each with a link, to know about.
 	RemovedLate []LinkedLine
+	// PartnerGone are the pairs' entries whose partner the club removed or
+	// took out, a line each with a link: they may need a new partner.
+	PartnerGone []LinkedLine
 	SeatsHint    string // what to do about them, e.g. "Give the seat to someone else, then publish again."
 	Waiting      []WaitingList // each limited event's waiting list
 	Unchecked    int           // entries not checked yet
@@ -119,6 +122,7 @@ type EntryDetail struct {
 	VideoNote   string
 	Withdrawn   bool   // withdrawn since the club sent it, or removed by the club
 	ClubRemoved string // as DashboardRow's
+	PartnerGone string // a partner the club removed or took out (partnerGoneLine)
 	LetIn       bool   // let in from its event's waiting list, over the limit
 	List        string // the entries page's filters and sort it was opened from, as a query (Dashboard.List)
 }
@@ -164,6 +168,16 @@ templ CompetitionDashboard(d Dashboard) {
 				<span class="is-size-7 has-text-grey ml-1">They're out of the competition, but listed with the entries.</span>
 				<ul class="is-size-7 mt-1">
 					for _, l := range d.RemovedLate {
+						<li><a href={ templ.SafeURL(l.Href) }>{ l.Text }</a></li>
+					}
+				</ul>
+			</div>
+		}
+		if len(d.PartnerGone) > 0 {
+			<div class="mb-3">
+				@StateChip(Attention, Count(len(d.PartnerGone), "pair", "pairs")+" may need a new partner")
+				<ul class="is-size-7 mt-1">
+					for _, l := range d.PartnerGone {
 						<li><a href={ templ.SafeURL(l.Href) }>{ l.Text }</a></li>
 					}
 				</ul>
@@ -370,6 +384,11 @@ templ CompetitionEntry(d EntryDetail) {
 		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
 		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
+		if d.PartnerGone != "" {
+			<div class="notification is-warning is-light">
+				<p>{ d.PartnerGone }.</p>
+			</div>
+		}
 		if d.ClubRemoved != "" {
 			<div class="notification is-warning is-light">
 				<p><strong>Removed by the club.</strong> { d.Card.Club } removed { d.Card.Gymnast } on { d.ClubRemoved }, after sending this entry. It isn't in the competition: it isn't counted, charged (unless your fees say so), put in a flight or printed, and stays here as it was last sent.</p>

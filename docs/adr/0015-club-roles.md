@@ -47,7 +47,7 @@ differently, and what a "comp sec" or "team manager" does varies.
    | Permission | Allows |
    |---|---|
    | *(every role)* **See the club** | Club home, the competitions and each one's entries, the members and coaches lists and each member's routines and skills (looking, not changing), timetables and calendars, desk messages; Feedback |
-   | **Enter and change entries** | Enter a member, change or withdraw a member's entry, offers to help, late requests (`enter-member`, `members/{member}/competitions/{id}`…, `/offer`, `/late`, `/late/reply` (2026-11-11: answering the organiser about a late request), `/withdraw`, `add-offer`) |
+   | **Enter and change entries** | Enter a member, change or withdraw a member's entry, offers to help, late requests (`enter-member`, `members/{member}/competitions/{id}`…, `/offer`, `/late`, `/late/reply` (2026-11-11: answering the organiser about a late request), `/withdraw`, `add-offer`, `competitions/{id}/take-out` (2026-11-11: taking a member out of one competition)) |
    | **Send entries** | Send the club's entries and coaches to the organiser (`/competitions/{id}/send`, `/competitions/{id}/coaches`) |
    | **Fees** | Each competition's fees and invoice (`/fees`, `/invoice`) |
    | **Manage members** | The join link (to share it); remove a member, give a member a new link, choose a member's coach, members' judging qualifications (`members/{member}/remove`, `/new-link`, `/coach`, `/judging`…) |

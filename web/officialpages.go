@@ -310,6 +310,15 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Officials = append(page.Officials, row)
 	}
+	back, err := p.st.TakenBack(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, o := range back {
+		page.TakenBack = append(page.TakenBack, views.TakenBackRow{Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), When: takenBackText(o),
+			Person: personPath(page.Base, o.PersonKey)})
+	}
 	render(w, r, views.CompetitionOfficials(page))
 }
 

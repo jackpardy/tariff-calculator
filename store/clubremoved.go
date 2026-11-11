@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"time"
 
 	"tariffCalculator/competitions"
 )
@@ -29,17 +30,45 @@ const sentMatch = `EXISTS (SELECT 1 FROM member_entries me
 // passed (a private or paused competition hasn't closed).
 const entriesClosed = `(SELECT c.live_at <> '' AND c.live_at <= $1 AND c.deadline <= $1 FROM competitions c WHERE c.id = entries.competition_id)`
 
+// PartnerGone is a synchro partner the club removed, or took out of the
+// competition, as their pair's entry (someone else's) is flagged: by name,
+// their club, when, and whether only out of the competition (TakenOut).
+type PartnerGone struct {
+	Name     string    `json:"name"`
+	Club     string    `json:"club"`
+	At       time.Time `json:"at"`
+	TakenOut bool      `json:"taken_out,omitempty"`
+}
+
+// readPartnerGone reads a row's partner_gone: nil for "".
+func readPartnerGone(data string) (*PartnerGone, error) {
+	if data == "" {
+		return nil, nil
+	}
+	var g PartnerGone
+	if err := json.Unmarshal([]byte(data), &g); err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
+
 // keepEntries marks the competitions' copies of a club's entries, those
 // meeting cond (with its arguments from $3), removed by the club at now by
-// who, before the members or club they belong to go, and records it in each
+// who, before the members or club they belong to go (or, takenOut, before
+// a member is taken out of one competition), and records it in each
 // competition's history. A copy the organiser removed or holds stays as it
 // is; with withdrawn false, so does one its member had already withdrawn.
-// A synchro pair whose partner (by partnerOf, an id) goes keeps its entry:
-// only its history says so.
-func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdrawn bool, cond, partnerOf string, args ...any) error {
+// A synchro pair whose partner goes (partnerCond, on entries: pairs naming
+// them, not their own) keeps its entry, flagged (PartnerGone) on the
+// competition's copy and the entrant's own, and its history says so.
+func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdrawn, takenOut bool, cond, partnerCond string, args ...any) error {
 	where := `NOT individual AND removal = '' AND club_removed_at = '' AND ` + cond
 	if !withdrawn {
 		where += ` AND ` + sentMatch
+	}
+	how := "removed by the club"
+	if takenOut {
+		how = "taken out of the competition by the club"
 	}
 	all := append([]any{now, who}, args...)
 	rows, err := tx.QueryContext(ctx, `SELECT competition_id, gymnast, entry, `+entriesClosed+` AND `+sentMatch+` FROM entries WHERE `+where, all...)
@@ -60,7 +89,7 @@ func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdra
 			rows.Close()
 			return err
 		}
-		what := e.Gymnasts() + " · " + e.Event() + ": removed by the club"
+		what := e.Gymnasts() + " · " + e.Event() + ": " + how
 		if late {
 			what += ", after entries closed"
 		}
@@ -77,16 +106,18 @@ func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdra
 		WHERE `+where, all...); err != nil {
 		return err
 	}
-	if partnerOf != "" {
-		prows, err := tx.QueryContext(ctx, `SELECT competition_id, entry FROM entries
-			WHERE NOT individual AND removal = '' AND club_removed_at = '' AND partner_member IN (`+partnerOf+`)
-			AND (member_id IS NULL OR member_id NOT IN (`+partnerOf+`))`, all...)
+	if partnerCond != "" {
+		prows, err := tx.QueryContext(ctx, `SELECT id, competition_id, COALESCE(member_id, ''), discipline, entry FROM entries
+			WHERE NOT individual AND removal = '' AND club_removed_at = '' AND `+partnerCond, all...)
 		if err != nil {
 			return err
 		}
+		type pair struct{ id, competition, owner, discipline, flag string }
+		var pairs []pair
 		for prows.Next() {
-			var competition, data string
-			if err := prows.Scan(&competition, &data); err != nil {
+			var p pair
+			var data string
+			if err := prows.Scan(&p.id, &p.competition, &p.owner, &p.discipline, &data); err != nil {
 				prows.Close()
 				return err
 			}
@@ -99,12 +130,30 @@ func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdra
 			if e.Partner != nil {
 				partner = e.Partner.Name
 			}
-			lines = append(lines, line{competition, fmt.Sprintf("%s · %s: the club removed %s, but the pair's entry is %s's and stays in, as when a partner withdraws",
-				e.Gymnasts(), e.Event(), partner, e.Gymnast)})
+			flag, err := json.Marshal(PartnerGone{Name: partner, Club: club, At: parseTime(now), TakenOut: takenOut})
+			if err != nil {
+				prows.Close()
+				return err
+			}
+			p.flag = string(flag)
+			pairs = append(pairs, p)
+			lines = append(lines, line{p.competition, fmt.Sprintf("%s · %s: %s %s, but the pair's entry is %s's and stays in, flagged: it may need a new partner",
+				e.Gymnasts(), e.Event(), partner, map[bool]string{false: "was removed by the club", true: "was taken out of the competition by the club"}[takenOut], e.Gymnast)})
 		}
 		prows.Close()
 		if err := prows.Err(); err != nil {
 			return err
+		}
+		for _, p := range pairs {
+			if _, err := tx.ExecContext(ctx, `UPDATE entries SET partner_gone = $1 WHERE id = $2`, p.flag, p.id); err != nil {
+				return err
+			}
+			if p.owner != "" {
+				if _, err := tx.ExecContext(ctx, `UPDATE member_entries SET partner_gone = $1 WHERE member_id = $2 AND competition_id = $3 AND discipline = $4`,
+					p.flag, p.owner, p.competition, p.discipline); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	by := clubBy(who, club)
@@ -114,6 +163,93 @@ func keepEntries(ctx context.Context, tx *sql.Tx, now, who, club string, withdra
 		}
 	}
 	return nil
+}
+
+// keepOffers takes back the offers to judge or help of a club's members,
+// those meeting cond (on officials, with its arguments from $3), at now by
+// who: each official stays, marked (taken_back_at), keeping their person
+// key as a member, out of the rota and seats (Officials leaves them out)
+// but listed (TakenBack); and records it in each competition's history.
+func keepOffers(ctx context.Context, tx *sql.Tx, now, who, club, cond string, args ...any) error {
+	all := append([]any{now, who}, args...)
+	where := `NOT added AND taken_back_at = '' AND member_id IS NOT NULL AND ` + cond
+	rows, err := tx.QueryContext(ctx, `SELECT competition_id, name FROM officials WHERE `+where, all...)
+	if err != nil {
+		return err
+	}
+	type line struct{ competition, name string }
+	var lines []line
+	for rows.Next() {
+		var l line
+		if err := rows.Scan(&l.competition, &l.name); err != nil {
+			rows.Close()
+			return err
+		}
+		lines = append(lines, l)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE officials SET taken_back_at = $1, taken_back_by = $2, person_key = '`+KindMember+`:' || member_id
+		WHERE `+where, all...); err != nil {
+		return err
+	}
+	for _, l := range lines {
+		if err := recordTx(ctx, tx, l.competition, clubBy(who, club), l.name+": offer to judge or help taken back by the club", now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TakeOut takes one of a club's members out of one competition, by who
+// (the club link's Who), the member staying in the club: their entries
+// (each copy sent marked removed by the club and no longer theirs, so they
+// can be entered again; one never sent goes), their offer to judge or help
+// (taken back, keepOffers), or both. As a withdrawal, only while changes to
+// entries are open (ErrClosed after).
+func (s *Store) TakeOut(ctx context.Context, clubID, memberID, competitionID string, entries, offer bool, who string) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		club, err := clubName(ctx, tx, clubID)
+		if err != nil {
+			return err
+		}
+		var n int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM members m JOIN club_competitions cc ON cc.club_id = m.club_id AND cc.competition_id = $3
+			WHERE m.id = $1 AND m.club_id = $2`, memberID, clubID, competitionID).Scan(&n); err != nil {
+			return err
+		}
+		if n == 0 {
+			return ErrNotFound
+		}
+		if err := s.open(ctx, tx, competitionID, changing); err != nil {
+			return err
+		}
+		now := s.stamp()
+		if entries {
+			if err := keepEntries(ctx, tx, now, who, club, false, true, `member_id = $3 AND competition_id = $4`,
+				`partner_member = $3 AND competition_id = $4 AND (member_id IS NULL OR member_id <> $3)`, memberID, competitionID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE entries SET member_id = NULL
+				WHERE member_id = $1 AND competition_id = $2 AND club_removed_at <> ''`, memberID, competitionID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `DELETE FROM member_entries WHERE member_id = $1 AND competition_id = $2`, memberID, competitionID); err != nil {
+				return err
+			}
+		}
+		if offer {
+			if err := keepOffers(ctx, tx, now, who, club, `member_id = $3 AND competition_id = $4`, memberID, competitionID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `DELETE FROM member_offers WHERE member_id = $1 AND competition_id = $2`, memberID, competitionID); err != nil {
+				return err
+			}
+		}
+		return touch(ctx, tx, clubID, now)
+	})
 }
 
 // keepCoaches marks the coaches meeting cond (on competition_coaches cc,
@@ -228,7 +364,11 @@ func keepClubs(ctx context.Context, tx *sql.Tx, now, who, cond string, args ...a
 		return err
 	}
 	for _, c := range clubs {
-		if err := keepEntries(ctx, tx, now, who, c.name, true, `club_id = $3`, `SELECT id FROM members WHERE club_id = $3`, c.id); err != nil {
+		if err := keepEntries(ctx, tx, now, who, c.name, true, false, `club_id = $3`,
+			`partner_member IN (SELECT id FROM members WHERE club_id = $3) AND (club_id IS NULL OR club_id <> $3)`, c.id); err != nil {
+			return err
+		}
+		if err := keepOffers(ctx, tx, now, who, c.name, `club_id = $3`, c.id); err != nil {
 			return err
 		}
 		if err := keepCoaches(ctx, tx, now, who, c.name, `cc.club_id = $3`, c.id); err != nil {
@@ -302,6 +442,38 @@ func (s *Store) MemberSent(ctx context.Context, memberID string) ([]Entry, error
 		}
 	}
 	return out, nil
+}
+
+// InCompetition says, for a club's members at a competition (by member
+// id), what TakeOut could take out of it: their entries (made or sent) and
+// their offer to judge or help (made or sent). Members with neither aren't
+// in it.
+func (s *Store) InCompetition(ctx context.Context, clubID, competitionID string) (entries, offers map[string]bool, err error) {
+	entries, offers = map[string]bool{}, map[string]bool{}
+	read := func(into map[string]bool, query string) error {
+		rows, err := s.db.QueryContext(ctx, query, clubID, competitionID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			into[id] = true
+		}
+		return rows.Err()
+	}
+	if err := read(entries, `SELECT me.member_id FROM member_entries me JOIN members m ON m.id = me.member_id WHERE m.club_id = $1 AND me.competition_id = $2
+		UNION SELECT member_id FROM entries WHERE club_id = $1 AND competition_id = $2 AND member_id IS NOT NULL AND removal = '' AND club_removed_at = ''`); err != nil {
+		return nil, nil, err
+	}
+	if err := read(offers, `SELECT mo.member_id FROM member_offers mo JOIN members m ON m.id = mo.member_id WHERE m.club_id = $1 AND mo.competition_id = $2
+		UNION SELECT member_id FROM officials WHERE club_id = $1 AND competition_id = $2 AND member_id IS NOT NULL AND NOT added AND taken_back_at = ''`); err != nil {
+		return nil, nil, err
+	}
+	return entries, offers, nil
 }
 
 // clubName is a club's name, in a transaction.

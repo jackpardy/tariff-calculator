@@ -289,6 +289,10 @@ type Entry struct {
 	// SignoffAgain is why the organiser asked for another coach to sign
 	// the entry off (their coach was removed by the club), until one does.
 	SignoffAgain string
+	// PartnerGone flags a pair's entry whose partner the club removed, or
+	// took out of the competition, until the entrant changes partner; nil
+	// for none.
+	PartnerGone *PartnerGone
 }
 
 // ClubRemoved says whether the club removed the entry (ClubRemovedAt).
@@ -299,7 +303,7 @@ func (e Entry) ClubRemoved() bool { return !e.ClubRemovedAt.IsZero() }
 // its removal by the club and the organiser's ask to sign it off again.
 const entryKeys = `COALESCE((SELECT m.coach_id FROM members m WHERE m.id = entries.member_id), ''),
 	COALESCE((SELECT p.person_key FROM entries p WHERE p.id = entries.partner_entry), ''),
-	club_removed_at, club_removed_by, club_removed_late, signoff_again`
+	club_removed_at, club_removed_by, club_removed_late, signoff_again, partner_gone`
 
 // withdrawnColumn is whether a row of entries is out of the competition
 // though the organiser has it (Entry.Withdrawn): removed by the club, or a
@@ -546,10 +550,14 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 // scanEntry reads a row of entries, as Entries selects it.
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
-	var entry, sent, checked, signed, entered, removedAt string
+	var entry, sent, checked, signed, entered, removedAt, partnerGone string
 	var counts bool
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey, &e.CoachID, &e.PartnerPersonKey, &removedAt, &e.ClubRemovedBy, &e.ClubRemovedLate, &e.SignoffAgain); err != nil {
+	var err error
+	if err = row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey, &e.CoachID, &e.PartnerPersonKey, &removedAt, &e.ClubRemovedBy, &e.ClubRemovedLate, &e.SignoffAgain, &partnerGone); err != nil {
 		return Entry{}, notFound(err)
+	}
+	if e.PartnerGone, err = readPartnerGone(partnerGone); err != nil {
+		return Entry{}, err
 	}
 	e.ClubRemovedAt = parseTime(removedAt)
 	e.Unapproved = signed != "" && !counts

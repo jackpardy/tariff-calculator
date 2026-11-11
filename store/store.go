@@ -957,7 +957,16 @@ var migrations = []string{
 	// qualifications sent, so their sign-offs keep counting: coach_id no
 	// longer cascades, so the table is rebuilt. signoff_again is the reason
 	// the organiser asked for an entry to be signed off again, until it is.
+	// partner_gone (JSON, '' for none) flags a pair's entry whose partner the
+	// club removed, or took out of the competition. An official whose offer
+	// the club took back stays, marked (taken_back_at), keeping the person
+	// key they had as a member.
 	`ALTER TABLE entries ADD COLUMN club_removed_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN partner_gone TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_entries ADD COLUMN partner_gone TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN taken_back_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN taken_back_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN person_key TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN club_removed_by TEXT NOT NULL DEFAULT '';
 	ALTER TABLE entries ADD COLUMN club_removed_late BOOLEAN NOT NULL DEFAULT FALSE;
 	ALTER TABLE entries ADD COLUMN signoff_again TEXT NOT NULL DEFAULT '';

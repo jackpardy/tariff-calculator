@@ -328,6 +328,22 @@ func (p *competitionPages) people(w http.ResponseWriter, r *http.Request) {
 		page.People = append(page.People, views.PersonRow{Name: e.Entry.Gymnast, Club: clubOf(e), Href: personPath(base, k), Does: e.Entry.Event() + " · removed by the club",
 			List: views.ListRow{Name: e.Entry.Gymnast, Uncounted: true, Values: map[string][]string{"club": {clubValue(clubOf(e))}}}})
 	}
+	// So are officials whose club took their offer back: on their row as a
+	// gymnast if they have one, else a row of their own.
+	back, err := p.st.TakenBack(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	for _, o := range back {
+		href := personPath(base, o.PersonKey)
+		if i := slices.IndexFunc(page.People, func(row views.PersonRow) bool { return row.Href == href }); i >= 0 {
+			page.People[i].Does += " · offer taken back by the club"
+			continue
+		}
+		page.People = append(page.People, views.PersonRow{Name: o.Name, Club: o.ClubName, Href: href, Does: "offer to judge or help taken back by the club",
+			List: views.ListRow{Name: o.Name, Uncounted: true, Values: map[string][]string{"club": {clubValue(o.ClubName)}}}})
+	}
 	slices.SortStableFunc(page.People, func(a, b views.PersonRow) int { return competitions.CompareNames(a.Name, b.Name) })
 	render(w, r, views.People(page))
 }
@@ -367,9 +383,29 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 			gone = &all[i]
 		}
 	}
-	if dp == nil && gone != nil {
-		page.Name, page.Back, page.BackLabel, page.Menu = gone.Entry.Gymnast, base+"/people", "← People", p.menuFor(r, c, menuPeople)
-		page.Admin = &views.PersonAdmin{Club: clubOf(*gone), Roles: []string{"Gymnast"}, Removed: removed}
+	back, err := p.st.TakenBack(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	var takenBack *store.Official
+	if i := slices.IndexFunc(back, func(o store.Official) bool { return o.PersonKey == key }); i >= 0 {
+		takenBack = &back[i]
+	}
+	takenBackLine := func() string {
+		if takenBack == nil {
+			return ""
+		}
+		return "Their offer to judge or help (" + takenBack.Offer.Describe() + ") was taken back by the club on " + takenBackText(*takenBack) + ": they're in no rota or seat."
+	}
+	if dp == nil && (gone != nil || takenBack != nil) {
+		page.Back, page.BackLabel, page.Menu = base+"/people", "← People", p.menuFor(r, c, menuPeople)
+		page.Admin = &views.PersonAdmin{Removed: removed, TakenBack: takenBackLine()}
+		if gone != nil {
+			page.Name, page.Admin.Club, page.Admin.Roles = gone.Entry.Gymnast, clubOf(*gone), []string{"Gymnast"}
+		} else {
+			page.Name, page.Admin.Club = takenBack.Name, takenBack.ClubName
+		}
 		render(w, r, views.MyCompetition(page))
 		return
 	}
@@ -383,7 +419,7 @@ func (p *competitionPages) person(w http.ResponseWriter, r *http.Request) {
 	}
 	page.Name, page.Back, page.BackLabel, page.Menu = dp.name, base+"/people", "← People", p.menuFor(r, c, menuPeople)
 	_, tags := dp.roles()
-	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags, Removed: removed}
+	page.Admin = &views.PersonAdmin{Club: dp.club, Roles: tags, Removed: removed, TakenBack: takenBackLine()}
 	byID := entriesByID(f.entries)
 	for i, ev := range page.Events {
 		ev.Link = base + "/entries/" + ev.ID

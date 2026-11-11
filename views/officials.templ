@@ -234,6 +234,7 @@ type OfficialsPage struct {
 	Panels          []PanelSetting
 	Cover           []Cover
 	Officials       []OfficialRow
+	TakenBack       []TakenBackRow // offers their club took back: listed, in no seat
 	Tools           ListTools // the People list's search and filters
 	Add             OfferForm // for adding a person
 }
@@ -264,6 +265,13 @@ type OfficialRow struct {
 	Unqualified                   []string    // disciplines they offer to judge with no qualification in, by name
 	Who                           Role    // who they are on a seat: a gymnast, a club's judge or the organiser's own
 	List                          ListRow // what the People list's search and filters see
+}
+
+// TakenBackRow is an official whose offer their club took back.
+type TakenBackRow struct {
+	Name, Club, Offer string
+	When              string // e.g. "11 Nov, by Club admin"
+	Person            string // their page
 }
 
 // CompetitionOfficials is the organiser's officials page.
@@ -393,6 +401,29 @@ templ CompetitionOfficials(p OfficialsPage) {
 											</form>
 										}
 									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		}
+		if len(p.TakenBack) > 0 {
+			@listSection("Offers taken back by their club", len(p.TakenBack)) {
+				<p class="is-size-7 mb-2">Their club took them out of this competition, or removed them: they're in no rota or seat.</p>
+				<div class="table-container">
+					<table class="table is-fullwidth is-narrow comp-stack">
+						<thead><tr><th>Name</th><th>Club</th><th>Offered</th><th>Taken back</th></tr></thead>
+						<tbody>
+							for _, o := range p.TakenBack {
+								<tr>
+									<td>
+										<a href={ templ.SafeURL(o.Person) }>{ o.Name }</a>
+										@StateChip(Stopped, "Offer taken back by the club")
+									</td>
+									<td data-label="Club">{ o.Club }</td>
+									<td class="comp-wrap" data-label="Offered">{ o.Offer }</td>
+									<td data-label="Taken back">{ o.When }</td>
 								</tr>
 							}
 						</tbody>
