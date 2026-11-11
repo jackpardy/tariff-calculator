@@ -498,7 +498,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 // when it's planned to start and end, in minutes after midnight.
 func flightIn(box string) (key string, start, end int, ok bool) {
 	keys := matches(box, `data-tap="flight:([^"]+)"`)
-	m := regexp.MustCompile(`Planned (\d\d):(\d\d)–(\d\d):(\d\d)`).FindStringSubmatch(box)
+	m := regexp.MustCompile(`Planned: warm-up (\d\d):(\d\d)[^<]*? finishes about (\d\d):(\d\d)`).FindStringSubmatch(box)
 	if len(keys) == 0 || m == nil {
 		return "", 0, 0, false
 	}

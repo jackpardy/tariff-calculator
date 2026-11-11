@@ -270,6 +270,19 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Published the timetable"
 	case "/timetable/flight":
 		return "Changed a flight"
+	case "/timetable/times":
+		switch {
+		case f("plan") == "1":
+			return "Changed a flight's times and planned the timetable again"
+		case f("action") == "averages":
+			return "Put a flight's times back on the averages"
+		}
+		return "Changed a flight's times"
+	case "/timetable/setup/timings":
+		if f("plan") == "1" {
+			return "Changed the timetable's timings and planned it again"
+		}
+		return "Changed the timetable's timings and rest"
 	case "/timetable/entry":
 		return "Moved a gymnast"
 	case "/timetable/officials":

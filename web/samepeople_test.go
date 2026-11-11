@@ -132,7 +132,7 @@ func TestMemberAlsoIndividual(t *testing.T) {
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, enter, url.Values{"gymnast": {"Ann Byrne"}, "discipline": {"tumbling"}, "level": {"Novice"}, "as": {"http://example.com" + club.members["Ann Byrne"]}})
 	page := do(t, h, http.MethodGet, redirected(t, h, admin+"/timetable/plan", url.Values{}), nil).Body.String()
-	times := regexp.MustCompile(`Warm-up (\d\d:\d\d) · finishes about (\d\d:\d\d)`).FindAllStringSubmatch(page, -1)
+	times := regexp.MustCompile(`Warm-up (\d\d:\d\d) · competing \d\d:\d\d · finishes about (\d\d:\d\d)`).FindAllStringSubmatch(page, -1)
 	if len(times) != 2 {
 		t.Fatalf("two flights: %v", times)
 	}

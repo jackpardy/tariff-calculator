@@ -175,6 +175,23 @@ gymnasts are is for the coach and club to manage.
     - the **rest** wanted between a person's turns, and whether it's a must or
       a prefer (Decision 8).
 
+    *Note (2026-11-11):* warm-up and competing are timed apart (roadmap 15).
+    One figure for warm-up and changeover gave a flight of 4 the same
+    warm-up as a flight of 12, and nothing said when competing starts. A
+    flight is now its **changeover** (what "minutes between flights" was),
+    then its **warm-up** (its gymnasts times a **warm-up per competitor**, no
+    less than a **least warm-up**), then its **competing** (its gymnasts times
+    the **competing per competitor**, what "minutes per competitor" was),
+    each rounded up to a whole minute. An event can have warm-up and
+    competing figures of its own, and any flight its own warm-up and
+    competing in minutes; what counts is the flight's own, then its event's,
+    then its discipline's. The defaults are as they were, with no warm-up
+    figures, so timetables that exist keep their times. A flight keeps when
+    its competing starts, and every page shows it. After planning, a change
+    to the times is tried on the draft as it stands, moving later flights
+    back only as far as they must, and asks first if it breaks something,
+    offering to plan again with it (not once the day has begun).
+
 ## Consequences
 
 **Positive**

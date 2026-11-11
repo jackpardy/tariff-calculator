@@ -66,16 +66,19 @@ type notifyState struct {
 type entryState struct {
 	Gymnasts string   `json:"gymnasts"`
 	Event    string   `json:"event"`
-	Keys     []string `json:"keys"`              // its people
-	Club     string   `json:"club,omitempty"`    // its club's id
-	Flight   string   `json:"flight,omitempty"`  // where it is on the timetable, once published
-	Area     string   `json:"area,omitempty"`    //
-	Time     string   `json:"time,omitempty"`    // when its flight's warm-up starts, e.g. "Saturday 09:40"
-	Checked  bool     `json:"checked,omitempty"` //
-	Note     string   `json:"note,omitempty"`    // the organiser's note
-	Removal  string   `json:"removal,omitempty"` // store.Removed or store.Held
-	Waiting  int      `json:"waiting,omitempty"` // its place on a waiting list
-	Late     string   `json:"late,omitempty"`    // its latest late change: id, status and reason
+	Keys     []string `json:"keys"`             // its people
+	Club     string   `json:"club,omitempty"`   // its club's id
+	Flight   string   `json:"flight,omitempty"` // where it is on the timetable, once published
+	Area     string   `json:"area,omitempty"`   //
+	Time     string   `json:"time,omitempty"`   // when its flight's warm-up starts, e.g. "Saturday 09:40"
+	// Competing is when its flight's competing starts, e.g. "09:52"; none in
+	// a baseline kept before it was told.
+	Competing string `json:"competing,omitempty"`
+	Checked   bool   `json:"checked,omitempty"` //
+	Note      string `json:"note,omitempty"`    // the organiser's note
+	Removal   string `json:"removal,omitempty"` // store.Removed or store.Held
+	Waiting   int    `json:"waiting,omitempty"` // its place on a waiting list
+	Late      string `json:"late,omitempty"`    // its latest late change: id, status and reason
 }
 
 // state is what's live for a competition now.
@@ -100,6 +103,7 @@ func (n *notifier) state(ctx context.Context, c store.Competition) (notifyState,
 			if i, ok := t.Find(e.ID); ok {
 				f := t.Flights[i]
 				es.Flight, es.Area, es.Time = f.Name(), f.Area, dayClock(*t, f.Day, f.Start)
+				es.Competing = competitions.Clock(f.CompetingStarts(t.Setup))
 			}
 		}
 		if r, ok, err := n.st.LatestLateRequest(ctx, c.ID, e.ID); err == nil && ok && r.Status != store.LateWaiting {
@@ -127,6 +131,15 @@ func dayClock(s competitions.Schedule, day, minute int) string {
 		return s.Setup.Days[day].Name + " " + competitions.Clock(minute)
 	}
 	return competitions.Clock(minute)
+}
+
+// withCompeting is a warm-up time with when competing starts, e.g. "Saturday
+// 09:40, competing 09:52", or the warm-up alone when that isn't known.
+func withCompeting(warmUp, competing string) string {
+	if competing == "" {
+		return warmUp
+	}
+	return warmUp + ", competing " + competing
 }
 
 // changing is called before a change that can notify: unless changes are
@@ -202,14 +215,17 @@ func changes(was, now notifyState) []change {
 		add := func(topic, line string) {
 			out = append(out, change{Topic: topic, Keys: e.Keys, Club: e.Club, Who: e.Gymnasts, Line: line})
 		}
-		if e.Removal == "" && (e.Time != b.Time || e.Area != b.Area) {
+		// A competing time that moved is a change too, unless the baseline
+		// was kept before competing times were told.
+		competing := e.Competing != b.Competing && e.Competing != "" && b.Competing != ""
+		if e.Removal == "" && (e.Time != b.Time || e.Area != b.Area || competing) {
 			switch {
 			case e.Time == "":
 				add(store.AboutTimetable, b.Event+": no longer on the timetable")
 			case b.Time == "":
-				add(store.AboutTimetable, fmt.Sprintf("%s: warm-up %s, %s", e.Flight, e.Time, e.Area))
+				add(store.AboutTimetable, fmt.Sprintf("%s: warm-up %s, %s", e.Flight, withCompeting(e.Time, e.Competing), e.Area))
 			default:
-				add(store.AboutTimetable, fmt.Sprintf("%s: now warm-up %s, %s (was %s, %s)", e.Flight, e.Time, e.Area, b.Time, b.Area))
+				add(store.AboutTimetable, fmt.Sprintf("%s: now warm-up %s, %s (was %s, %s)", e.Flight, withCompeting(e.Time, e.Competing), e.Area, withCompeting(b.Time, b.Competing), b.Area))
 			}
 		}
 		if _, existed := was.Entries[id]; !existed {

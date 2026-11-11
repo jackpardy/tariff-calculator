@@ -74,7 +74,7 @@ func TestOnTheDay(t *testing.T) {
 
 	day := admin + "/day?day=0"
 	area := panelOne(t, h, day)
-	if f := area.Flights[0]; f.Name != "BUCS L3" || f.State != "Not started" || f.Planned != "09:00–09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "" {
+	if f := area.Flights[0]; f.Name != "BUCS L3" || f.State != "Not started" || f.Planned != "warm-up 09:00 · competing 09:10 · finishes about 09:25" || !slices.Equal(f.Buttons, []string{"Started"}) || area.Status != "" {
 		t.Errorf("each flight has a Started button only, and its planned time: %+v", area)
 	}
 	flight := firstFlightKey(t, h, day)

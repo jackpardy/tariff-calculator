@@ -296,7 +296,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			t := times[competitions.FlightKey(f)]
 			df := views.DayFlight{
 				Key: competitions.FlightKey(f), ID: flightID(competitions.FlightKey(f)), Name: f.Name(),
-				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End),
+				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End), Times: views.FlightTimes(flightClocks(s.Setup, f)),
 				Started: clock(t.Started), Finished: clock(t.Finished), Who: t.Who,
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
 			}

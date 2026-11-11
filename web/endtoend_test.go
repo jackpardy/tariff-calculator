@@ -125,13 +125,13 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		area := panelOne(t, h, day)
 		f := area.Flights[0]
 		flight, order = f.Key, f.Order
-		if f.Name != "BUCS L3" || f.Planned != "09:00–09:35" || len(order) != 5 || area.Status != "" {
+		if f.Name != "BUCS L3" || f.Planned != "warm-up 09:00 · competing 09:10 · finishes about 09:35" || len(order) != 5 || area.Status != "" {
 			t.Fatalf("one flight of all five on Panel 1, 09:00–09:35: %+v", area)
 		}
 		if got := myPageOf(t, "Ann"); len(got.Events) != 1 || !strings.HasPrefix(got.Events[0].Flight, "BUCS L3 · Panel 1") || got.Events[0].WarmUp != "09:00" || got.Waiting {
 			t.Errorf("Ann's flight and warm-up: %+v", got)
 		}
-		if c := screenCard(t); c.Now != "—" || c.Next != "BUCS L3" || c.WarmUp != "09:00" {
+		if c := screenCard(t); c.Now != "—" || c.Next != "BUCS L3" || c.WarmUp != "09:00" || c.Competing != "09:10" {
 			t.Errorf("before the day, the screen has the flight next: %+v", c)
 		}
 	})

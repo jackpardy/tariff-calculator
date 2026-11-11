@@ -70,6 +70,10 @@ func (s Schedule) ChangesFrom(published Schedule, gymnasts, people func(string) 
 			add(ChangeFlights, "%s: now %s, %s (was %s, %s)", f.Name(), s.when(f.Day, f.Start), f.Area, published.when(b.Day, b.Start), b.Area)
 		case f.End != b.End:
 			add(ChangeFlights, "%s: now finishes about %s (was %s)", f.Name(), Clock(f.End), Clock(b.End))
+		// Only where both kept it: a timetable saved before that, timed
+		// again, gains it without anything changing.
+		case f.CompetingAt != 0 && b.CompetingAt != 0 && f.CompetingAt != b.CompetingAt:
+			add(ChangeFlights, "%s: now starts competing about %s (was %s)", f.Name(), Clock(f.CompetingAt), Clock(b.CompetingAt))
 		}
 		if ok && !slices.Equal(f.Entries, b.Entries) && sameSet(f.Entries, b.Entries) {
 			add(ChangeFlights, "%s: running order redrawn", f.Name())

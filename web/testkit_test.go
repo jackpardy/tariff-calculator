@@ -247,6 +247,7 @@ type screenCard struct {
 	Up        []string // who's on and next, "name · routine", once the marshal taps
 	Next      string   // the next flight, "—" for none
 	WarmUp    string   // the next flight's warm-up
+	Competing string   // and its competing
 	Finished  bool     // finished for the day
 	Strip     string   // the strip's text, for a quiet area
 }
@@ -286,6 +287,7 @@ func screenCards(t *testing.T, body string) map[string]screenCard {
 		if !c.Finished {
 			c.Next = textOf(firstByClass(next, "screen-flight"))
 			c.WarmUp, _ = strings.CutPrefix(label, "Next · warm-up ")
+			c.WarmUp, c.Competing, _ = strings.Cut(c.WarmUp, " · competing ")
 			if c.WarmUp == "Next" {
 				c.WarmUp = ""
 			}
@@ -480,7 +482,7 @@ func dayFlightOf(box *html.Node) dayFlight {
 			break
 		}
 	}
-	f.Planned = strings.TrimPrefix(textOf(ps[1]), "Planned ")
+	f.Planned = strings.TrimPrefix(textOf(ps[1]), "Planned: ")
 	// "Started <strong>09:02</strong> · finished — · Organiser"
 	label := ""
 	for c := ps[2].FirstChild; c != nil; c = c.NextSibling {

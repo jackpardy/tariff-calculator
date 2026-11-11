@@ -44,7 +44,7 @@ func TestDelayPage(t *testing.T) {
 	// Eased: no time between flights and quicker turns, compared with the
 	// delay alone.
 	got = text(tt + "/delay?day=0&from=09:05&minutes=20&area=Panel+1&between=0&quicker=50&breaks=shorten&shorten=10")
-	for _, want := range []string{"Easing it: breaks on the held-up areas can be up to 10 min shorter, 0 min between flights, turns 50% quicker.", "Without that: Day 1's flights end 09:35"} {
+	for _, want := range []string{"Easing it: breaks on the held-up areas can be up to 10 min shorter, 0 min changeovers, competing 50% quicker.", "Without that: Day 1's flights end 09:35"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the eased delay shows %q: %s", want, got)
 		}
@@ -54,7 +54,7 @@ func TestDelayPage(t *testing.T) {
 	}
 
 	// The timetable itself is unchanged.
-	if !strings.Contains(text(tt), "Warm-up 09:00 · finishes about 09:15") {
+	if !strings.Contains(text(tt), "Warm-up 09:00 · competing 09:10 · finishes about 09:15") {
 		t.Error("the timetable isn't changed")
 	}
 	for bad, want := range map[string]string{

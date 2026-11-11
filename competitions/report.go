@@ -152,9 +152,10 @@ type Fix struct {
 }
 
 // Fixes tries changes that might make everything fit, one at a time: another
-// area of a discipline, fewer minutes per competitor or between flights, larger
-// flights, rest as a prefer rather than a must, events running across breaks,
-// or a cap on the entries of an event that doesn't fit, at as many as would.
+// area of a discipline, fewer minutes competing per competitor or shorter
+// changeovers, larger flights, rest as a prefer rather than a must, events
+// running across breaks, or a cap on the entries of an event that doesn't
+// fit, at as many as would.
 func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
 	clone := func() Setup {
 		c := setup
@@ -197,14 +198,14 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		less := t
 		less.PerCompetitor = max(0.5, t.PerCompetitor-0.5)
 		c.Timings[d] = less
-		tries = append(tries, Fix{Change: fmt.Sprintf("%s at %s per competitor, not %g", DisciplineName(d), minutesWord(less.PerCompetitor), t.PerCompetitor), Setup: c})
+		tries = append(tries, Fix{Change: fmt.Sprintf("%s competing at %s per competitor, not %g", DisciplineName(d), minutesWord(less.PerCompetitor), t.PerCompetitor), Setup: c})
 
 		if t.Between > 5 {
 			c = clone()
 			less := t
 			less.Between = t.Between - 5
 			c.Timings[d] = less
-			tries = append(tries, Fix{Change: fmt.Sprintf("%s with %s between flights, not %d", DisciplineName(d), minutesWord(float64(less.Between)), t.Between), Setup: c})
+			tries = append(tries, Fix{Change: fmt.Sprintf("%s with %s changeovers, not %d", DisciplineName(d), minutesWord(float64(less.Between)), t.Between), Setup: c})
 		}
 		c = clone()
 		more := t

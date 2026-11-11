@@ -1,12 +1,14 @@
 package competitions
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strings"
 )
 
 // Manual changes to a schedule: the organiser moves gymnasts and flights; times
@@ -146,27 +148,83 @@ func (s *Schedule) Redraw(flight int, clubs map[string]string, people map[string
 	return true
 }
 
-// Retime works out each flight's end from its size again, and pushes later
-// any flight that would then overlap the one before it, or a block, on its
-// area. Flights keep their order.
-func (s *Schedule) Retime() {
-	sortFlights(s.Flights)
-	for i := range s.Flights {
-		f := &s.Flights[i]
-		if i > 0 {
-			prev := s.Flights[i-1]
-			if prev.Day == f.Day && prev.Area == f.Area && f.Start < prev.End {
-				f.Start = prev.End
-			}
-		}
-		for _, b := range s.Blocks {
-			if b.Day == f.Day && slices.Contains(b.Areas, f.Area) && f.Start < b.End && b.Start < f.Start+s.Setup.duration(*f) {
-				f.Start = b.End
-			}
-		}
-		f.End = f.Start + s.Setup.duration(*f)
+// Retime works out each flight's length again (and when its competing
+// starts), and pushes later any flight that would then overlap the one
+// before it, or blocked time, on its area. Flights keep their order.
+func (s *Schedule) Retime() { s.retime(nil) }
+
+// retime is Retime, but the flights fixed says (by FlightKey) keep their times
+// and the rest keep clear of them as of blocked time. No flight starts earlier
+// than it did. It says which flights' times changed.
+func (s *Schedule) retime(fixed func(key string) bool) []FlightShift {
+	isFixed := func(f ScheduledFlight) bool { return fixed != nil && fixed(FlightKey(f)) }
+	type place struct {
+		day  int
+		area string
 	}
+	held := map[place][]interval{} // the fixed flights, by area and day
+	for _, f := range s.Flights {
+		if isFixed(f) {
+			at := place{f.Day, f.Area}
+			held[at] = append(held[at], interval{f.Day, f.Start, f.End})
+		}
+	}
+	order := make([]int, len(s.Flights))
+	for i := range order {
+		order[i] = i
+	}
+	byTime := func(a, b int) int {
+		fa, fb := s.Flights[a], s.Flights[b]
+		return cmp.Or(fa.Day-fb.Day, strings.Compare(fa.Area, fb.Area), fa.Start-fb.Start)
+	}
+	slices.SortStableFunc(order, byTime)
+	was := slices.Clone(s.Flights)
+	ends := map[place]int{} // where each area's flights so far end
+	for _, i := range order {
+		f := &s.Flights[i]
+		at := place{f.Day, f.Area}
+		if isFixed(*f) {
+			ends[at] = max(ends[at], f.End)
+			continue
+		}
+		length := s.Setup.duration(*f)
+		t := f.Start
+		if end, ok := ends[at]; ok {
+			t = max(t, end)
+		}
+		for moved := true; moved; {
+			moved = false
+			if after := s.afterBlocks(f.Day, f.Area, t, length); after != t {
+				t, moved = after, true
+			}
+			for _, iv := range held[at] {
+				if t < iv.end && iv.start < t+length {
+					t, moved = iv.end, true
+				}
+			}
+		}
+		f.Start, f.End, f.CompetingAt = t, t+length, t+s.Setup.lead(*f)
+		ends[at] = max(ends[at], f.End)
+	}
+	// Back in order, then numbered; what changed found by where each went.
+	slices.SortStableFunc(order, byTime)
+	flights := make([]ScheduledFlight, len(order))
+	var out []FlightShift
+	for k, i := range order {
+		flights[k] = s.Flights[i]
+	}
+	s.Flights = flights
 	s.number()
+	for k, i := range order {
+		f, w := s.Flights[k], was[i]
+		if f.Start != w.Start || f.End != w.End || f.CompetingStarts(s.Setup) != w.CompetingStarts(s.Setup) {
+			out = append(out, FlightShift{
+				Flight: f.Name(), ID: f.ID, Day: f.Day, Area: f.Area,
+				Start: w.Start, NewStart: f.Start, Competing: w.CompetingStarts(s.Setup), NewCompeting: f.CompetingStarts(s.Setup), End: w.End, NewEnd: f.End,
+			})
+		}
+	}
+	return out
 }
 
 // number numbers each event's flights in the order they run (ADR 0006
@@ -187,8 +245,8 @@ func (s *Schedule) number() {
 	}
 }
 
-// Problems are what manual changes have broken: a flight past its day's end, an
-// event's flights not back to back on one area (or across a break, where
+// Problems are what manual changes have broken: a flight past its day's end or
+// in blocked time, an event's flights not back to back on one area (or across a break, where
 // that isn't allowed), or a person in two places at once. people are each
 // entry's people, by entry id, keyed so that one person has one key.
 func (s Schedule) Problems(people map[string][]string, names map[string]string) []string {
@@ -197,7 +255,21 @@ func (s Schedule) Problems(people map[string][]string, names map[string]string) 
 		out = append(out, b.Line)
 	}
 	out = append(out, s.pastEnd()...)
+	out = append(out, s.inBlocks()...)
 	return append(out, s.runProblems()...)
+}
+
+// inBlocks are flights in blocked time on their area.
+func (s Schedule) inBlocks() []string {
+	var out []string
+	for _, f := range s.Flights {
+		for _, b := range s.Blocks {
+			if b.Day == f.Day && slices.Contains(b.Areas, f.Area) && f.Start < b.End && b.Start < f.End {
+				out = append(out, fmt.Sprintf("%s runs into %s on %s (%s–%s)", f.Name(), b.Name, f.Area, Clock(b.Start), Clock(b.End)))
+			}
+		}
+	}
+	return out
 }
 
 // pastEnd are flights past their day's end.

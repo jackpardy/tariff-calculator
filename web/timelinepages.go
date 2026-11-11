@@ -25,6 +25,7 @@ type timelineItem struct {
 	day        int
 	area       string
 	start, end int
+	competing  int // when a flight's competing starts
 	flight     bool
 	pairs      bool // synchro: entries are pairs
 	name       string
@@ -46,7 +47,7 @@ type timelineFocus struct {
 func timelineItems(s competitions.Schedule) []timelineItem {
 	var out []timelineItem
 	for _, f := range s.Flights {
-		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, flight: true, pairs: f.Discipline == competitions.Synchro, name: f.Name(), gymnasts: len(f.Entries), entries: f.Entries, officials: f.Officials})
+		out = append(out, timelineItem{day: f.Day, area: f.Area, start: f.Start, end: f.End, competing: f.CompetingStarts(s.Setup), flight: true, pairs: f.Discipline == competitions.Synchro, name: f.Name(), gymnasts: len(f.Entries), entries: f.Entries, officials: f.Officials})
 	}
 	for _, b := range s.Blocks {
 		for _, a := range b.Areas {
@@ -243,6 +244,9 @@ func timeline(s competitions.Schedule, name func(key string) string, officials b
 					Row: row(it.start), Rows: max(1, it.end-it.start), Column: col, Columns: 1, Kind: kind, Overlaps: overlaps,
 					Name: it.name, Time: competitions.Clock(it.start) + "–" + competitions.Clock(it.end), Flight: it.flight, Gymnasts: it.gymnasts, Pairs: it.pairs,
 				}
+				if it.flight {
+					cell.Competing = competitions.Clock(it.competing)
+				}
 				if focus != nil {
 					cell.Mine, cell.Notes = focus.mark(it)
 					cell.Faint = !cell.Mine
@@ -389,7 +393,7 @@ func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", file))
 	out := csv.NewWriter(w)
-	header := []string{"Day", "Area", "Starts", "Ends", "What", "Gymnasts"}
+	header := []string{"Day", "Area", "Starts", "Competing from", "Ends", "What", "Gymnasts"}
 	for _, role := range competitions.Roles {
 		header = append(header, competitions.RoleName(role))
 	}
@@ -409,11 +413,11 @@ func (p *competitionPages) timelineCSV(w http.ResponseWriter, r *http.Request) {
 		if it.day >= 0 && it.day < len(s.Setup.Days) {
 			day = s.Setup.Days[it.day].Name
 		}
-		gymnasts := ""
+		gymnasts, competing := "", ""
 		if it.flight {
-			gymnasts = strconv.Itoa(it.gymnasts)
+			gymnasts, competing = strconv.Itoa(it.gymnasts), competitions.Clock(it.competing)
 		}
-		row := []string{csvSafe(day), csvSafe(it.area), competitions.Clock(it.start), competitions.Clock(it.end), csvSafe(it.name), gymnasts}
+		row := []string{csvSafe(day), csvSafe(it.area), competitions.Clock(it.start), competing, competitions.Clock(it.end), csvSafe(it.name), gymnasts}
 		byRole := map[string][]string{}
 		for _, d := range it.officials {
 			who := "—"

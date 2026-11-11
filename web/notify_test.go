@@ -291,6 +291,21 @@ func TestChanges(t *testing.T) {
 	if len(changes(now, now)) != 0 {
 		t.Error("nothing changed")
 	}
+
+	// Competing that moves while the warm-up doesn't is a change, giving
+	// both times; a baseline kept before competing was told isn't one.
+	competing := func(e entryState, at string) entryState { e.Competing = at; return e }
+	was.Duties = now.Duties
+	was.Entries = map[string]entryState{"e2": competing(now.Entries["e2"], "09:52")}
+	now.Entries = map[string]entryState{"e2": competing(now.Entries["e2"], "10:05")}
+	got = changes(was, now)
+	if len(got) != 1 || got[0].Line != "BUCS L3 · flight 1 of 2: now warm-up Saturday 09:40, competing 10:05, Panel 1 (was Saturday 09:40, competing 09:52, Panel 1)" {
+		t.Errorf("competing later: %+v", got)
+	}
+	was.Entries = map[string]entryState{"e2": competing(now.Entries["e2"], "")}
+	if got := changes(was, now); len(got) != 0 {
+		t.Errorf("an older baseline without competing: %+v", got)
+	}
 }
 
 // A competition sends at most 50 confirmation emails a day, from however

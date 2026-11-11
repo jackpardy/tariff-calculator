@@ -231,7 +231,9 @@ func TestCalendarEvents(t *testing.T) {
 	if got := icsTime(e.end); got != "20300714T094000Z" {
 		t.Errorf("end %s", got)
 	}
-	if !strings.Contains(e.description, "Warm-up 09:30, finishes about 10:40") || !strings.Contains(e.description, "Sunday") {
+	// It starts at the warm-up; when competing starts is said (by the
+	// changeover, for a timetable saved before it was kept).
+	if !strings.Contains(e.description, "Warm-up 09:30, finishes about 10:40\nCompeting from 09:40") || !strings.Contains(e.description, "Sunday") {
 		t.Errorf("description %q", e.description)
 	}
 	if again := calendarEventsOf(c, s, "m:ann", mine); again[0].uid != e.uid {

@@ -625,7 +625,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			// the old flight isn't theirs to go to.
 			if at := placement(c, copyOf[e.MemberID+"/"+e.Discipline]); at != nil && copyEvent[e.MemberID+"/"+e.Discipline] == e.Entry.Event() {
 				// The level is in its own column: the line needn't repeat it.
-				row.Flight = strings.TrimPrefix(fmt.Sprintf("%s · %s · warm-up %s", at.Part, at.Panel, at.Time), " · ")
+				row.Flight = strings.TrimPrefix(fmt.Sprintf("%s · %s · warm-up %s · competing %s", at.Part, at.Panel, at.Time, at.Competing), " · ")
 			}
 			row.List = views.ListRow{Name: row.Member, Values: map[string][]string{"problems": {hasValue(row.Problems > 0)}, "sent": {sentValue(cc.ToSend > toSend)}}}
 			cc.Rows = append(cc.Rows, row)

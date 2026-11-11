@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -775,6 +776,7 @@ func (s *seeder) run(out io.Writer) error {
 	// The biggest events (five flights, five hours or more) are longer than
 	// the time between breaks, so they pause for lunch.
 	s.post(tt+"/setup/blocks", url.Values{"breaks": {"1"}, "across": {"1"}})
+	s.ownTimings(tt)
 	for _, rule := range s.v.rules {
 		r := url.Values{"add": {"1"}}
 		for k, v := range rule {
@@ -800,6 +802,7 @@ func (s *seeder) run(out io.Writer) error {
 	s.post(admin+"/limits", limits)
 	if !s.v.open {
 		s.post(tt+"/plan", url.Values{})
+		s.ownFlightTimes(tt)
 		s.post(tt+"/publish", url.Values{"on": {"1"}})
 	}
 
@@ -915,4 +918,68 @@ func (s *seeder) run(out io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// timingsForm is Setup's timings form as the page fills it, to post back
+// changed.
+func timingsForm(page string) url.Values {
+	out := url.Values{}
+	i := strings.Index(page, "/timetable/setup/timings")
+	if i < 0 {
+		return out
+	}
+	form := page[i:]
+	form = form[:strings.Index(form, "</form>")]
+	for _, m := range regexp.MustCompile(`<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"`).FindAllStringSubmatch(form, -1) {
+		if !strings.Contains(m[0], `type="radio"`) && !strings.Contains(m[0], `type="checkbox"`) {
+			out.Set(html.UnescapeString(m[1]), html.UnescapeString(m[2]))
+		}
+	}
+	out.Set("restMust", "0")
+	return out
+}
+
+// ownTimings shows a flight's warm-up and competing timed apart (roadmap
+// 15): DMT warms up for half a minute a competitor, at least 5 minutes, with
+// a 5-minute changeover (a flight of ten as long as before), and the first
+// tumbling event competes a little slower than the rest of tumbling.
+func (s *seeder) ownTimings(tt string) {
+	form := timingsForm(s.get(tt + "/setup"))
+	if form.Has("per-dmt") {
+		form.Set("warm-dmt", "0.5")
+		form.Set("least-dmt", "5")
+		form.Set("between-dmt", "5")
+		s.post(tt+"/setup/timings", form)
+	}
+	page := s.get(tt + "/setup")
+	m := regexp.MustCompile(`name="add-tumbling"[^>]*>\s*<option value="([^"]+)"`).FindStringSubmatch(page)
+	if m == nil {
+		return
+	}
+	form = timingsForm(page)
+	form.Set("add-tumbling", html.UnescapeString(m[1]))
+	form.Set("addEvent", "tumbling")
+	s.post(tt+"/setup/timings", form)
+	form = timingsForm(s.get(tt + "/setup"))
+	form.Set("event-0-warm", "0.5")
+	form.Set("event-0-per", "2.5")
+	s.post(tt+"/setup/timings", form)
+}
+
+// ownFlightTimes gives the timetable's first flight times of its own, a
+// longer warm-up and a shorter competing, as long as before all told, so
+// nothing else moves.
+func (s *seeder) ownFlightTimes(tt string) {
+	page := s.get(tt)
+	m := regexp.MustCompile(`(?s)name="version" value="([^"]+)"[^>]*>\s*<input type="hidden" name="flight" value="(\d+)"[^>]*>\s*<div class="comp-setup-row">.*?name="warmUp" value="(\d+)".*?name="competing" value="(\d+)"`).FindStringSubmatch(page)
+	if m == nil {
+		s.fail("no flight's times to change")
+		return
+	}
+	warmUp, _ := strconv.Atoi(m[3])
+	competing, _ := strconv.Atoi(m[4])
+	if competing < 4 {
+		return
+	}
+	s.post(tt+"/times", url.Values{"version": {m[1]}, "flight": {m[2]}, "warmUp": {strconv.Itoa(warmUp + 3)}, "competing": {strconv.Itoa(competing - 3)}, "action": {"save"}})
 }

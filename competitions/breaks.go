@@ -27,11 +27,11 @@ const (
 
 // Breaks is everything the schedule breaks, each in words: someone in two
 // places at once (a gymnast, an official, an official on blocked time they
-// staff); a flight past its day's end; an event's flights apart; the
-// organiser's rules about events and about people; and, where rest is a
-// must, too little rest between someone's turns. people are each entry's
-// people by entry id, keyed so one person has one key; names names those
-// keys. Coaches aren't checked: where a coach's gymnasts are is for the coach
+// staff); a flight past its day's end; a flight in blocked time; an event's
+// flights apart; the organiser's rules about events and about people; and,
+// where rest is a must, too little rest between someone's turns. people are
+// each entry's people by entry id, keyed so one person has one key; names
+// names those keys. Coaches aren't checked: where a coach's gymnasts are is for the coach
 // to manage.
 func (s Schedule) Breaks(people map[string][]string, names map[string]string) []Break {
 	return s.breaks(people, names, true)
@@ -68,6 +68,7 @@ func (s Schedule) breaks(people map[string][]string, names map[string]string, al
 	if all {
 		add(lines(MustBreak, s.pastEnd())...)
 	}
+	add(lines(MustBreak, s.inBlocks())...)
 	add(lines(MustBreak, s.runProblems())...)
 	for _, rule := range s.Setup.Rules {
 		if broken := personRule(rule.Kind) && s.personRuleBroken(rule) || !personRule(rule.Kind) && s.eventRuleBroken(rule); broken {
@@ -94,6 +95,7 @@ func (s Schedule) Copy() Schedule {
 		fs := slices.Clone(in)
 		for i := range fs {
 			fs[i].Entries, fs[i].Officials = slices.Clone(fs[i].Entries), slices.Clone(fs[i].Officials)
+			fs[i].WarmUpMinutes, fs[i].CompetingMinutes = cloneInt(fs[i].WarmUpMinutes), cloneInt(fs[i].CompetingMinutes)
 		}
 		return fs
 	}

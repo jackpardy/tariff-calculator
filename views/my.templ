@@ -225,6 +225,7 @@ type MyEvent struct {
 	Scratched                 bool  // scratched on the day
 	Problems                  []string
 	Flight, Area, Day, WarmUp string
+	Competing                 string // when their flight's competing starts
 	Position, Of              int
 	Turn, Turn2               string // about when each of their routines is
 }
@@ -369,9 +370,9 @@ templ MyCompetition(p MyCompetitionPage) {
 					<div class="comp-my-flight mt-2">
 						<p><strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }</p>
 						if p.Admin != nil {
-							<p>Warm-up <strong>{ ev.WarmUp }</strong> · <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+							<p>Warm-up <strong>{ ev.WarmUp }</strong> · competing <strong>{ ev.Competing }</strong> · <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
 						} else {
-							<p>Warm-up <strong>{ ev.WarmUp }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
+							<p>Warm-up <strong>{ ev.WarmUp }</strong> · competing <strong>{ ev.Competing }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
 						}
 						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
 						if ev.Checkin != "" {
@@ -549,7 +550,7 @@ templ myFlight(p MyCompetitionPage, f ItemView) {
 	<details class={ "box comp-flight", templ.KV("comp-mine", flightHas(p, f)) } open?={ flightHas(p, f) }>
 		<summary>
 			<strong>{ f.Name }</strong>
-			<span class="is-size-7 has-text-grey">{ f.Start }–{ f.End } · { flightCount(len(f.Gymnasts), f.Pairs) }</span>
+			<span class="is-size-7 has-text-grey">{ FlightTimes(f.Start, f.Competing, f.End) } · { flightCount(len(f.Gymnasts), f.Pairs) }</span>
 			if seatOf(p, f) != "" {
 				<span class="tag is-info is-light ml-1">{ seatOf(p, f) }</span>
 			}

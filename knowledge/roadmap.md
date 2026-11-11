@@ -876,7 +876,9 @@ Notifications (7) are built; numbers 1–7 below are built.
 14. **Better defaults** from ISTO: minutes per competitor for tumbling and DMT,
     and the usual rest between turns (both guesses for now).
 15. **Warm-up and competing times of their own, and a flight's times
-    changed by hand** (asked 2026-11-10; scoped here, not built).
+    changed by hand** (asked 2026-11-10). The first part **built
+    2026-11-11**: see [Flight times](features/competition-entries.md#flight-times-roadmap-15).
+    The second part, the "Warm-up over" tap (below), is still to build.
 
     **Today.** Each discipline has two figures: minutes per competitor (all
     their turns) and minutes between flights, one fixed number for warm-up

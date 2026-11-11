@@ -972,9 +972,11 @@ are then filled flight by flight.
 - **Areas:** named panels, tracks and DMT beds, each for one discipline;
   synchro runs on trampoline areas too. A new competition starts with one area
   per discipline it offers ("Panel 1", "Track 1", "DMT 1").
-- **Timings**, per discipline: minutes per competitor (5 for trampoline, 5 per
-  synchro pair, 2 for tumbling and DMT), minutes between flights (10) and the
-  largest flight. **Rest** between a person's flights (20 minutes), from the
+- **Timings**, per discipline: warm-up per competitor (none to begin with),
+  least warm-up (none), competing per competitor (5 for trampoline, 2.5 per
+  synchro pair, 2 for tumbling and DMT), the changeover (10) and the largest
+  flight, and **an event's own times** where an event differs (see
+  [Flight times](#flight-times-roadmap-15)). **Rest** between a person's flights (20 minutes), from the
   end of one to the start of the next one's warm-up, is a preference, or a
   must. Both rounds of an event are in one flight, so rest is only between
   events. **Men and women**: which levels ranked separately
@@ -1018,7 +1020,7 @@ are then filled flight by flight.
   rules broken, and names that look like one person entered twice (the same
   letters ignoring accents and punctuation, or one letter apart in a long
   name). When something doesn't fit, it tries changes one at a time (another
-  area, half a minute less per competitor, fewer minutes between flights,
+  area, half a minute less competing per competitor, shorter changeovers,
   bigger flights, rest only preferred, events running across breaks, or an
   event capped at the most entries that fit, a flight's worth fewer at a
   time) and says which would fit everything.
@@ -1056,7 +1058,9 @@ are then filled flight by flight.
   A flight's **Move a gymnast** fills its gymnasts from the running order, and
   **Move to** its days and areas from one list (`place-options`), rather than
   each flight repeating them. Changing the setup marks the
-  plan out of date until **Plan** again; moves are rechecked and listed as
+  plan out of date until **Plan** again, except the timings, which time the
+  flights again where they are ([Flight times](#flight-times-roadmap-15));
+  moves are rechecked and listed as
   problems: clashes, and an event whose flights aren't back to back on one
   area, or run either side of a break that isn't allowed (timetables
   planned before ADR 0006 show these until planned again).
@@ -1072,7 +1076,8 @@ are then filled flight by flight.
   (`Schedule.FreeForSeat`, the same rules as filling a leaving official's
   seat). **Make the change anyway** posts the change again with `anyway=1`.
   A change that breaks nothing new is made at once; redrawing and Earlier
-  aren't asked about.
+  aren't asked about. Moving a gymnast in or out of a flight with times of
+  its own keeps them, and the notice says so.
 - **Sheets:** marshal sheets (running orders to tick off) and chair of judges
   sheets (each gymnast's exercises and problems), one area to a page. On a
   phone a sheet's table (and the rota's) scrolls sideways in its own box,
@@ -1108,7 +1113,8 @@ are then filled flight by flight.
   as CSV (`timeline.csv`): a row per flight or block on each area, in time
   order, with each role's officials and their clubs.
 - **Publish** shows clubs (each member's row), members and gymnasts entering
-  on their own their flight, area, day and warm-up time. The competition
+  on their own their flight, area, day, warm-up time and when competing
+  starts. The competition
   keeps two timetables (roadmap 2026-10-07): the organiser's **draft**
   (`timetable`), which every change goes into (planning, moves, seats, a
   kept "what if"), and the **published** copy (`published_timetable`),
@@ -1163,7 +1169,12 @@ are then filled flight by flight.
   the first morning): Setup shows a note in place of **Plan again**, and a
   plan posted anyway is refused, nothing changed. Before then, **Plan again**
   asks once, on **Before you change it** (what was changed by hand is lost),
-  with no browser pop-up first. Changes by hand (moves,
+  with no browser pop-up first. Planning again keeps flights' own times
+  where the flight is still there (`competitions.Replan`: each fresh flight
+  takes its old flight's ID, by `KeepIDs`' rule, and own times before it's
+  placed, so it's placed at that length, or left out where there's no
+  room), and the ask names any it would drop (planned on a copy first); so
+  does the notice after, and it says when some of it doesn't fit. Changes by hand (moves,
   seats, redraws) and the "what ifs" still work. **Publish changes** says
   first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel
@@ -1176,6 +1187,89 @@ are then filled flight by flight.
   theirs stay. The dropped rows stay in the database, unseen. Moves,
   redraws, seats and a kept "what if" keep IDs, so they drop only what the
   change itself takes away. A page that only asks isn't recorded in History.
+
+## Flight times (roadmap 15)
+
+Built 2026-11-11. A flight is its **changeover** (clearing the area), then
+its **warm-up**, then its **competing**, each rounded up to a whole minute
+(ADR 0005 Decision 13, as amended).
+
+- **Setup's timings** are a row for each discipline: **Warm-up per
+  competitor**, **Least warm-up**, **Competing per competitor**,
+  **Changeover** and **Largest flight**. Warm-up is the flight's gymnasts
+  times the warm-up per competitor, never less than the least; competing is
+  its gymnasts times the competing per competitor (all their turns). Under
+  a discipline, **Add an event's own times** gives one of its events a row of
+  its own (warm-up per competitor, least warm-up, competing per competitor,
+  starting from the discipline's); its changeover and largest flight stay
+  the discipline's, shown but changed on the discipline's row. **Remove**
+  puts the event back on the discipline's. What counts is a flight's own
+  times, then its event's, then its discipline's. Timetables made before
+  keep their times: what was "minutes between flights" is the changeover,
+  with no warm-up figures until the organiser sets them. Enter in a figure
+  saves the form. On a phone the table is cards, an event's under its
+  discipline's.
+- **Three times for a flight,** in one wording everywhere: "Warm-up 09:50 ·
+  competing 10:02 · finishes about 10:50". The timetable's flight boxes, the
+  marshal's and chair of judges sheets, the score sheets ("warm-up 09:50 ·
+  competing 10:02"), My competition and the organiser's page of a person
+  (the event card, and each flight of the timetable on it), a gymnast's
+  placement on their entry and the club's members list, On the day
+  ("Planned: warm-up …"), the venue screen (what's on now in full; next as
+  "Next · warm-up 10:45 · competing 10:57", left out of the quiet areas'
+  strips), the officials' duties and rota sheet ("Friday 09:30–12:30 ·
+  competing from 09:40 · …", the first flight's), the panel timeline (in a
+  cell's hover text; the cell itself has no room) and its CSV (a **Competing
+  from** column), the calendar (the event still starts at the warm-up, and
+  its description says "Competing from 10:02"), and the message to a gymnast
+  who isn't at their area. A flight saved before competing had a time of its
+  own starts competing after its changeover (`CompetingStarts`), so every
+  timetable shows a competing time. A gymnast's turns ("Routines at about …")
+  are worked out from when competing starts and the flight's competing time.
+- **Change the times,** in a flight's box on the timetable beside Move or
+  redraw: **Warm-up** and **Competing** in minutes all told, each with "the
+  averages give N" beside it, **Save times**, and **Back to the averages**
+  once it has its own. A figure left as the averages give it stays on them.
+  A flight with its own times says "its own times" in its box; Setup's view
+  doesn't change. Its own times stay with it (by its ID) when it's moved,
+  redrawn, published or planned again.
+- **After planning, a change is tried on the draft as it stands**, for one
+  flight's times and for Setup's timings alike (`tryTimes` in
+  `web/owntimes.go`; `SetFlightTimes`, `SetTimes`). Later flights on the area
+  move back only as far as they must, in order and around blocked time; none
+  comes earlier. If nothing new breaks it's saved, saying what moved
+  ("Times saved. 3 flights on Panel 2 start 5 minutes later.", or "Nothing
+  else moved."), and the timetable isn't marked out of date. A new
+  **Largest flight**, or men's and women's flights changed, needs the
+  flights made again: the setup is saved and the timetable marked out of
+  date, as other setup changes are. Before planning, the timings are saved
+  as any setup change.
+- **When it doesn't fit,** **Before you change it** says what it would newly
+  break (as for a manual change, people in two places first), then **Plan
+  again with these times** (what planning again does, in Plan again's
+  words, and the flights whose own times it would drop), **Make the change
+  anyway** (what it breaks then shows with the timetable's problems) or
+  **Leave it**. Planning again with them saves the new figures (for one
+  flight, its own times) and plans as Plan again does (`replan`: keeping IDs
+  and what's marked on the day, then own times, then the officials).
+- **Once the day has begun** there's no planning again: the ask offers only
+  Make the change anyway and Leave it, saying why. A flight that has started
+  or finished doesn't offer Change the times ("Correct the times is on On
+  the day" in its place; posted all the same, it's refused), and Setup's
+  timings leave started and finished flights as they are.
+- **Drafts and notifications as now:** all of it changes the draft only.
+  Publishing tells people whose warm-up or competing time moved, giving
+  both ("now warm-up Saturday 10:20, competing 10:32, Panel 2 (was …)"). A
+  notification baseline kept before competing times were told doesn't count
+  as a change. A published timetable from before, whose draft gained
+  competing times by being timed again, isn't "changed" for that alone
+  (`sameTimetable`).
+- Forms post the draft's version and are refused when stale; refusals and
+  asks aren't recorded in History. The timetable helper's link may change
+  the times; the other helper links may not.
+- **The demo** gives DMT half a minute's warm-up a competitor, at least 5,
+  with a 5-minute changeover, gives the first tumbling event its own times,
+  and gives the timetable's first flight times of its own.
 
 ## What if there's a delay
 
@@ -1217,8 +1311,9 @@ The organiser can **ease** it on the held-up areas, from the delay: breaks
 (lunch and other blocked time) wait (the default), **move later** keeping
 their length, **start late** by up to some minutes, or are **worked
 through**, each on that area alone (the rest of the venue keeps its break);
-**fewer minutes between flights**; **quicker turns** (a percentage less per
-competitor); **bigger flights** (an event's flights next to each other merge
+**shorter changeovers** (the changeover only); **quicker turns** (a
+percentage less competing time per competitor; warm-up stays as it is);
+**bigger flights** (an event's flights next to each other merge
 up to a size, saving a changeover); and **running past the end** of the day by
 up to some minutes. The page says what the easing is and what the delay
 alone would have done.

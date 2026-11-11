@@ -166,7 +166,7 @@ func TestVenueScreen(t *testing.T) {
 	// The morning, nothing marked: on by the plan.
 	clock.set(onTheDay(9, 5))
 	got = cards()
-	if c := got["Panel 1"]; c.Now != "BUCS L3" || !c.Planned || c.NowTimes != "09:00–09:25" || !slices.Equal(c.Gymnasts, []string{"Cal", "Bea", "Ann"}) || c.Next != "—" || c.Late != "" {
+	if c := got["Panel 1"]; c.Now != "BUCS L3" || !c.Planned || c.NowTimes != "Warm-up 09:00 · competing 09:10 · finishes about 09:25" || !slices.Equal(c.Gymnasts, []string{"Cal", "Bea", "Ann"}) || c.Next != "—" || c.Late != "" {
 		t.Errorf("Panel 1 at 09:05, by the plan: %+v", c)
 	}
 	if c := got["Track 1"]; c.Now != "Tumbling Novice" || !c.Planned || !slices.Equal(c.Gymnasts, []string{"Tara", "Tom"}) {

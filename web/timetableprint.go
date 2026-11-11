@@ -162,7 +162,7 @@ func scoreSheets(c store.Competition, s competitions.Schedule, entries []store.E
 				if !it.Flight || key != "" && !slices.ContainsFunc(s.Flights[it.Index].Officials, func(d competitions.Duty) bool { return d.Person == key }) {
 					continue
 				}
-				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Seats: it.Seats,
+				f := views.ScoreFlight{Name: it.Name, Day: day.Name, Area: area.Name, Start: it.Start, Competing: it.Competing, Seats: it.Seats,
 					Marks: scoreMarks(c.Officials.Panel(s.Flights[it.Index].Discipline))}
 				for _, g := range it.Gymnasts {
 					f.Rows = append(f.Rows, views.FlightGymnast{Name: g.Name, No: g.No, Club: g.Club, Scratched: scratched[g.ID]})

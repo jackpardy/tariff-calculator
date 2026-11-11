@@ -280,7 +280,7 @@ func (p *competitionPages) notifyFormOf(r *http.Request, c store.Competition) (d
 		for _, id := range f.Entries {
 			if e, ok := byID[id]; ok && slices.Contains(keys[id], person) {
 				name, people = e.Entry.Gymnasts(), keys[id]
-				text = fmt.Sprintf("%s should be at %s now to compete in %s, warm-up %s.", name, f.Area, f.Name(), competitions.Clock(f.Start))
+				text = fmt.Sprintf("%s should be at %s now to compete in %s, warm-up %s, competing %s.", name, f.Area, f.Name(), competitions.Clock(f.Start), competitions.Clock(f.CompetingStarts(s.Setup)))
 				break
 			}
 		}
