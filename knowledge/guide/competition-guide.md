@@ -625,10 +625,15 @@ all of it if there is anyone, the least busy that day first (then someone
 who's had that role already, then the least busy over the competition).
 If no one free can take it, others move round, as few as will do: a judge
 on the panel moving up to chair, or someone moving across from another
-panel, their seat filled in turn. Free means not competing, judging or on
+panel, their seat filled in turn. Someone who moves gives up their own seat
+for everything of that event still to come, and one person fills it, so an
+event never ends up with two chairs; where that starts part way through, the
+seat says "from flight 2". Free means not competing, judging or on
 duty for blocked time then, rested where rest is a must, and allowed by
-your rules. Anything the result would
-break that holds now is listed above the seats. Nothing is changed unless
+your rules. A flight that has already finished is never changed. Anything the
+result would break that holds now, someone in two places included, is listed
+above the seats; **What's changed since you published** shows a seat that
+changed on only some of an event's flights as such. Nothing is changed unless
 you tap **Keep this in the draft timetable**.
 
 **Simulate** (under **Timetable**) tries numbers before entries arrive, or

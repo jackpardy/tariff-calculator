@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -64,5 +65,34 @@ func TestChangesFrom(t *testing.T) {
 		return names[k]
 	}, func(k string) string { return names[k] }); slices.ContainsFunc(got, func(c Change) bool { return c.Kind == ChangeGymnasts }) {
 		t.Errorf("withdrawn gymnasts left out: %v", got)
+	}
+}
+
+// A seat that changed on only some of an event's flights says which, so a
+// split seat isn't shown as only its second half.
+func TestChangesFromSplitSeat(t *testing.T) {
+	flights := func(chairs ...string) []ScheduledFlight {
+		var out []ScheduledFlight
+		for i, c := range chairs {
+			out = append(out, ScheduledFlight{ID: string(rune('a' + i)), Flight: Flight{Event: "DMT", Number: i + 1, Of: len(chairs)}, Area: "DMT 1", Start: 9*60 + i*60,
+				Officials: []Duty{{Role: RoleChair, Person: c}}})
+		}
+		return out
+	}
+	names := func(k string) string { return strings.ToUpper(k) }
+	for _, c := range []struct {
+		was, now []string
+		want     string
+	}{
+		{[]string{"pat", "pat"}, []string{"pat", "joan"}, "DMT · Chair of judges: JOAN (was PAT), on flight 2"},
+		{[]string{"pat", "pat", "pat"}, []string{"pat", "joan", "joan"}, "DMT · Chair of judges: JOAN (was PAT), from flight 2"},
+		{[]string{"pat", "pat", "pat"}, []string{"joan", "pat", "joan"}, "DMT · Chair of judges: JOAN (was PAT), on flights 1 and 3"},
+		{[]string{"pat", "pat"}, []string{"joan", "joan"}, "DMT · Chair of judges: JOAN (was PAT)"},
+	} {
+		now, was := Schedule{Flights: flights(c.now...)}, Schedule{Flights: flights(c.was...)}
+		got := now.ChangesFrom(was, names, names)
+		if len(got) != 1 || got[0].Line != c.want {
+			t.Errorf("%v -> %v: %v, want %q", c.was, c.now, got, c.want)
+		}
 	}
 }

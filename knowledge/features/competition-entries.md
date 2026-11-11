@@ -1486,12 +1486,29 @@ most free people could take (recorder or marshal before HD or execution,
 before chair). Among those free, the least busy that day goes first, then
 someone who's had the role elsewhere in the timetable, then the least busy
 over the competition (`sortForSeat`; the same order for **Before you change
-it**'s someone free for the seat). Until 2026-10-19 the organiser chose
+it**'s someone free for the seat). Whoever moves (from another seat on the
+panel or another panel) must themselves be free for the seat they take,
+ignoring the one they give up, and gives up their own seat's real stretch,
+not the leaver's flights. Only flights still under way or to come at the
+leave time (`Leave.ahead`) have anyone moved off them: a flight that has
+ended is never changed. A seat that stays with its event's whole run (chairs
+and judges always; recorders and marshals unless the organiser lets them
+change between flights, `OfficialSettings.Stays`; the leave takes the
+settings in `Leave.Settings`) is given up by a mover for all of the run still
+to come, so one person refills it and an event is never left with two
+chairs; a stretch that starts part way is named "from flight 2"
+(`stretchName`). Until 2026-11-11 a mover from the same panel skipped the
+free check, took the leaver's flights for their own seat, and a mover's
+seat was given up only from the first flight overlapping the leaver's. Until 2026-10-19 the organiser chose
 **easiest to fill** or **fewest changes**; easiest made three moves where one
 free person could take the seat, so there's now one way. Each
 seat shows the moves and who else was free for the last one; a seat no one
 can reach is left empty. What the result would break that holds now is
-listed above the seats, as for a delay.
+listed above the seats, people in two places and rota breaks included
+(`leaveBreaking`: all of `Breaks` and `RotaBreaks`, not `WhatIfBreaks` as for
+a delay, so a wrong result can't be kept unseen). **What's changed since you
+published** shows a seat changed on only some of an event's flights with
+which ("..., from flight 2", "..., on flights 1 and 3").
 
 ## On the day: flights started and finished
 

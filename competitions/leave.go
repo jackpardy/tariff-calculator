@@ -2,6 +2,7 @@ package competitions
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 )
 
@@ -21,6 +22,18 @@ type Leave struct {
 	Day     int
 	From    int  // minutes since midnight
 	ForGood bool // for the rest of the competition, not just the day
+	// Settings are the organiser's for officials: which seats stay with an
+	// event's whole run, and which change between its flights.
+	Settings OfficialSettings
+}
+
+// ahead says whether a flight is still under way or to come at the leave,
+// so its seats can change: a flight that has ended never does.
+func (l Leave) ahead(f ScheduledFlight) bool {
+	if l.ForGood {
+		return f.Day > l.Day || f.Day == l.Day && f.End > l.From
+	}
+	return f.Day == l.Day && f.End > l.From
 }
 
 // SeatStep is one change: Person takes the To role, leaving From ("" if they
@@ -67,15 +80,9 @@ func (s Schedule) Left(l Leave, people map[string][]string, officials []RotaPers
 	for i := range out.Flights {
 		out.Flights[i].Officials = slices.Clone(out.Flights[i].Officials)
 	}
-	gone := func(f ScheduledFlight) bool {
-		if l.ForGood {
-			return f.Day > l.Day || f.Day == l.Day && f.End > l.From
-		}
-		return f.Day == l.Day && f.End > l.From
-	}
 	var held []int
 	for i, f := range out.Flights {
-		if gone(f) && slices.ContainsFunc(f.Officials, func(d Duty) bool { return d.Person == l.Person }) {
+		if l.ahead(f) && slices.ContainsFunc(f.Officials, func(d Duty) bool { return d.Person == l.Person }) {
 			held = append(held, i)
 		}
 	}
@@ -162,11 +169,14 @@ func (s Schedule) label(st stretch) string {
 // stretchName names a stretch's flights: the flight, or its event for
 // several.
 func (s Schedule) stretchName(st stretch) string {
-	if f := s.Flights[st.flights[0]]; len(st.flights) == 1 {
+	f := s.Flights[st.flights[0]]
+	switch {
+	case len(st.flights) == 1:
 		return f.Name()
-	} else {
-		return f.Group()
+	case f.Number > 1:
+		return fmt.Sprintf("%s · from flight %d", f.Group(), f.Number)
 	}
+	return f.Group()
 }
 
 // refillPlan is a way to fill a seat: who moves where.
@@ -185,11 +195,11 @@ type refillPlan struct {
 // last seat the most free people could take. It also gives the others free
 // who could take the last seat.
 func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byKey map[string]RotaPerson, officials []RotaPerson) (refillPlan, []string, bool) {
-	free := func(st stretch, role string, ignore *stretch) []string {
+	free := func(st stretch, role string, ignore *stretch, moved map[string]bool) []string {
 		f := s.Flights[st.flights[0]]
 		var out []string
 		for _, o := range officials {
-			if o.Key != l.Person && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people) {
+			if o.Key != l.Person && !moved[o.Key] && o.Can(role, f.Event) && s.freeIgnoring(o.Key, st, ignore, people) {
 				out = append(out, o.Key)
 			}
 		}
@@ -218,7 +228,7 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 			on = s.label(st)
 		}
 		// Someone free takes it.
-		if candidates := free(st, role, nil); len(candidates) > 0 {
+		if candidates := free(st, role, nil, moved); len(candidates) > 0 {
 			p := refillPlan{
 				steps: append(slices.Clone(steps), SeatStep{Person: candidates[0], To: role, On: on}),
 				moves: append(slices.Clone(moves), seatMove{st, candidates[0]}),
@@ -233,9 +243,10 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 		}
 		// Someone who can take it moves into it: from another seat on this
 		// panel, or from a panel at the same time, their seat filled in turn.
+		// Only flights still to come have anyone moved off them.
 		iv := s.span(st)
 		for gj, g := range s.Flights {
-			if !overlaps(iv, interval{g.Day, g.Start, g.End}) {
+			if !l.ahead(g) || !overlaps(iv, interval{g.Day, g.Start, g.End}) {
 				continue
 			}
 			own := slices.Contains(st.flights, gj)
@@ -251,8 +262,18 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 				if own && gj != st.flights[0] {
 					continue // the panel's seat, from its first flight here
 				}
-				theirs := s.stretchFrom(gj, other)
-				if !own && !s.freeIgnoring(d.Person, st, &theirs, people) {
+				// A judge's seat stays with its event's whole run, so they give
+				// up all of it still to come, not only from here: one person
+				// fills it. A recorder's or marshal's who changes between
+				// flights is only the flights they hold.
+				start := gj
+				if l.Settings.Stays(d.Role) {
+					for prev := s.before(start); prev >= 0 && l.ahead(s.Flights[prev]) && other < len(s.Flights[prev].Officials) && s.Flights[prev].Officials[other].same(d); prev = s.before(start) {
+						start = prev
+					}
+				}
+				theirs := s.stretchFrom(start, other)
+				if !s.freeIgnoring(d.Person, st, &theirs, people) {
 					continue
 				}
 				nextMoved := map[string]bool{d.Person: true}
@@ -262,9 +283,6 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 				step := SeatStep{Person: d.Person, From: d.Role, To: role, On: on}
 				if !own {
 					step.Elsewhere = s.label(theirs)
-				}
-				if own {
-					theirs = stretch{flights: st.flights, seat: other}
 				}
 				search(theirs, nextMoved,
 					append(slices.Clone(steps), step),
@@ -280,7 +298,7 @@ func (s Schedule) refill(first stretch, l Leave, people map[string][]string, byK
 	// by later moves, so apply them in order.
 	last := best.steps[len(best.steps)-1]
 	lastMove := best.moves[len(best.moves)-1]
-	others := slices.DeleteFunc(free(lastMove.at, last.To, nil), func(k string) bool { return k == last.Person })
+	others := slices.DeleteFunc(free(lastMove.at, last.To, nil, nil), func(k string) bool { return k == last.Person })
 	return best, others[:min(len(others), 5)], true
 }
 

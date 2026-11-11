@@ -83,3 +83,54 @@ func TestOfficialLeaves(t *testing.T) {
 		t.Error("someone has to leave")
 	}
 }
+
+// A chair who moves to cover the leaver gives up all of their own event's
+// flights still to come, so one person chairs them: not Pat keeping flight 1
+// while Joan has flight 2, though Joan could have done both.
+func TestOfficialLeaveKeepsAnEventsChairWhole(t *testing.T) {
+	chairs := func(key string, events ...string) RotaPerson {
+		p := RotaPerson{Key: key, Name: strings.ToUpper(key), Judge: map[string]bool{}, Execution: map[string]bool{}, Difficulty: map[string]bool{}, Chair: map[string]bool{}}
+		for _, e := range events {
+			p.Judge[e], p.Chair[e] = true, true
+		}
+		return p
+	}
+	officials := []RotaPerson{chairs("l", "L"), chairs("pat", "L", "D"), chairs("joan", "D")}
+	seat := func(who string) []Duty { return []Duty{{Role: RoleChair, Person: who}} }
+	s := Schedule{
+		Setup: Setup{Areas: []Area{{Name: "P1"}, {Name: "P2"}}, Days: []Day{{Name: "Sat", Start: "09:00", End: "18:00"}}},
+		Flights: []ScheduledFlight{
+			{Flight: Flight{Event: "L"}, Area: "P1", Start: 11 * 60, End: 12 * 60, Officials: seat("l")},
+			{Flight: Flight{Event: "D", Number: 1, Of: 2}, Area: "P2", Start: 9*60 + 30, End: 10*60 + 30, Officials: seat("pat")},
+			{Flight: Flight{Event: "D", Number: 2, Of: 2}, Area: "P2", Start: 11*60 + 30, End: 12*60 + 30, Officials: seat("pat")},
+		},
+	}
+	out, fills, err := s.Left(Leave{Person: "l", Day: 0, From: 9 * 60}, nil, officials)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chair := func(i int) string { return out.Flights[i].Officials[0].Person }
+	if chair(0) != "pat" || chair(1) != "joan" || chair(2) != "joan" {
+		t.Errorf("chairs after: L %s, D flight 1 %s, D flight 2 %s; Joan should have both of D", chair(0), chair(1), chair(2))
+	}
+	if len(fills) != 1 || len(fills[0].Steps) != 2 {
+		t.Fatalf("fills: %+v", fills)
+	}
+
+	// A seat from the second flight on is named for what it is.
+	three := Schedule{
+		Setup: s.Setup,
+		Flights: []ScheduledFlight{
+			{Flight: Flight{Event: "E", Number: 1, Of: 3}, Area: "P1", Start: 9 * 60, End: 10 * 60, Officials: seat("l")},
+			{Flight: Flight{Event: "E", Number: 2, Of: 3}, Area: "P1", Start: 10 * 60, End: 11 * 60, Officials: seat("l")},
+			{Flight: Flight{Event: "E", Number: 3, Of: 3}, Area: "P1", Start: 11 * 60, End: 12 * 60, Officials: seat("l")},
+		},
+	}
+	out, fills, _ = three.Left(Leave{Person: "l", Day: 0, From: 10*60 + 15}, nil, []RotaPerson{chairs("l", "E"), chairs("pat", "E")})
+	if len(fills) != 1 || fills[0].Flight != "E · from flight 2" {
+		t.Errorf("the seat is named for the flights still to come: %+v", fills)
+	}
+	if got := out.Flights[0].Officials[0].Person; got != "l" {
+		t.Errorf("flight 1 had ended: %s", got)
+	}
+}
