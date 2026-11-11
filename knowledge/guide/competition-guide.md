@@ -783,7 +783,11 @@ and it opens the club as their role there.
 
 1. Open your club's **Join link**, type your name and tap **Join**. Your own
    page opens; it's saved in this browser, so on this phone your entries are
-   simply there.
+   simply there. If you tap the join link again on the same phone, it shows
+   your page with **Open my page**: use that rather than joining again. If your
+   club already has someone of your name, it asks first: open your own link or
+   ask your competition secretary for a new one, or **Join anyway** if you're a
+   different person of the same name.
 2. Your page has five tabs. **Competitions** (the one it opens on) lists the
    competitions your club is in, each with its date and where your entries
    stand (for example **Not entered**, **Saved, not sent yet**, or **Timetable

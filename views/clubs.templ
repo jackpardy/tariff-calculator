@@ -163,8 +163,10 @@ type ClubEntryEdit struct {
 // JoinPage is where a club's members join it.
 type JoinPage struct {
 	Club     string
+	ClubTag  string // which club, for the pages this browser has there (competitions.js)
 	Name     string
 	Problems []string
+	Ask      *Ask // asking before joining under a name the club already has
 }
 
 // MemberPage is a member's own pages: the list of the competitions their club
@@ -178,6 +180,7 @@ type MemberPage struct {
 	CoachID      string
 	CoachAction  string // where choosing a coach posts
 	Link         string // their personal link, as a full URL
+	ClubTag, Who string // which club and member, kept with the saved link (competitions.js)
 	New          bool   // just joined
 	Notice       string
 	Ask          *Ask // asking before a routine is deleted
@@ -1012,6 +1015,13 @@ templ ClubJoin(p JoinPage) {
 	@competitionLayout("Join " + p.Club) {
 		<h1 class="title is-4">Join { p.Club }</h1>
 		<p class="mb-4">Join to keep your competition entries with the club. Your club's competition secretary sends them to each competition.</p>
+		// Filled in from the pages this browser has saved at this club (static/js/competitions.js).
+		<div class="notification is-info is-light" data-joined-here={ p.ClubTag } data-club-name={ p.Club } hidden>
+			<p class="mb-2"><strong>You already have a page at { p.Club }.</strong></p>
+			<ul class="mb-2" data-joined-list></ul>
+			<p>Joining as someone else?</p>
+		</div>
+		@askBox(p.Ask)
 		@problemList(p.Problems)
 		<form method="post">
 			<div class="field">
@@ -1035,7 +1045,7 @@ templ memberFrame(p MemberPage) {
 			// Saves their link in this browser (static/js/competitions.js), whichever page they open first.
 			// data-member-coach marks a member who coaches too, so tools for coaches
 			// offer this link (ADR 0010: their coach's pages open through it).
-			<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club } data-member-coach?={ coachesToo(ctx) }></span>
+			<span hidden data-member-link={ p.Link } data-member-name={ p.Member + " · " + p.Club } data-member-person={ p.Member } data-member-club={ p.ClubTag } data-member-who={ p.Who } data-member-coach?={ coachesToo(ctx) }></span>
 		}
 		if p.New {
 			<div class="notification is-success is-light">

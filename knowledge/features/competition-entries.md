@@ -2101,6 +2101,19 @@ of its own:
   goes back (and saving goes back) to Entries or Officiating.
   Sending, sending coaches and entering the club through its club link land
   on the competition's page.
+- **Joining** (`/clubs/join/<token>`): a name the club already has (the
+  same letters, ignoring case, accents and spacing) isn't joined at once: the
+  page asks first, in place ("There's already an Aoife Byrne at UCD. If that's
+  you, open your own link, or ask your competition secretary for a new one. If
+  you're a different Aoife Byrne, join anyway."), saying nothing more about
+  the member and never their link; **Join anyway** makes the second member.
+  Above the form, a browser that has a page at this club saved (a member link
+  saved with the club's one-way tag, `competitions.js`) says "You already have
+  a page at UCD" with **Open my page** for each, and "Joining as someone
+  else?"; links saved before the tag was kept aren't matched. A saved member
+  link replaces another saved one only when it is the same member's (a new
+  link from the comp sec); two members of one name are both kept, the newer
+  shown as "(2)".
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro

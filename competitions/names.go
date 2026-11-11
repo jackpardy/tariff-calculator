@@ -134,6 +134,13 @@ func LookAlike(names map[string]string) [][2]string {
 	return out
 }
 
+// SameName says whether two names are the same name as far as spelling goes:
+// equal ignoring case, accents, spacing and punctuation.
+func SameName(a, b string) bool {
+	f := fold(a)
+	return f != "" && f == fold(b)
+}
+
 // NameMatches says whether a name matches a search: each of the search's
 // words is in the name, ignoring case, accents and punctuation ("o'neill"
 // finds "Dara O'Néill", "dar nei" too).

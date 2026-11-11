@@ -1,6 +1,8 @@
 package web
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -1046,7 +1048,19 @@ func (p *competitionPages) joinForm(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name}))
+	render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name, ClubTag: clubTag(club.ID)}))
+}
+
+// clubTag and memberTag say which club or member a saved link is for, so the
+// join page can tell this browser already has a page at the club, and a
+// replaced link from another person's of the same name. They're one-way:
+// the id itself isn't given out.
+func clubTag(id string) string   { return tag("club", id) }
+func memberTag(id string) string { return tag("member", id) }
+
+func tag(kind, id string) string {
+	sum := sha256.Sum256([]byte(kind + ":" + id))
+	return hex.EncodeToString(sum[:8])
 }
 
 func (p *competitionPages) join(w http.ResponseWriter, r *http.Request) {
@@ -1057,12 +1071,32 @@ func (p *competitionPages) join(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := competitions.CheckName("member", name); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name, Name: name, Problems: sentences(err)}))
+		render(w, r, views.ClubJoin(views.JoinPage{Club: club.Name, ClubTag: clubTag(club.ID), Name: name, Problems: sentences(err)}))
 		return
 	}
 	if !p.joinLimiter.allow(clientIP(r), p.now()) {
 		message(w, r, http.StatusTooManyRequests, "Too many joins", "This address has joined clubs many times in the last hour. Please try again later.")
 		return
+	}
+	// A name the club has might be the same person back again (the join link
+	// is still in the chat): ask first, saying nothing more about them.
+	if !asked(r) {
+		members, err := p.st.Members(r.Context(), club.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		if slices.ContainsFunc(members, func(m store.Member) bool { return competitions.SameName(m.Name, name) }) {
+			noteAsked(w)
+			page := views.JoinPage{Club: club.Name, ClubTag: clubTag(club.ID), Name: name}
+			page.Ask = inPlace(r, views.Ask{
+				Title:  "There's already a " + name + " at " + club.Name,
+				Text:   "If that's you, open your own link, or ask your competition secretary for a new one. If you're a different " + name + ", join anyway.",
+				Button: "Join anyway", Back: r.URL.Path,
+			})
+			render(w, r, views.ClubJoin(page))
+			return
+		}
 	}
 	_, token, err := p.st.Join(r.Context(), club.ID, name)
 	if err != nil {
@@ -1178,7 +1212,7 @@ func (p *competitionPages) memberPage(w http.ResponseWriter, r *http.Request, m 
 	token := r.PathValue("token")
 	path := memberPath(token)
 	page := views.MemberPage{
-		Club: club, Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice"),
+		Club: club, ClubTag: clubTag(m.ClubID), Who: memberTag(m.ID), Member: m.Name, Link: origin(r) + path, New: r.URL.Query().Get("new") == "joined", Notice: r.URL.Query().Get("notice"),
 		CoachID: m.CoachID, CoachAction: path + "/coach", Home: path, Menu: memberMenu(token, tab),
 	}
 	if store.IsVia(token) {
