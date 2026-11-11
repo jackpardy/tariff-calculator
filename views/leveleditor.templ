@@ -15,6 +15,7 @@ type LevelEditorPage struct {
 // (htmx), and Save level posts it to the club.
 templ ClubLevelEditor(p LevelEditorPage) {
 	@competitionLayout(p.Title + " · " + p.Frame.Club) {
+		<meta name="htmx-config" content='{"defaultSettleDelay":0}'/>
 		<script src={ static.URL("js/htmx.min.js") }></script>
 		<script defer src={ static.URL("js/selectsearch.js") }></script>
 		@coachFrame(p.Frame)

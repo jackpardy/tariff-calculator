@@ -2,10 +2,13 @@ package web
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -65,6 +68,74 @@ func browser(t *testing.T) context.Context {
 	return ctx
 }
 
+// requestLog is the requests a test's server has answered, for a failure to
+// say what did and didn't arrive.
+type requestLog struct {
+	mu      sync.Mutex
+	started time.Time
+	lines   []string
+}
+
+// serverLogs is each browser test's log, by test.
+var serverLogs sync.Map
+
+// browserServer serves a handler to a browser test, keeping a log of the
+// requests it answered (method, path, status, and when, since the server
+// started) that a failing step prints (see step). Use it, not
+// httptest.NewServer, in a browser test.
+func browserServer(t *testing.T, h http.Handler) *httptest.Server {
+	t.Helper()
+	log := &requestLog{started: time.Now()}
+	serverLogs.Store(t, log)
+	t.Cleanup(func() { serverLogs.Delete(t) })
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &loggedWriter{ResponseWriter: w, status: http.StatusOK}
+		h.ServeHTTP(rec, r)
+		log.mu.Lock()
+		defer log.mu.Unlock()
+		log.lines = append(log.lines, fmt.Sprintf("%6dms %s %s -> %d", time.Since(log.started).Milliseconds(), r.Method, r.URL.RequestURI(), rec.status))
+	}))
+}
+
+// loggedWriter notes the status a handler answered with.
+type loggedWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *loggedWriter) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+// Unwrap lets http.ResponseController reach the writer underneath.
+func (r *loggedWriter) Unwrap() http.ResponseWriter { return r.ResponseWriter }
+
+// requestsSeen lists the requests a test's server answered, the last 15 (page
+// assets left out), or "" without a log.
+func requestsSeen(t *testing.T) string {
+	v, ok := serverLogs.Load(t)
+	if !ok {
+		return ""
+	}
+	log := v.(*requestLog)
+	log.mu.Lock()
+	defer log.mu.Unlock()
+	var lines []string
+	for _, l := range log.lines {
+		if !strings.Contains(l, " GET /static/") {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) > 15 {
+		lines = lines[len(lines)-15:]
+	}
+	if len(lines) == 0 {
+		return "\n  the server answered no requests (page assets apart)"
+	}
+	return "\n  the server answered, " + fmt.Sprint(time.Since(log.started).Milliseconds()) + "ms in:\n    " + strings.Join(lines, "\n    ")
+}
+
 // stepTimeout is how long one step of a browser test may take.
 const stepTimeout = 15 * time.Second
 
@@ -77,7 +148,7 @@ func step(t *testing.T, ctx context.Context, name string, actions ...chromedp.Ac
 	stepCtx, cancel := context.WithTimeout(ctx, stepTimeout)
 	defer cancel()
 	if err := chromedp.Run(stepCtx, actions...); err != nil {
-		t.Fatalf("%s: %v\n  the page then: %s", name, err, pageState(ctx))
+		t.Fatalf("%s: %v\n  the page then: %s%s", name, err, pageState(ctx), requestsSeen(t))
 	}
 }
 
@@ -107,14 +178,17 @@ const sheetRoutine = `{"current":"r1","routines":[{"id":"r1","name":"Sheet test"
 // the page's script must post the routine for the sheet to appear at all.
 func TestTariffSheetLoadsInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
-	// Save the routine for this origin, then load the sheet with it.
+	// Save the routine for this origin on another page, then load the sheet,
+	// so it builds once, with the routine: opening the sheet to save it from
+	// there and reloading let a wait see the first, empty sheet (it builds as
+	// it loads).
 	step(t, ctx, "opening the sheet with a routine saved",
-		chromedp.Navigate(srv.URL+"/tariff-sheet"),
+		chromedp.Navigate(srv.URL+"/"),
 		chromedp.Evaluate(`localStorage.setItem('trampolineRoutines', `+"`"+sheetRoutine+"`"+`)`, nil),
-		chromedp.Reload(),
+		chromedp.Navigate(srv.URL+"/tariff-sheet"),
 	)
 	// The sheet should appear in a moment. If it doesn't, say what the page
 	// shows instead (still loading, or why it couldn't build the sheet).
@@ -126,7 +200,7 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 		read, cancel := context.WithTimeout(ctx, 5*time.Second)
 		_ = chromedp.Run(read, chromedp.Text(`body`, &shown, chromedp.ByQuery))
 		cancel()
-		t.Fatalf("the tariff sheet didn't load: %v\npage: %.300s", err, strings.TrimSpace(shown))
+		t.Fatalf("the tariff sheet didn't load: %v\npage: %.300s%s", err, strings.TrimSpace(shown), requestsSeen(t))
 	}
 
 	var rows int
@@ -154,7 +228,7 @@ func TestTariffSheetLoadsInABrowser(t *testing.T) {
 // button, checks the routine against it, and lists it under Used lately.
 func TestCheckAgainstChooserInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var chosen, saved, label, recent string
@@ -190,7 +264,7 @@ func TestCheckAgainstChooserInABrowser(t *testing.T) {
 // against it.
 func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var chips, name, saved, setName string
@@ -225,7 +299,7 @@ func TestWriteRequirementsInTheBuilderInABrowser(t *testing.T) {
 // it, as choosing from the list does.
 func TestSkillListSearchInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var title string
@@ -259,7 +333,7 @@ func TestSkillListSearchInABrowser(t *testing.T) {
 // page (the browser's scroll anchoring once threw it to the bottom).
 func TestEditorKeepsItsPlaceInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var before, after float64
@@ -290,7 +364,7 @@ func TestEditorKeepsItsPlaceInABrowser(t *testing.T) {
 // requirements unless ticked.
 func TestWriteRequirementsInALevelInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var chosen, listed bool
@@ -333,7 +407,7 @@ func TestWriteRequirementsInALevelInABrowser(t *testing.T) {
 // builder's search and skill card, and saved with the rest.
 func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var tabs int
@@ -396,7 +470,7 @@ func TestBuildASetRoutineOnTheRequirementsPageInABrowser(t *testing.T) {
 // back to feet; at the start of a routine, from feet.
 func TestLandingTilesFollowInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	const seatDrop = `{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","seat_landing":true}`
@@ -436,7 +510,7 @@ func TestLandingTilesFollowInABrowser(t *testing.T) {
 // takes off where the skill before landed: after a back drop, Back To Feet.
 func TestLandingSearchFollowsInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	const backDrop = `{"rotation":1,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Straight","backward":true}`
@@ -467,7 +541,7 @@ func TestLandingSearchFollowsInABrowser(t *testing.T) {
 // opens the card), so the drag mustn't ignore it as it does ↑, ↓ and Edit.
 func TestCardsDragByTheirHeadInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	const routine = `{"current":"r1","routines":[{"id":"r1","name":"Test","skills":[{"rotation":4,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck","backward":true},{"rotation":0,"twist_distribution":[0],"takeoff_position":"Feet","shape":"Tuck"}]}]}`
@@ -498,7 +572,7 @@ func TestCardsDragByTheirHeadInABrowser(t *testing.T) {
 // switches to it, and pressing the open one again closes it.
 func TestPickerCategoriesOpenAndCloseInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	const shown = `[...document.querySelectorAll('.builder-add .picker-list')].filter((l) => l.offsetParent !== null).map((l) => l.getAttribute('aria-label')).join() || 'none'`

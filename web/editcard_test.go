@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/chromedp/cdproto/input"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
 
@@ -39,14 +40,24 @@ func savedSkills(routine int, prop string) string {
 }
 
 // poll waits for a condition in the page. Alpine shows and hides things on
-// its next tick, so what it shows is polled for, not read straight away. If
-// it times out, it says which condition, and where the focus and the skill
-// form were then, so a failure on CI says what it was waiting for.
+// its next tick, so what it shows is polled for, not read straight away. A
+// page that's reloading or navigating meanwhile (the step before saved
+// something and reloaded) loses its script context mid-poll, which isn't a
+// failure of the condition: the poll starts again in the new page. If it
+// times out, it says which condition, and where the focus and the skill form
+// were then, so a failure on CI says what it was waiting for.
 func poll(cond string) chromedp.Action {
 	return chromedp.ActionFunc(func(ctx context.Context) error {
-		err := chromedp.Poll(cond, nil, chromedp.WithPollingInterval(50*time.Millisecond)).Do(ctx)
-		if err == nil {
-			return nil
+		var err error
+		for {
+			err = chromedp.Poll(cond, nil, chromedp.WithPollingInterval(50*time.Millisecond)).Do(ctx)
+			if err == nil {
+				return nil
+			}
+			if !strings.Contains(err.Error(), "Cannot find context with specified id") && !strings.Contains(err.Error(), "Execution context was destroyed") || ctx.Err() != nil {
+				break
+			}
+			time.Sleep(50 * time.Millisecond)
 		}
 		var state string
 		quick, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
@@ -110,7 +121,7 @@ func headTop(list string, i int) string {
 // skill says where the form is.
 func TestEditInTheCardInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var before, after, above float64
@@ -252,7 +263,7 @@ func TestEditInTheCardInABrowser(t *testing.T) {
 // Update changes that routine only.
 func TestEditInTheSecondColumnInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var first, second, waiting string
@@ -287,7 +298,7 @@ func TestEditInTheSecondColumnInABrowser(t *testing.T) {
 // card stays where it was tapped, and Update works as on a laptop.
 func TestEditInTheCardOnAPhoneInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var before, after float64
@@ -335,7 +346,7 @@ func TestEditInTheCardOnAPhoneInABrowser(t *testing.T) {
 // Update) still on screen.
 func TestEditBringsTheFormIntoViewInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var head, settled, later float64
@@ -358,11 +369,92 @@ func TestEditBringsTheFormIntoViewInABrowser(t *testing.T) {
 	}
 }
 
+// A tap on the form while the page is still scrolling it into view still
+// does what it was meant for: the form opens in a card low on the screen and
+// the page scrolls to it, and a press made then holds the page where it is,
+// so the release lands on the shape that was pressed (it once focused the
+// shape and the release landed on something else as the page moved on, so
+// nothing changed). The page's animation frames and clock are the test's
+// here, so it presses at a set moment of the scroll, however busy the machine.
+func TestTapOnTheFormWhileItScrollsInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := browserServer(t, routes())
+	defer srv.Close()
+
+	// step runs the animation frames waiting, with the clock at ms.
+	const frames = `window.frames = (ms) => { window.fakeNow = ms; const run = window.held.splice(0); run.forEach((cb) => cb && cb(ms)); return window.held.filter(Boolean).length; }; 0`
+	var started, held, stopped float64
+	var at [2]float64
+	var left int
+	step(t, ctx, "opening a card at the foot of the window and pressing on a shape as the page scrolls",
+		openBuilder(srv.URL, 1300, 800, false, cardRoutines(6, false)),
+		chromedp.Evaluate(`document.querySelector('[data-edit="a:2"]').scrollIntoView({block: 'end'}); window.scrollTo({top: window.scrollY, behavior: 'instant'}); 0`, nil),
+		chromedp.Sleep(100*time.Millisecond),
+		chromedp.Evaluate(`(() => {
+			window.held = []; window.fakeNow = 1000; window.freeze = true;
+			const realFrame = window.requestAnimationFrame.bind(window), realCancel = window.cancelAnimationFrame.bind(window), realNow = performance.now.bind(performance);
+			window.requestAnimationFrame = (cb) => { if (!window.freeze) { return realFrame(cb); } window.held.push(cb); return -window.held.length; };
+			window.cancelAnimationFrame = (id) => { if (id < 0) { window.held[-id - 1] = null; } else { realCancel(id); } };
+			performance.now = () => window.freeze ? window.fakeNow : realNow();
+			return 0;
+		})()`, nil),
+		chromedp.Evaluate(frames, nil),
+		chromedp.Evaluate(`document.querySelector('[data-edit="a:2"]').click(); 0`, nil),
+		poll(inCard("routine-skills", 2)+` && window.held.some(Boolean)`),
+		// A good way into the scroll: the page has moved, and not yet to its end.
+		chromedp.Evaluate(`window.scrollY`, &started),
+		chromedp.Evaluate(`(() => { window.frames(1100); return window.scrollY; })()`, &held),
+		chromedp.Evaluate(`(() => { const r = document.querySelector('#skill-form-wrapper .shape-segment:nth-child(2)').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()`, &at),
+		chromedp.ActionFunc(func(c context.Context) error {
+			return input.DispatchMouseEvent(input.MousePressed, at[0], at[1]).WithButton(input.Left).WithClickCount(1).Do(c)
+		}),
+		// The time it would have taken to finish passes, frame by frame.
+		chromedp.Evaluate(`(() => { window.frames(1200); window.frames(1400); return window.scrollY; })()`, &stopped),
+		chromedp.Evaluate(`window.frames(1700)`, &left),
+		chromedp.ActionFunc(func(c context.Context) error {
+			return input.DispatchMouseEvent(input.MouseReleased, at[0], at[1]).WithButton(input.Left).WithClickCount(1).Do(c)
+		}),
+		chromedp.Evaluate(`window.freeze = false; 0`, nil),
+		poll(headShows("3. Pike Back", "0.6", true)),
+	)
+	if held <= started {
+		t.Errorf("the page never scrolled (%v, then %v), so this didn't test a press as it does", started, held)
+	}
+	if stopped != held {
+		t.Errorf("the page went on scrolling after the press, from %v to %v", held, stopped)
+	}
+}
+
+// A control in a form htmx has just swapped in works at once: htmx used to
+// switch on the attributes of what it swapped in 20 ms after (its settle
+// delay), so a shape chosen in that moment changed nothing on the page. A
+// click in the same moment as the form loads must still reach the server and
+// change the card.
+func TestChoiceRightAfterTheFormLoadsInABrowser(t *testing.T) {
+	ctx := browser(t)
+	srv := browserServer(t, routes())
+	defer srv.Close()
+
+	var settling int
+	step(t, ctx, "choosing pike the moment the skill form has loaded",
+		openBuilder(srv.URL, 1300, 900, false, cardRoutines(4, false)),
+		chromedp.Evaluate(`(async () => {
+			await htmx.ajax('POST', '/skill-form', { source: '#skill-form-wrapper', target: '#skill-form-wrapper', swap: 'innerHTML', values: {} });
+			document.querySelector('#skill-form-wrapper input[name="shape"][value="pike"]').click();
+			return document.querySelectorAll('.htmx-settling').length;
+		})()`, &settling, func(p *runtime.EvaluateParams) *runtime.EvaluateParams { return p.WithAwaitPromise(true) }),
+		poll(`document.querySelector('#skill-editor .skill-card-name')?.textContent.includes('Pike')`),
+	)
+	if settling != 0 {
+		t.Errorf("%d elements were still settling as the form loaded", settling)
+	}
+}
+
 // In Levels mode, a voluntary's card is changed in its tab as in a routine:
 // the head shows the change, and Update saves it to the routine doing it.
 func TestEditInALevelInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	entry := `{"current":"e1","entries":[{"id":"e1","name":"L3","level":"builtin-level:bucs-l3","exercises":[{},{"routine":"r1"}],"open":"2:builtin:bucs-l3-second"}]}`

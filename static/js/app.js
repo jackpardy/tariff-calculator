@@ -1112,7 +1112,27 @@ function tariffCalculatorStore() {
             const by = Math.min(below, card.getBoundingClientRect().top - margin);
             if (by <= 0) { return; }
             const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            window.scrollBy({ top: by, behavior: smooth ? 'smooth' : 'instant' });
+            if (smooth) { this.scrollGently(by); } else { window.scrollBy({ top: by, behavior: 'instant' }); }
+        },
+        // scrollGently scrolls the page down by some pixels over a moment, as
+        // smooth scrolling does, but stepping it here so a press on the page
+        // can stop it where it is (the browser's own smooth scroll can't be
+        // stopped by a script). Otherwise the form moving up under a finger or
+        // mouse made the release land on something else, which swallowed the
+        // click: a shape pressed was focused and not chosen.
+        scrollGently(by) {
+            const from = window.scrollY, length = 300, start = performance.now();
+            let frame = 0;
+            // A press, the wheel, a touch or a key is the person taking over.
+            const events = ['pointerdown', 'wheel', 'touchstart', 'keydown'];
+            const stop = () => { cancelAnimationFrame(frame); events.forEach((e) => document.removeEventListener(e, stop, true)); };
+            const step = (now) => {
+                const t = Math.min(Math.max((now - start) / length, 0), 1);
+                window.scrollTo({ top: from + by * (1 - (1 - t) ** 3), behavior: 'instant' });
+                if (t < 1) { frame = requestAnimationFrame(step); } else { stop(); }
+            };
+            events.forEach((e) => document.addEventListener(e, stop, { capture: true, passive: true }));
+            frame = requestAnimationFrame(step);
         },
 
         // --- Nothing moves under the finger ---

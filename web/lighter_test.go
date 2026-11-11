@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -66,7 +65,7 @@ func TestTimetableDaysFoldInABrowser(t *testing.T) {
 	ctx := browser(t)
 	s := newTestServer(t, atTime(dayBefore))
 	admin := twoDays(t, s.h)
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 	tt := srv.URL + admin + "/timetable"
 
@@ -164,7 +163,7 @@ func TestDashboardLevelsLazyInABrowser(t *testing.T) {
 		t.Error("filtered, the levels with rows are open and in the page")
 	}
 	ctx := browser(t)
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 	rows := func() string { return `document.querySelectorAll('tr[data-list-row]').length` }
 	var before, opened, searched int

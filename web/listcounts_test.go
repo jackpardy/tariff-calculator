@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"slices"
@@ -64,7 +63,7 @@ func TestListFilterCountsInABrowser(t *testing.T) {
 	// BUCS L3 is the first trampoline level, FIG AG3 the second.
 	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Seán Ó Briain"}, "club": {"UCD"}, "judge-trampoline": {"1"}, "execution-trampoline": {"BUCS L3"}, "difficulty-trampoline": {"BUCS L3"}})
 	redirected(t, s.h, admin+"/officials/add", url.Values{"name": {"Dara Kane"}, "club": {"DCU"}, "judge-trampoline": {"1"}, "execution-trampoline": {"FIG AG3 (17–21)"}, "difficulty-trampoline": {"FIG AG3 (17–21)"}})
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	choose := func(key, value string) chromedp.Action {
