@@ -510,7 +510,36 @@ thread); a gymnast's is their entry, not changed until decided. Accepted,
 it comes in entered now (`entered_at`), so over a full level's limit it's
 last on the waiting list, and joins the draft timetable as a level change
 does; the late entry fee goes on the invoice as a line "Late entry: …".
-Turned down, it stays out, with the reason. A member ("Ask for a late change" under each event), their
+Turned down, it stays out, with the reason; a turn-down ends that request
+only. The same person can ask again, at the same or another level, as a new
+request with a thread of its own (a club's member through the same copy,
+`AskToEnterLate`; a gymnast from their request's page, **Ask again**,
+`AskAgainOnOwn`); the one turned down stays in the list, and the new one's
+row says "Asked before for BUCS L4, turned down 11 Nov: level is full". Late
+changes were never one-shot: a new change can be asked for after one is
+turned down.
+
+**Who sends** (2026-11-11). A club's member's late change or late entry
+goes straight to the organiser only where the club lets its members ask
+themselves (the club's Settings, **Who sends**: four ticks, all off until
+turned on, migration 55: **Members can send their own entries**, **Members
+can send changes to their entries**, **Members can ask for late changes**,
+**Members can ask to enter late**). Otherwise it's kept as the member's
+request (`LateClub`), "Not sent yet … Your club's competition secretary
+sends it to the organiser.", out of the organiser's list, counted on the
+club's page ("1 late request to send"), and goes with the comp sec's **Send
+new and changed** (`SendLateRequests`). The comp sec asking for a member
+sends at once. A member's own entry or change goes on saving where its tick
+is on ("Entry saved and sent to …"). Whatever goes because of a tick is in
+the club's history under the member's name, "(sent themselves)". The
+organiser can override all four for their competition (Settings, **Club
+members**: "Clubs send their members' entries: members can't send their
+own"; `clubs_send`, decided in one place, `memberSends`): the club's page
+for it and its Settings say so. A club member can still enter that
+competition on their own through its individual link, as before: not
+blocked. The comp sec, writing on a thread, is named "UCD competition
+secretary" (or a role's holder); emails telling of a reply quote "Your
+request". A member ("Ask for a late change" under each event), their
 comp sec (on the club page's row) or an individual (on their entry) fills
 in the entry form as it should be, with a note; the entry stays as it is
 until decided, and a new request replaces one still waiting.

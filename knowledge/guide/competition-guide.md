@@ -162,6 +162,11 @@ pair's one routine), checked as the Routine Builder checks them.
   but never sent isn't in the competition. A change a club saved but didn't
   send before the closing time isn't either: the club's and the member's
   pages show what you hold, with a line saying so.
+- **Club members** (on Settings): **Only take what clubs send** makes club
+  members' entries and requests (entries, changes, late changes, asking to
+  enter late) wait for their club to send them, whatever the club lets its
+  members do. What members sent already stays; gymnasts entering on their
+  own aren't affected.
 - **Late requests:** tap **Late requests** to choose what clubs and gymnasts
   can ask for once entries close (a **late entry**, allowed unless you untick
   it; a **level change**; a **routine change**), each with a fee charged only
@@ -754,7 +759,16 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   [Roles and links](#roles-and-links)), then a row for each setting, with its
   button at the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
-  each member's are seen by them, their coaches and you). **History**,
+  each member's are seen by them, their coaches and you). **Who sends**,
+  **Change**: four ticks, all off until you tick them: **Members can send
+  their own entries**, **Members can send changes to their entries**,
+  **Members can ask for late changes**, **Members can ask to enter late**.
+  Ticked, what a member saves or asks for goes straight to the competition
+  and your history says they sent it; not ticked, it waits for you, counted
+  on the competition's page ("1 late request to send") and sent with **Send
+  new and changed**. A competition can take only what clubs send; then its
+  page, and this row, say so, and members' entries and requests there wait
+  for you whatever you've ticked. **History**,
   **Show**: what was changed through the club's links, when and by whom.
   **Club admin link**, **Replace**, and **Delete the club**, **Delete**, open
   to do it; replacing the club admin link asks first, as the old one stops

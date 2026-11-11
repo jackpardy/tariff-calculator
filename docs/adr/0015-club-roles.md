@@ -54,7 +54,7 @@ differently, and what a "comp sec" or "team manager" does varies.
    | **Manage coaches** | Add, remove and re-link coaches, make a member a coach, who signs off, coaches' qualifications (`/coaches`…, `coaches/from-member`) |
    | **Certificates** | Open coaches' and judges' certificate files (personal documents; off unless chosen) |
    | **Talk to the organiser** | Tell the organiser and add to the club's messages; hear about changes by push or email (`/organiser`, `/notify`) |
-   | **Club settings** | Coaches see everyone, members' skills open (`coaches-see-all`, `skills-open`) |
+   | **Club settings** | Coaches see everyone, members' skills open, what members send themselves (`coaches-see-all`, `skills-open`, `member-sends`: added 2026-11-11) |
 
    The club admin makes a role by naming it and ticking permissions
    ("Treasurer": Fees; "Team manager": Talk to the organiser). A club
