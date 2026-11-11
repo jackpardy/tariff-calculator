@@ -50,10 +50,12 @@ func screenClub(e store.Entry) string {
 // block covering now. The next flight is the first in start order after that
 // which hasn't started or finished (when nothing is on, the first that
 // starts after now, or the first of the day when now isn't on that day).
-// Once the area's times are being marked that day, the earliest flight that
+// Once the day's times are being marked (any flight on any area has a tap),
+// the earliest flight that
 // hasn't started is on (by the plan) once its time has come, however late,
 // so the area never goes blank while it has flights to run; with nothing
-// marked, the screen goes by the plan.
+// marked on the day at all, the screen goes by the plan (an area whose
+// planned times have all passed is then finished).
 // Planned times and blocks only count when now is on the day (firstDay plus
 // day, in local time); recorded times count whatever date they were marked.
 func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, actual map[string]competitions.Actual, now time.Time) areaNow {
@@ -77,7 +79,9 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 		return a.Started.IsZero() && a.Finished.IsZero()
 	}
 
-	tapped := slices.ContainsFunc(flights, func(f competitions.ScheduledFlight) bool { return !untouched(f) })
+	// Marking is on for the whole day as soon as any flight on any area has a
+	// tap, so a quiet area with an untouched flight still has it to come.
+	tapped := slices.ContainsFunc(s.Flights, func(f competitions.ScheduledFlight) bool { return f.Day == day && !untouched(f) })
 	var out areaNow
 	on := -1 // index in flights of the one on now
 	for i, f := range flights {
@@ -91,7 +95,7 @@ func nowOn(s competitions.Schedule, day int, area string, firstDay time.Time, ac
 	}
 	if on < 0 && onDay {
 		for i, f := range flights {
-			// Once the area's times are being marked, a flight whose time has
+			// Once the day's times are being marked, a flight whose time has
 			// come but that hasn't started is still to come, however late.
 			if untouched(f) && f.Start <= minute && (minute < f.End || tapped) {
 				on, out.Planned = i, true
