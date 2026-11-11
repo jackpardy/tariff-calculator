@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -128,6 +129,78 @@ func TestLateChangesStore(t *testing.T) {
 	}
 	if changed, _ := s.CompetitionEntry(ctx, c.ID, e.ID); changed.Entry.Level != "BUCS L4" {
 		t.Error("a rejected change leaves the entry as it was")
+	}
+}
+
+// Late entries on the store's clock: allowed in a competition that never
+// said (default on); a member's asked for from their saved entry, out of the
+// competition until accepted, then in it, behind those already in (so on
+// the waiting list of a full level); an individual's turned down, staying
+// out; neither asked again once decided.
+func TestLateEntriesStore(t *testing.T) {
+	now := time.Date(2027, 3, 8, 10, 0, 0, 0, time.UTC)
+	s, c, _ := lateCompetition(t, &now)
+	if got, _ := s.Competition(ctx, c.ID); !got.Late.Allowed(competitions.LateNew) || got.Late.Allowed(competitions.LateRoutines) {
+		t.Errorf("late entries are allowed unless turned off, the rest only when on: %+v", got.Late)
+	}
+	club, _, err := s.CreateClub(ctx, "UCD")
+	must(t, err)
+	mo, _, err := s.Join(ctx, club.ID, "Mo")
+	must(t, err)
+	must(t, s.AttachClub(ctx, club.ID, c.ID))
+	was := now
+	now = time.Date(2027, 3, 1, 9, 0, 0, 0, time.UTC)
+	must(t, s.SaveMemberEntry(ctx, mo.ID, c.ID, entry("Mo")))
+	now = was
+	must(t, s.SetLimits(ctx, c.ID, map[string]int{entry("Ann").Event(): 1}))
+
+	from := Sender{Role: RoleMember, Name: "Mo", Club: "UCD", ID: "member:" + mo.ID}
+	r, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "Sorry, forgot", from)
+	must(t, err)
+	if r.Kind != competitions.LateNew || !r.Open() || r.Thread == "" {
+		t.Errorf("a late entry, to decide, with a thread: %+v", r)
+	}
+	if in, _ := s.Entries(ctx, c.ID); len(in) != 1 {
+		t.Errorf("Mo isn't in the competition yet: %d entries", len(in))
+	}
+	asked, _ := s.AskedEntries(ctx, c.ID)
+	if len(asked) != 1 || asked[0].ID != r.EntryID || asked[0].Removal != Asked {
+		t.Fatalf("Mo's copy, asked for: %+v", asked)
+	}
+	again, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from)
+	must(t, err)
+	if again.EntryID != r.EntryID || again.Thread != r.Thread {
+		t.Errorf("asked again, the same copy and thread: %+v", again)
+	}
+	now = now.Add(time.Hour)
+	if _, err := s.AcceptLateChange(ctx, c.ID, again.ID, "", "Organiser", 700); err != nil {
+		t.Fatal(err)
+	}
+	in, _ := s.Entries(ctx, c.ID)
+	i := slices.IndexFunc(in, func(e Entry) bool { return e.ID == r.EntryID })
+	if len(in) != 2 || i < 0 || in[i].Waiting != 1 {
+		t.Errorf("Mo is in, first on the full level's waiting list: %+v", in)
+	}
+	if _, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from); !errors.Is(err, ErrEntered) {
+		t.Errorf("in already: %v", err)
+	}
+
+	bo, _, req, err := s.AskToEnterLateOnOwn(ctx, c.ID, "", entry("Bo"), "")
+	must(t, err)
+	if bo.Removal != Asked || req.EntryID != bo.ID || req.Kind != competitions.LateNew {
+		t.Fatalf("Bo's entry, asked for: %+v %+v", bo, req)
+	}
+	if k, _ := s.Concern(ctx, c.ID, req.Thread); k.Sender != "individual:"+bo.Key() {
+		t.Errorf("the thread is Bo's, as a message from Bo's page would be: %+v", k)
+	}
+	must(t, s.RejectLateChange(ctx, c.ID, req.ID, "Full", "Organiser"))
+	if got, _ := s.CompetitionEntry(ctx, c.ID, bo.ID); got.Removal != Asked {
+		t.Errorf("turned down, Bo stays out: %+v", got)
+	}
+
+	must(t, s.SetLate(ctx, c.ID, competitions.LateChanges{Rules: map[string]competitions.LateRule{competitions.LateNew: {Off: true}}}))
+	if _, _, _, err := s.AskToEnterLateOnOwn(ctx, c.ID, "", entry("Cy"), ""); !errors.Is(err, ErrNotAllowed) {
+		t.Errorf("turned off: %v", err)
 	}
 }
 
