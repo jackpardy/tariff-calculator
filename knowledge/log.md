@@ -3,6 +3,7 @@
 New lines start as files in [log/](log/), one per change, and are moved here, under their dates, after they merge ([how](log/README.md)).
 
 ## 2026-11-11
+* **Update**: Uploads get 90 seconds to arrive: a coach's or judge's certificate or a feedback picture over phone data was cut off at 10 seconds and the page blamed the file; now a cut-short upload says the connection was too slow or dropped, and a file that is too big still says so ([HTTP routes](architecture/http-routes.md)).
 * **Update**: A synchro pair now does one routine on the day: who's up steps through each pair once and ends after the last (it ran a second round that doesn't happen), the venue screen no longer shows pairs on for it, and a pair's own page gives one time; trampoline, tumbling and DMT keep two rounds ([competition entries](features/competition-entries.md)).
 * **Update**: The venue screen no longer says "Finished for the day" for an area whose flight hasn't started: once any area has a tap that day, an untouched flight past its planned time is still to come (shown as on now, late) on every area; a day with no taps anywhere still runs on the plan.
 * **Update**: Joining a club twice no longer makes a second member unasked: the join page lists the pages this phone already has at the club (several people can share one phone), a name the club has asks first ("Join anyway" to make the second), and a saved personal link replaces another saved one only when it is the same member's, so two members of one name are both kept ([entries](features/competition-entries.md)).

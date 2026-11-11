@@ -1,1 +1,0 @@
-* **Update**: Uploads get 90 seconds to arrive: a coach's or judge's certificate or a feedback picture over phone data was cut off at 10 seconds and the page blamed the file; now a cut-short upload says the connection was too slow or dropped, and a file that is too big still says so ([HTTP routes](architecture/http-routes.md)).
