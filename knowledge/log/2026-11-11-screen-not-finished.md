@@ -1,1 +1,0 @@
-* **Update**: The venue screen no longer says "Finished for the day" for an area whose flight hasn't started: once any area has a tap that day, an untouched flight past its planned time is still to come (shown as on now, late) on every area; a day with no taps anywhere still runs on the plan.
