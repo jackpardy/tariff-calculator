@@ -78,12 +78,20 @@ func (p *competitionPages) factsOf(ctx context.Context, id string) (*competition
 		return f, nil
 	}
 	// One request reads them for everyone waiting, so it carries on if
-	// its own visitor goes away.
+	// its own visitor goes away. If the read doesn't finish (an error, or a
+	// panic under it) the lock is let go, or every later page of the
+	// competition would wait for ever.
+	done := false
+	defer func() {
+		if !done {
+			f.read = false
+			f.mu.Unlock()
+		}
+	}()
 	if err := f.readFrom(context.WithoutCancel(ctx), p, id); err != nil {
-		f.read = false
-		f.mu.Unlock()
 		return nil, err
 	}
+	done = true
 	return f, nil
 }
 

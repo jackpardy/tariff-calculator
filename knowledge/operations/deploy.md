@@ -23,7 +23,7 @@ The `Dockerfile` builds in two stages:
    caches kept between builds. It doesn't run the tests: CI has (until
    2026-10-23 it did, so a deploy ran them three times).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
-   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app lets requests under way finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, then closes the database.
+   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app stops taking requests and waits for those under way to finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, and only then closes the database. A page whose handler panics answers "Something went wrong" (500) rather than dropping the connection, and the log has the route's pattern (never its path, which can hold a secret link), the panic and a stack.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
 is copied ([static assets](../architecture/static-assets.md)). The calculator
@@ -263,7 +263,9 @@ set up:
    that page only.
 5. **The first reset**: open that link and press **Reset the sandbox** (about
    half a minute), or `docker compose exec tariff-sandbox
-   /app/tariffCalculator sandbox-reset`. Until then the start page,
+   /app/tariffCalculator sandbox-reset` (it runs only where `SANDBOX=1` is
+   set, as in the sandbox service, so it can't seed made-up clubs into the
+   live one by mistake). Until then the start page,
    `https://sandbox.tariff.pardy.ie/sandbox`, says it's being set up.
 
 After that, reset it from the maintainer's page whenever it wants a fresh

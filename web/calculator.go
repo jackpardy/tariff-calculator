@@ -83,6 +83,9 @@ func routesWithPages(pages *competitionPages) http.Handler {
 		notFound(w, r)
 	})
 
+	// Inside the rest, so the error page is the sandbox's when it is, and
+	// the route's pattern is on the request it logs.
+	routes := withRecover(mux)
 	return withGzip(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := int64(maxRequestBytes)
 		if r.Method == http.MethodPost && uploads(r.URL.Path) {
@@ -97,7 +100,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 			r = r.WithContext(views.WithSandbox(r.Context()))
 		}
 		w.Header().Set(static.VersionHeader, static.Version)
-		mux.ServeHTTP(w, r)
+		routes.ServeHTTP(w, r)
 	}))
 }
 
