@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -193,7 +192,7 @@ func TestDaySearchInABrowser(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin, _, _, _ := scratchSetupOn(t, s.h, twoFlights)
 	s.clock.set(onTheDay(8, 30))
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	const eve = `[data-list-row][data-name="Eve"]`

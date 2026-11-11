@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -138,7 +137,7 @@ func TestDayPageUpdatesInPlace(t *testing.T) {
 	ctx := browser(t)
 	h := competitionServer(t)
 	admin, _, _, _ := scratchSetupOn(t, h, twoFlights)
-	srv := httptest.NewServer(h)
+	srv := browserServer(t, h)
 	defer srv.Close()
 
 	// The check-in list of Panel 1's later flight, on its own page: the

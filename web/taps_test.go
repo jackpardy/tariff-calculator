@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os/exec"
 	"strconv"
@@ -307,7 +306,7 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	publishedWith(t, h, admin, "Ann", "Bea", "Cal")
 	clock.set(onTheDay(10, 0))
-	srv := httptest.NewServer(h)
+	srv := browserServer(t, h)
 	defer srv.Close()
 	day := admin + "/day?day=0"
 
@@ -323,6 +322,14 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 				const real = Date.now;
 				Date.now = () => { const v = sessionStorage.getItem('phoneNow'); return v ? Number(v) : real(); };
 				sessionStorage.setItem('loads', String(Number(sessionStorage.getItem('loads') || 0) + 1));
+				// Counts the sends tried and failed, to know when the page has
+				// finished trying without signal (see below).
+				const real_fetch = window.fetch.bind(window);
+				window.sends = { pending: 0, failed: 0 };
+				window.fetch = (...args) => {
+					window.sends.pending++;
+					return real_fetch(...args).catch((e) => { window.sends.failed++; throw e; }).finally(() => { window.sends.pending--; });
+				};
 			})()`).Do(c)
 			return err
 		}),
@@ -368,6 +375,12 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 		chromedp.Evaluate(`'page loads ' + sessionStorage.getItem('loads') + ', phone clock ' + sessionStorage.getItem('phoneNow') + ', taps ' + JSON.stringify(JSON.parse(localStorage.getItem('trampolineTaps') || '[]').map((t) => ({ tapped: t.tapped, label: t.label })))`, &kept),
 	)
 	step(t, ctx, "the signal coming back, and the taps sent",
+		// Each tap made the page try to send, and the tries fail without
+		// signal. They're sent on (carrying the phone's clock at that moment) a
+		// little after the tap, so wait for all three to have failed before
+		// the clock moves and the signal's back: one still on its way would
+		// reach the server with the clock as it was, and land at 10:00.
+		poll(`window.sends.failed >= 3 && window.sends.pending === 0`),
 		chromedp.Evaluate(`sessionStorage.setItem('phoneNow', String(Number(sessionStorage.getItem('phoneNow')) + 10 * 60 * 1000)); true`, nil),
 		network.EmulateNetworkConditions(false, 0, -1, -1),
 		chromedp.WaitNotVisible(`#day-taps`, chromedp.ByQuery),
@@ -409,7 +422,7 @@ func TestBackFromTheLastRoutineWithoutSignalInABrowser(t *testing.T) {
 		t.Fatal("never reached the last routine")
 	}
 	last := panelOne(t, h, day).Flights[0].Up
-	srv := httptest.NewServer(h)
+	srv := browserServer(t, h)
 	defer srv.Close()
 
 	var errs []string

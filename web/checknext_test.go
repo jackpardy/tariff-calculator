@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -53,7 +52,7 @@ func TestBackToTheEntryInABrowser(t *testing.T) {
 		redirected(t, s.h, enter, bucsEntry(name))
 	}
 	cat := entryIDs(t, do(t, s.h, http.MethodGet, admin, nil).Body.String(), admin)["Cat Ryan"]
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	var link, remove string
