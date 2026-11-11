@@ -797,6 +797,16 @@ func (p *competitionPages) lateChecks(ctx context.Context, c store.Competition, 
 	default:
 		out = append(out, "The "+which+" meets its requirements.")
 	}
+	if c.Signoff {
+		switch {
+		case req.SignedOff() && !p.signedOffForLate(ctx, c, req):
+			out = append(out, "Signed off by "+req.SignedBy+", who isn't an approved coach: accepted, it would need signing off again.")
+		case req.SignedOff():
+			out = append(out, "Signed off by "+req.SignedBy+".")
+		default:
+			out = append(out, "Not signed off by a coach: accepted, it would need signing off.")
+		}
+	}
 	if req.Kind == competitions.LateRoutines {
 		return out
 	}
