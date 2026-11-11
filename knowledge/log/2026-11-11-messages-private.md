@@ -1,0 +1,1 @@
+* **Update**: Messages to the organiser, their replies and the organiser's notes are shown only to the organiser's and everything links; the helper links (cards, chairs, timetable, venue screen) no longer read them on the dashboard, and still see the concerns helpers flag ([entries](features/competition-entries.md#messages-to-the-organiser)).

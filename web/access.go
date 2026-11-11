@@ -550,8 +550,9 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 }
 
 // concernViews are a competition's concerns and messages, for the
-// dashboard, with the entries they're about.
-func (p *competitionPages) concernViews(ctx context.Context, c store.Competition, base string) ([]views.ConcernView, int, error) {
+// dashboard, with the entries they're about. Messages are left out for a
+// link that may not resolve concerns.
+func (p *competitionPages) concernViews(ctx context.Context, r *http.Request, c store.Competition, base string) ([]views.ConcernView, int, error) {
 	concerns, err := p.st.Concerns(ctx, c.ID)
 	if err != nil {
 		return nil, 0, err
@@ -559,7 +560,13 @@ func (p *competitionPages) concernViews(ctx context.Context, c store.Competition
 	var out []views.ConcernView
 	open := 0
 	var labels map[string]string
+	// Messages to the organiser share the table with helpers' flags but
+	// are private: only a link that may resolve concerns sees them.
+	messages := can(r, "POST", "/concerns/{id}/resolve")
 	for _, k := range concerns {
+		if k.Message() && !messages {
+			continue
+		}
 		v := views.ConcernView{ID: k.ID, Who: senderName(store.Sender{Role: k.Role, Name: k.Who, Club: k.Club}), Text: k.Text, At: k.At.In(local).Format("Mon 2 Jan, 15:04"), Open: k.Open(),
 			ResolvedBy: k.ResolvedBy, Resolution: k.Resolution, Message: k.Message(), Waiting: k.Waiting()}
 		if k.Open() {

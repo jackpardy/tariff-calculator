@@ -77,3 +77,7 @@ chairs to flag concerns.
   9), but too much for now; links fit how the tools are already shared.
 - **Per-panel chairs' links.** One link for all chairs is simpler; a link
   per panel can come with the on-the-day tools if needed.
+
+## Note, 2026-11-11
+
+Messages to the organiser share the `concerns` table with helpers' flags but are shown only to links that may resolve concerns (the organiser's and everything links). The helper links see the flags, never the messages, their replies or counts.
