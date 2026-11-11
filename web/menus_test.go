@@ -305,7 +305,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	}{
 		{"", "Entries", "All entries"},
 		{strings.TrimPrefix(entry, admin), "Entries", "All entries"},
-		{"/late", "Entries", "Late changes"},
+		{"/late", "Entries", "Late requests"},
 		{"/fees", "Entries", "Fees"},
 		{"/timetable", "Timetable", "Flights"},
 		{"/officials", "Timetable", "Officials"},

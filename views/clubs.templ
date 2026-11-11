@@ -445,7 +445,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 		// A member entered by the comp sec, as they'd enter themselves.
 		if len(comp.Members) > 0 {
 			<script defer src={ static.URL("js/selectsearch.js") }></script>
-			@opens("", "", "Enter a member", false) {
+			@opens("", "", enterMemberLabel(comp.Competition.Open), false) {
 				<form method="get" action={ templ.SafeURL(comp.EnterMember) } class="comp-flight-actions">
 					<div class="select is-small">
 						<select name="member" required aria-label="Member" data-search-select="Search the members">

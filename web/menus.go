@@ -106,7 +106,7 @@ func orgMenu(base string, a views.Access, m menuState, current string) []views.M
 		entries = append(entries, item("People", menuPeople, ""))
 	}
 	if a.Settings {
-		entries = append(entries, item("Late changes", menuLate, badge(m.LateWaiting, "to decide")))
+		entries = append(entries, item("Late requests", menuLate, badge(m.LateWaiting, "to decide")))
 	}
 	// The coaches page while coaches are approved, and while on it when they
 	// aren't (it still opens), so a page always has a tab of its own.

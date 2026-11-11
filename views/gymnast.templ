@@ -28,6 +28,7 @@ type GymnastEnter struct {
 	Disciplines []DisciplineTab // those not entered yet, as tabs when there are several
 	Entered     []DisciplineTab // those entered, each opening its entry on Back
 	Already     *DisciplineTab  // the discipline asked for, entered already
+	Late        bool            // new entries have closed, and entering late can be asked for
 }
 
 // GymnastCompetition is one competition an individual entered, with their
@@ -167,7 +168,7 @@ templ GymnastEnterPage(p GymnastPage) {
 					}
 				</p>
 			}
-			if !e.Competition.Open {
+			if !e.Competition.Open && !e.Late {
 				<p class="has-text-grey">Entries are closed.</p>
 			} else if len(e.Disciplines) == 0 {
 				<p class="has-text-grey">You've entered every discipline this competition has.</p>
@@ -182,6 +183,9 @@ templ GymnastEnterPage(p GymnastPage) {
 					</div>
 				}
 				if e.Form != nil {
+					if e.Late {
+						@lateEnterLine()
+					}
 					@entryForm(*e.Form)
 					@privacyNote(e.Competition)
 				}

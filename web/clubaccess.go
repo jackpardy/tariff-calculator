@@ -53,6 +53,7 @@ var clubRoutes = map[string]string{
 	"POST /members/{member}/competitions/{id}/offer":      store.ClubEnter,
 	"GET /members/{member}/competitions/{id}/late":        store.ClubEnter,
 	"POST /members/{member}/competitions/{id}/late":       store.ClubEnter,
+	"POST /members/{member}/competitions/{id}/late/reply": store.ClubEnter,
 	"POST /competitions/{id}/send":                        store.ClubSend,
 	"POST /competitions/{id}/coaches":                     store.ClubSend,
 	"GET /competitions/{id}/fees":                         store.ClubFees,
@@ -262,7 +263,12 @@ func (p *competitionPages) describeClub(r *http.Request, club store.Club, patter
 	case "/members/{member}/competitions/{id}/offer":
 		return "Changed " + member() + "'s offer to help at " + competition()
 	case "/members/{member}/competitions/{id}/late":
+		if copied, ok := p.memberCopy(r); !ok || copied.Removal == store.Asked {
+			return "Asked to enter " + entry() + " late"
+		}
 		return "Asked for a late change: " + entry()
+	case "/members/{member}/competitions/{id}/late/reply":
+		return "Replied to the organiser about a late request: " + entry()
 	case "/members/{member}/new-link":
 		return "Made a new link for " + member()
 	case "/members/{member}/remove":

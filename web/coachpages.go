@@ -361,7 +361,7 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			for _, l := range lates {
-				cc.Late = append(cc.Late, views.CoachLate{Member: l.Entry.Gymnasts(), What: competitions.LateKindName(l.Kind) + " to " + l.Entry.Event(), Link: path + "/late/" + l.ID})
+				cc.Late = append(cc.Late, views.CoachLate{Member: l.Entry.Gymnasts(), What: lateWhat(l), Link: path + "/late/" + l.ID})
 			}
 		}
 		sent, err := p.entriesOf(ctx, c.ID)

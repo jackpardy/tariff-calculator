@@ -88,6 +88,15 @@ templ LateRequest(p LateRequestPage) {
 	}
 }
 
+// enterMemberLabel is the comp sec's button to enter a member: asked for
+// late once new entries have closed.
+func enterMemberLabel(open bool) string {
+	if open {
+		return "Enter a member"
+	}
+	return "Ask to enter a member late"
+}
+
 // lateTitle is a late request page's heading.
 func lateTitle(asked bool) string {
 	if asked {

@@ -51,6 +51,9 @@ func chosenDiscipline(c competitions.Competition, asked string) string {
 // each the competition offers.
 func enterPage(c store.Competition, e competitions.Entry, path string, now time.Time) views.EnterPage {
 	page := views.EnterPage{Competition: summary(c, now), Form: entryForm(c.Competition, e, path, "Enter")}
+	if lateNewOpen(c, now) && c.Individuals {
+		page.Late, page.Form.Submit, page.Form.Note = true, "Ask to enter late", true
+	}
 	for _, d := range c.Disciplines() {
 		page.Disciplines = append(page.Disciplines, views.DisciplineTab{
 			Name: competitions.DisciplineName(d), URL: path + "?discipline=" + d, Current: d == e.Discipline,
@@ -80,8 +83,16 @@ func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// As the person whose page's link was given, or someone new, with a
-	// personal link of their own (ADR 0010).
-	added, personal, err := p.st.AddIndividualEntry(r.Context(), c.ID, as, e)
+	// personal link of their own (ADR 0010); asked for late, once new
+	// entries have closed.
+	var added store.Entry
+	var personal string
+	var err error
+	if late := lateNewOpen(c, p.now()) && c.Individuals; late {
+		added, personal, _, err = p.st.AskToEnterLateOnOwn(r.Context(), c.ID, as, e, limitNote(strings.TrimSpace(r.FormValue("note"))))
+	} else {
+		added, personal, err = p.st.AddIndividualEntry(r.Context(), c.ID, as, e)
+	}
 	if problem := asProblem(err); problem != "" {
 		again([]string{problem})
 		return
@@ -199,10 +210,13 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 	page.Notice = r.URL.Query().Get("notice")
 	page.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: path, key: e.Key(), people: []string{e.Key()}, tell: individualTeller(e)})
 	page.Fees = p.feesSummary(r.Context(), c, entryPayer(e.ID), path+"/invoice")
-	if lateOpen(c, p.now()) {
+	if lateOpen(c, p.now()) || page.Late.Text != "" {
 		page.LateAsk = path + "/late"
 	}
 	switch {
+	case e.Removal == store.Asked:
+		page.Removal = "You asked to enter late: this entry isn't in the competition unless the organiser accepts it."
+		page.Competition.Open, page.Competition.ChangesOpen = false, false
 	case e.Removal == store.Withdrew:
 		page.Removal = "You withdrew this entry: it isn't in the competition."
 		if page.Competition.ChangesOpen {
@@ -358,7 +372,7 @@ func (p *competitionPages) renderIndividualSignoff(w http.ResponseWriter, r *htt
 		page.AskName, page.Name = false, named
 	}
 	if req, open, err := p.openLateFor(r.Context(), c.ID, e.ID); err == nil && open && !req.SignedOff() && c.Signoff {
-		page.Late = []views.CoachLate{{Member: req.Entry.Gymnasts(), What: competitions.LateKindName(req.Kind) + " to " + req.Entry.Event(), Link: r.URL.Path + "/late"}}
+		page.Late = []views.CoachLate{{Member: req.Entry.Gymnasts(), What: lateWhat(req), Link: r.URL.Path + "/late"}}
 	}
 	if len(problems) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)

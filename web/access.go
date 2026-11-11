@@ -229,11 +229,18 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 	case "/feedback":
 		return "Sent feedback about the app"
 	case "/late/settings":
-		return "Changed the late changes allowed"
-	case "/late/{id}/accept":
-		return "Accepted a late change"
-	case "/late/{id}/reject":
-		return "Turned down a late change"
+		return "Changed the late requests allowed"
+	case "/late/{id}/accept", "/late/{id}/reject", "/late/{id}/reply":
+		what := map[string]string{"/late/{id}/accept": "Accepted", "/late/{id}/reject": "Turned down", "/late/{id}/reply": "Replied to"}[path]
+		req, err := p.st.LateRequest(r.Context(), c.ID, r.PathValue("id"))
+		if err != nil {
+			return what + " a late request"
+		}
+		kind := "a late change"
+		if req.Kind == competitions.LateNew {
+			kind = "a late entry"
+		}
+		return what + " " + kind + ": " + req.Entry.Gymnasts() + " · " + req.Entry.Event()
 	case "/limits":
 		return "Changed the limits"
 	case "/entries/{id}/let-in":

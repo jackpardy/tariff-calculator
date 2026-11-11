@@ -527,8 +527,8 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			}
 		}
 		cc.NoSigner = c.Signoff && !slices.ContainsFunc(coaches, func(co store.Coach) bool { return co.SignsOff })
-		// To enter a member: who, and in what, while entries are open.
-		if cc.Competition.Open && enter {
+		// To enter a member: who, and in what, while entries are open (or, closed, to ask to enter them late).
+		if (cc.Competition.Open || lateNewOpen(c, p.now())) && enter {
 			for _, m := range members {
 				cc.Members = append(cc.Members, views.FlightOption{Value: m.ID, Label: m.Name})
 			}
@@ -631,7 +631,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				if lr, ok := late[id]; ok {
 					row.Late = p.lateStatus(ctx, c, lr)
 				}
-				if lateOpen(c, p.now()) && enter {
+				if (lateOpen(c, p.now()) || row.Late.Text != "") && enter {
 					row.LateAsk = lateURL
 				}
 			}
@@ -1360,7 +1360,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 					ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s)
 					place = s.Waiting
 					ev.Late = p.lateStatusOf(ctx, c, s.ID)
-					if lateOpen(c, now) {
+					if lateOpen(c, now) || ev.Late.Text != "" {
 						ev.LateAsk = path + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(d)
 					}
 				}
@@ -1638,5 +1638,13 @@ func (p *competitionPages) enterMember(w http.ResponseWriter, r *http.Request) {
 		seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id")), "Choose a member to enter.")
 		return
 	}
-	http.Redirect(w, r, base+"/members/"+url.PathEscape(member)+"/competitions/"+url.PathEscape(r.PathValue("id"))+"?discipline="+url.QueryEscape(r.URL.Query().Get("discipline")), http.StatusSeeOther)
+	to := base + "/members/" + url.PathEscape(member) + "/competitions/" + url.PathEscape(r.PathValue("id"))
+	// New entries closed: one the competition doesn't hold is asked for late.
+	if c, err := p.st.Competition(r.Context(), r.PathValue("id")); err == nil && lateNewOpen(c, p.now()) {
+		existing, err := p.memberEntry(r, member, c.ID)
+		if err == nil && (existing == nil || !existing.Sent()) {
+			to += "/late"
+		}
+	}
+	http.Redirect(w, r, to+"?discipline="+url.QueryEscape(r.URL.Query().Get("discipline")), http.StatusSeeOther)
 }

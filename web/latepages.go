@@ -344,6 +344,21 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 	return t, true
 }
 
+// memberCopy is the competition's copy of the member's entry (the path's
+// member, the posted discipline), asked for late or not; not ok for none.
+func (p *competitionPages) memberCopy(r *http.Request) (store.Entry, bool) {
+	entries, err := p.lateEntries(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return store.Entry{}, false
+	}
+	for _, e := range entries {
+		if e.MemberID == r.PathValue("member") && e.Entry.Discipline == r.FormValue("discipline") {
+			return e, true
+		}
+	}
+	return store.Entry{}, false
+}
+
 // lateRequest shows and sends a request to change an entry after the
 // deadline, or to enter late; and shows where it stands, with its thread.
 func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {

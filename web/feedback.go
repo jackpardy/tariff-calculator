@@ -44,7 +44,7 @@ var pageNames = map[string]string{
 	adminPrefix + "/entries/{id}":          "An entry",
 	adminPrefix + "/people":                "People",
 	adminPrefix + "/people/{key}":          "A person",
-	adminPrefix + "/late":                  "Late changes",
+	adminPrefix + "/late":                  "Late requests",
 	adminPrefix + "/coaches":               "Coaches",
 	adminPrefix + "/fees":                  "Fees",
 	adminPrefix + "/timetable":             "Timetable",
