@@ -954,7 +954,14 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   row of its own: trampoline's judges judge it ("Trampoline and synchro"),
   each synchro event by the hardest trampoline level it pairs, so chairing
   up to ISTO Advanced is chairing ISTO Intervanced/Advanced's synchro, and
-  synchronisation, like HD, at any level (`Offer.For`). The organiser's
+  synchronisation, like HD, at any level (`Offer.For`). A role offered "up
+  to" a level the competition no longer has (renamed, or taken away) is
+  taken at no level, and the offer shows **Says up to T2, which isn't a
+  level any more: ask them, or set it** on the organiser's Officials page,
+  on the judge's own page, and as the reason in the seat dropdown's ask; a
+  seat they hold is reported like any seat someone can't take. Offers aren't
+  rewritten when a level is renamed: the judge or organiser sets the level
+  again. The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   offer counts as something to send like an entry: one the organiser doesn't

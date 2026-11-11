@@ -42,7 +42,7 @@ func offerKey(d string) string {
 // offerForm is an offer as the form shows it, for the competition's
 // disciplines, with the organiser's note to those offering.
 func offerForm(c competitions.Competition, o competitions.Offer, action string) views.OfferForm {
-	f := views.OfferForm{Action: action, Recorder: o.Recorder, Marshal: o.Marshal, Summary: o.Describe(), Organiser: c.Officials.Note}
+	f := views.OfferForm{Action: action, Recorder: o.Recorder, Marshal: o.Marshal, Summary: o.Describe(), Gone: competitions.GoneLine(c.GoneLevels(o)), Organiser: c.Officials.Note}
 	for _, d := range c.Disciplines() {
 		if d == competitions.Synchro {
 			continue // judged by trampoline's judges, at its levels
@@ -277,7 +277,7 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 	for _, o := range people {
 		key := officialKey(o, keys)
 		row := views.OfficialRow{ID: o.ID, Name: o.Name, Club: o.ClubName, Offer: o.Offer.Describe(), Qualified: o.Qualified, Added: o.Added,
-			Person: personPath(page.Base, key), Who: seatRole(key, competing[key]),
+			Gone: competitions.GoneLine(c.GoneLevels(o.Offer)), Person: personPath(page.Base, key), Who: seatRole(key, competing[key]),
 			List: views.ListRow{Name: o.Name, Values: map[string][]string{
 				"club": {clubValue(o.ClubName)}, "can": canDo(o.Offer), "judges": judges(c.Competition, o.Offer), "qualified": {qualifiedValue(o.Qualified)},
 			}}}
