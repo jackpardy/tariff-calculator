@@ -1831,8 +1831,9 @@ Each card has:
 - **Next:** the following flight that hasn't been started or finished, with
   its warm-up time from the timetable and its gymnasts and clubs; with
   nothing on, the first that starts after now, or the first unmarked one once
-  the area's times are being marked. "Finished for the day" when there's
-  nothing more.
+  the day's times are being marked (a tap on any area). "Finished for the day"
+  when there's nothing more: a flight not started stays to come on a day being
+  marked, however late, and only a day with no taps at all goes by the plan.
 
 **Running numbers.** Every gymnast has a running number: their place in the
 published flight (`No` on the views), shown before their name on the venue
