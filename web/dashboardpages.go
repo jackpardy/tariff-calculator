@@ -62,11 +62,13 @@ func (p *competitionPages) reviewVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !slices.ContainsFunc(e.Entry.Exercises[:], func(ex competitions.Exercise) bool { return ex.Video != "" }) {
+			noteRefused(w)
 			seeOther(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id")+"#video", "There's no video yet to say OK to; nothing was changed.")
 			return
 		}
 	}
 	if c.Video.Need == competitions.VideoNone {
+		noteRefused(w)
 		seeOther(w, r, adminPath(r.PathValue("token"))+"/entries/"+r.PathValue("id"), "This competition doesn't ask for video; nothing was changed.")
 		return
 	}
@@ -877,7 +879,9 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	notice := "Tick the entries to remove or hold first; nothing was changed."
-	if n > 0 {
+	if n == 0 {
+		noteRefused(w)
+	} else {
 		notice = fmt.Sprintf(done, views.Count(n, "entry", "entries")) + " They're listed at the end, to restore."
 	}
 	// Back to the list filtered as it was (the form carries its filters).

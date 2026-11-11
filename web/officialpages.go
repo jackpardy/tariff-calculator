@@ -342,6 +342,7 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 	}
 	notice := "Panels and judging saved."
 	if err := settings.Check(); err != nil {
+		noteRefused(w)
 		notice = "Nothing was changed: " + strings.Join(sentences(err), " ")
 	} else if err := p.st.SetOfficialSettings(r.Context(), c.ID, settings); err != nil {
 		failed(w, r, err)
@@ -374,6 +375,7 @@ func (p *competitionPages) addOfficial(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Added " + name + "."
 	if len(problems) > 0 {
+		noteRefused(w)
 		notice = "Nobody was added: " + strings.Join(problems, " ")
 	} else if _, err := p.st.AddOfficial(r.Context(), c.ID, name, club, o); err != nil {
 		failed(w, r, err)

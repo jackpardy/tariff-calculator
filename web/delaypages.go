@@ -22,6 +22,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.Planned {
+		noteRefused(w)
 		back(w, r, "Plan the timetable first.")
 		return
 	}
@@ -79,6 +80,7 @@ func (p *competitionPages) delay(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	noteRefused(w) // a post that gets here kept nothing: it shows the problem
 	render(w, r, views.Delay(page))
 }
 

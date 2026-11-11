@@ -534,6 +534,7 @@ func (p *competitionPages) setLate(w http.ResponseWriter, r *http.Request) {
 	for _, kind := range competitions.LateKinds {
 		fee, err := competitions.ParseMoney(r.FormValue("fee-" + kind))
 		if err != nil {
+			noteRefused(w)
 			seeOther(w, r, back, competitions.LateKindName(kind)+" fee: "+err.Error()+". Nothing was changed.")
 			return
 		}
@@ -570,6 +571,7 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if req == nil {
+		noteRefused(w)
 		seeOther(w, r, back, "That request has been decided already.")
 		return
 	}
@@ -633,11 +635,17 @@ func (p *competitionPages) rejectLate(w http.ResponseWriter, r *http.Request) {
 	back := adminPath(r.PathValue("token")) + "/late"
 	reason := limitNote(strings.TrimSpace(r.FormValue("reason")))
 	if reason == "" {
+		noteRefused(w)
 		seeOther(w, r, back, "Give a reason: whoever asked sees it.")
 		return
 	}
 	p.notify.changing(r.Context(), c)
-	if err := p.st.RejectLateChange(r.Context(), c.ID, r.PathValue("id"), reason, linkOf(r).Name); err != nil && !errors.Is(err, store.ErrNotFound) {
+	switch err := p.st.RejectLateChange(r.Context(), c.ID, r.PathValue("id"), reason, linkOf(r).Name); {
+	case errors.Is(err, store.ErrNotFound):
+		// Decided in the meantime, by someone else.
+		refuse(w, r, back, "That request has been decided already.")
+		return
+	case err != nil:
 		failed(w, r, err)
 		return
 	}

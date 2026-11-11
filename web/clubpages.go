@@ -893,6 +893,7 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 			failed(w, r, err)
 			return
 		}
+		noteRefused(w)
 		p.renderMemberEdit(w, r, club, m, c, existing, e, problems)
 		return
 	}
@@ -1507,6 +1508,7 @@ func (p *competitionPages) sendCoaches(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Coaches sent: the organiser approves them before they can sign off."
 	if len(r.Form["coach"]) == 0 {
+		noteRefused(w) // nothing to send
 		notice = "No coaches sent."
 	}
 	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id"))+"/coaches", notice)

@@ -132,6 +132,7 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 		}
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 0 || n > store.MaxEntries {
+			noteRefused(w)
 			backToSettings(w, r, fmt.Sprintf("%s: a limit should be a number of entries, or empty for none. Nothing was changed.", event))
 			return
 		}
@@ -237,6 +238,7 @@ func (p *competitionPages) letIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if e.LetIn == on { // let in already, or never was: nothing to do (nor to record)
+		noteRefused(w)
 		backToDashboard(w, r, "It's like that already; nothing was changed.")
 		return
 	}

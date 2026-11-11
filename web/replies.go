@@ -35,6 +35,7 @@ func (p *competitionPages) receivedMessage(w http.ResponseWriter, r *http.Reques
 	}
 	err := p.st.Acknowledge(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name)
 	if errors.Is(err, store.ErrNotFound) {
+		noteRefused(w)
 		seeOther(w, r, concernsBack(r), "That was marked received already; nothing was changed.")
 		return
 	}
@@ -58,6 +59,7 @@ func (p *competitionPages) replyToMessage(w http.ResponseWriter, r *http.Request
 	}
 	reply := limitMessage(r.FormValue("reply"))
 	if reply == "" {
+		noteRefused(w)
 		seeOther(w, r, concernsBack(r), "Write the reply first; nothing was sent.")
 		return
 	}
@@ -74,7 +76,7 @@ func (p *competitionPages) reply(w http.ResponseWriter, r *http.Request, c store
 	_, err := p.st.ReplyTo(r.Context(), c.ID, r.PathValue("id"), linkOf(r).Name, reply)
 	switch {
 	case errors.Is(err, store.ErrLimit):
-		seeOther(w, r, concernsBack(r), fmt.Sprintf("A message takes %d replies and additions; nothing was sent. Speak to them instead.", store.MaxPosts))
+		refuse(w, r, concernsBack(r), fmt.Sprintf("A message takes %d replies and additions; nothing was sent. Speak to them instead.", store.MaxPosts))
 		return store.Concern{}, false
 	case err != nil:
 		failed(w, r, err)

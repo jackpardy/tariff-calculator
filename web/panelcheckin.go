@@ -159,8 +159,10 @@ func (p *competitionPages) markOfficial(w http.ResponseWriter, r *http.Request) 
 	case !ch.found:
 		message(w, r, http.StatusBadRequest, "Not an official on that panel", "That person doesn't have a seat on that flight of the published timetable. It may have been changed: go back and try again.")
 	case late != "":
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
 	case !ch.applies:
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, ch.why, anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.SetOfficialCheckinAt(r.Context(), c.ID, person, ch.flights, status, linkOf(r).Name, at); err != nil {
@@ -400,12 +402,14 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.problem != "" {
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, d.problem+" Nothing was sent.", anchor), http.StatusSeeOther)
 		return
 	}
 	once := notifyOnce(r, c)
 	if once != "" && !sentForms.claim(once, p.now()) {
 		// Sent already: the same form again changes nothing.
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 		return
 	}
@@ -414,6 +418,7 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		sentForms.release(once)
 	}
 	if err == store.ErrLimit {
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages), anchor), http.StatusSeeOther)
 		return
 	}

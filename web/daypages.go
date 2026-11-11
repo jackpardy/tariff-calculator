@@ -551,10 +551,13 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	case !ch.found || !slices.Contains([]string{"start", "warm-up", "finish", "undo-finish", "undo-warm-up", "undo-start"}, what):
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
 	case late != "":
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
 	case !ch.applies && strings.HasPrefix(what, "undo-"):
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, "", anchor), http.StatusSeeOther)
 	case !ch.applies:
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, ch.why, anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.MarkFlightAt(r.Context(), c.ID, key, what, linkOf(r).Name, at); err != nil {

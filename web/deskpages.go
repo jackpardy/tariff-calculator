@@ -365,11 +365,13 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.problem != "" {
+		noteRefused(w)
 		seeOther(w, r, back, d.problem+" Nothing was sent.")
 		return
 	}
 	m, err := p.st.SendDeskMessage(r.Context(), c.ID, d.msg)
 	if err == store.ErrLimit {
+		noteRefused(w)
 		seeOther(w, r, back, fmt.Sprintf("A competition can keep %d messages. Nothing was sent.", store.MaxDeskMessages))
 		return
 	}

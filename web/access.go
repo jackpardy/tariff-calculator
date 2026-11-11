@@ -90,11 +90,13 @@ func access(r *http.Request) views.Access {
 }
 
 // statusRecorder notes a response's status, and whether the handler only
-// asked first (askFirst): nothing changed, so nothing to record.
+// asked first (askFirst) or turned the change down (noteRefused): nothing
+// changed, so nothing to record.
 type statusRecorder struct {
 	http.ResponseWriter
-	status int
-	asked  bool
+	status  int
+	asked   bool
+	refused bool
 }
 
 func (s *statusRecorder) WriteHeader(code int) {
@@ -131,10 +133,10 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 		what := p.describe(r, c, pattern)
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		h(rec, r)
-		// A refusal goes back saying "nothing was changed" (or "events
-		// weren't changed", "the closing time wasn't changed"): nothing to record.
+		// A handler that turns a change down says so (noteRefused). The
+		// words of a notice are a last resort, for a refusal not marked.
 		to := strings.ToLower(rec.Header().Get("Location"))
-		refused := strings.Contains(to, "nothing+was+changed") || strings.Contains(to, "n%27t+changed")
+		refused := rec.refused || strings.Contains(to, "nothing+was+changed") || strings.Contains(to, "n%27t+changed")
 		if rec.status < 400 && !refused && !rec.asked && what != "" && !strings.HasSuffix(pattern, "/delete") {
 			p.st.Record(context.WithoutCancel(r.Context()), c.ID, link.Name, what)
 		}
@@ -385,6 +387,7 @@ func (p *competitionPages) addLink(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" || len([]rune(name)) > 60 || linkKinds[r.FormValue("kind")] == "" {
+		noteRefused(w)
 		backToSettings(w, r, "Give the link a name (who it's for) and say what it can do.")
 		return
 	}
@@ -396,12 +399,14 @@ func (p *competitionPages) addLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if slices.ContainsFunc(links, func(l store.Link) bool { return strings.EqualFold(l.Name, name) }) {
+		noteRefused(w)
 		backToSettings(w, r, fmt.Sprintf("There's already a link called %s; nothing was changed. Give this one another name, or remove that one first.", name))
 		return
 	}
 	l, token, err := p.st.AddLink(r.Context(), c.ID, name, r.FormValue("kind"))
 	if err != nil {
 		if err == store.ErrLimit {
+			noteRefused(w)
 			backToSettings(w, r, fmt.Sprintf("A competition can have %d links: remove one first.", store.MaxLinks))
 			return
 		}
@@ -427,6 +432,7 @@ func (p *competitionPages) removeLink(w http.ResponseWriter, r *http.Request) {
 	}
 	i := slices.IndexFunc(links, func(l store.Link) bool { return l.ID == r.PathValue("id") })
 	if i < 0 {
+		noteRefused(w)
 		backToSettings(w, r, "That link was removed already.")
 		return
 	}
@@ -454,6 +460,7 @@ func (p *competitionPages) removeTie(w http.ResponseWriter, r *http.Request) {
 	}
 	notice := "Removed: their own link no longer opens these pages."
 	if err := p.st.RemoveCompetitionTie(r.Context(), c.ID, r.FormValue("id")); errors.Is(err, store.ErrNotFound) {
+		noteRefused(w)
 		notice = "That was removed already."
 	} else if err != nil {
 		failed(w, r, err)
@@ -504,7 +511,7 @@ func (p *competitionPages) flagConcern(w http.ResponseWriter, r *http.Request) {
 		back = adminPath(r.PathValue("token")) + "/entries/" + entryID + "#entry-notice"
 	}
 	if text == "" {
-		seeOther(w, r, back, "Say what the concern is; nothing was changed.")
+		refuse(w, r, back, "Say what the concern is; nothing was changed.")
 		return
 	}
 	if _, err := p.st.FlagConcern(r.Context(), c.ID, entryID, linkOf(r).Name, text); err != nil {
@@ -524,7 +531,7 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 	reply := limitMessage(r.FormValue("reply"))
 	if reply != "" {
 		if k, err := p.st.Concern(r.Context(), c.ID, r.PathValue("id")); err != nil || !k.Open() {
-			seeOther(w, r, concernsBack(r), "That was resolved already; nothing was changed.")
+			refuse(w, r, concernsBack(r), "That was resolved already; nothing was changed.")
 			return
 		}
 		if _, ok := p.reply(w, r, c, reply); !ok {
@@ -536,7 +543,7 @@ func (p *competitionPages) resolveConcern(w http.ResponseWriter, r *http.Request
 	case errors.Is(err, store.ErrNotFound):
 		// Resolved already (from another page or link), or not there: say so,
 		// so the history doesn't record it again.
-		seeOther(w, r, adminPath(r.PathValue("token"))+"#concerns", "That was resolved already; nothing was changed.")
+		refuse(w, r, adminPath(r.PathValue("token"))+"#concerns", "That was resolved already; nothing was changed.")
 		return
 	case err != nil:
 		failed(w, r, err)
