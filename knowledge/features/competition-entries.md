@@ -2341,6 +2341,13 @@ people with no record left).
   lists them (a set's rules and a level's exercises in words), with **Take
   off** and **Add from this browser** (those saved here not kept yet, in one
   go).
+- **Following the person** (2026-11-11). Kept requirements belong to the
+  person, not a link. Adding another of your links to your page moves what
+  that page kept onto yours (`moveKept`, `store/kept.go`; the newer of two with
+  the same kind and id stays; over the 50 limit all stay, and only new ones
+  are stopped); taking a role off again leaves them where they are. A new
+  link from the comp sec for a member or coach takes them to the new link,
+  unless another of that person's pages still exists, which keeps them.
 
 ## Routines on your page (ADR 0011)
 

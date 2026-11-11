@@ -399,6 +399,10 @@ func (s *Store) merge(ctx context.Context, tx *sql.Tx, into, from string) error 
 			return err
 		}
 	}
+	// What they kept on either page is kept on the one page (ADR 0013).
+	if err := moveKept(ctx, tx, from, into); err != nil {
+		return err
+	}
 	// Each competition where they now have more than one key keeps the one
 	// entered first; the others' saved keys become it, unless someone else
 	// (another individual of the same name, from before) still has them.
@@ -503,7 +507,9 @@ func (s *Store) Untie(ctx context.Context, token, kind, id string) error {
 
 // split makes one of a person's records a person of its own. An individual
 // leaving takes a key of its own in each competition it shares one with the
-// person; what was saved under the key stays with the person.
+// person; what was saved under the key stays with the person, and so do the
+// requirements they kept (ADR 0013): the page it left is the one that has
+// them, and the record leaving starts with none.
 func (s *Store) split(ctx context.Context, tx *sql.Tx, kind, id, personID string) error {
 	table := map[string]string{RoleMember: "members", RoleCoach: "coaches", RoleIndividual: "individuals"}[kind]
 	if err := affected(tx.ExecContext(ctx, `UPDATE `+table+` SET person_id = $1 WHERE id = $2 AND person_id = $3`, newID(), id, personID)); err != nil {
