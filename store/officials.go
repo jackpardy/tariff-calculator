@@ -100,6 +100,40 @@ func (s *Store) ClubOffers(ctx context.Context, clubID, competitionID string) (m
 	return out, rows.Err()
 }
 
+// HeldOffer is what the organiser holds of a club member's offer: the copy
+// made when the club last sent its entries.
+type HeldOffer struct {
+	MemberID string
+	Name     string
+	Offer    competitions.Offer
+}
+
+// ClubHeldOffers are the offers the organiser holds from a club's members at
+// a competition, by member: what the club has sent, to compare with what
+// members offer now (ClubOffers). The judging qualifications and certificates
+// beside an offer aren't copied: the organiser reads them from the member's.
+func (s *Store) ClubHeldOffers(ctx context.Context, clubID, competitionID string) (map[string]HeldOffer, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT member_id, name, offer FROM officials
+		WHERE competition_id = $1 AND club_id = $2 AND NOT added AND COALESCE(member_id, '') <> ''`, competitionID, clubID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]HeldOffer{}
+	for rows.Next() {
+		var h HeldOffer
+		var data string
+		if err := rows.Scan(&h.MemberID, &h.Name, &data); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(data), &h.Offer); err != nil {
+			return nil, err
+		}
+		out[h.MemberID] = h
+	}
+	return out, rows.Err()
+}
+
 // sendOffers makes the competition's officials from a club exactly what its
 // members offer now, keeping the organiser's qualified marks. It's part of
 // sending the club's entries.

@@ -847,6 +847,16 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   synchronisation, like HD, at any level (`Offer.For`). The organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
+  offer counts as something to send like an entry: one the organiser doesn't
+  hold yet is **Not sent**, one that differs from what the organiser holds
+  (or that was withdrawn since) is **Changed since sent**, else **Sent**
+  (`offersUnsent`, comparing the offer with the organiser's copy in
+  `officials`: `ClubHeldOffers`). The club page's "2 offers to send", the
+  button's count, "All sent", the Judging and helping tab's chips and the
+  member's own page (the same words, under their offer) all go by it, and the
+  notice says what went: "Sent 1 entry and 2 offers to judge or help".
+  Judging qualifications and certificates aren't copied with the offer: the
+  organiser reads them from the member's, so they don't count as a change. An
   individual offers on their entry, one offer for the competition: made on
   any of their entries there (for the same gymnast), it's the same on each
   (`store.sameGymnast`), and withdrawing one entry moves it to another.

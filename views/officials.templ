@@ -13,6 +13,8 @@ type OfferForm struct {
 	Recorder    bool
 	Marshal     bool
 	Summary     string // what they offer now, "" for nothing
+	Sent        string // for a club's member: Not sent, Changed since sent or Sent; "" for anyone else
+	SentState   State
 	Note        string // e.g. that an individual's offer is the same on each of their entries
 	Organiser   string // the organiser's note to those offering, "" for none
 	Problems    []string
@@ -194,6 +196,14 @@ templ offerBox(f OfferForm) {
 	<div class="mt-4">
 		@changeLine("Judging and helping", offerNow(f), len(f.Problems) > 0) {
 			@offerForm(f)
+		}
+		if f.Sent != "" {
+			<p class="is-size-7 mt-1">
+				@StateChip(f.SentState, f.Sent)
+				if f.Sent != "Sent" {
+					Your club sends it with its entries.
+				}
+			</p>
 		}
 	</div>
 }
