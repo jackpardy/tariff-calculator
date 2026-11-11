@@ -46,11 +46,15 @@ const MAX_PAGES = 60;
 // A copy older than this is dropped, so a phone doesn't keep an admin or
 // helper page for good.
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+// How long the server gets to start answering before a kept copy is shown, and
+// before the offline page is when there is no copy to show.
 const NETWORK_WAIT_MS = 4000;
+const NETWORK_WAIT_NO_COPY_MS = 15000;
 const OFFLINE_PAGE = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Offline</title></head>' +
     '<body style="font-family: sans-serif; max-width: 30rem; margin: 3rem auto; padding: 0 1rem">' +
-    "<h1>You're offline</h1><p>You're offline, and this page hasn't been opened on this phone before.</p></body></html>";
+    "<h1>You're offline</h1><p>You're offline, or the server is slow to answer, and this page hasn't been opened on this phone before.</p>" +
+    '<p><a href="" style="display: inline-block; padding: 0.5rem 1rem; background: #485fc7; color: #fff; border-radius: 6px; text-decoration: none">Try again</a></p></body></html>';
 
 self.addEventListener('install', () => {
     self.skipWaiting();
@@ -94,14 +98,14 @@ async function trimPages(cache) {
 }
 
 // pageFromNetwork fetches a page, giving up if the server hasn't started
-// answering within NETWORK_WAIT_MS, so that a poor connection falls back to the
+// answering within waitMs, so that a poor connection falls back to the
 // copy at once. Once it has, the page comes through however slowly, as it would
 // without this worker. Only good, same-origin responses are kept, and only once
 // the whole page has arrived (see keep). A page the server says isn't there
 // (404) or is gone (410), such as a replaced or deleted link's, drops its copy.
-async function pageFromNetwork(request, event) {
+async function pageFromNetwork(request, event, waitMs) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), NETWORK_WAIT_MS);
+    const timer = setTimeout(() => controller.abort(), waitMs);
     let response;
     try {
         response = await fetch(request, { signal: controller.signal });
@@ -131,24 +135,36 @@ async function keep(url, response) {
     await trimPages(cache);
 }
 
+// keptCopy is the copy of a page kept on this phone, or undefined if there
+// isn't one or it is too old (which is dropped).
+async function keptCopy(url) {
+    const cache = await caches.open(PAGES);
+    const cached = await cache.match(url);
+    if (cached && tooOld(cached)) {
+        await cache.delete(url);
+        return undefined;
+    }
+    return cached;
+}
+
 // page is network first: the live page when the connection answers in time,
 // else the copy last seen (unless it's too old), else a short page saying
-// there isn't one.
+// there isn't one. With a copy to fall back to the server gets NETWORK_WAIT_MS;
+// without one it gets NETWORK_WAIT_NO_COPY_MS, as the alternative is a bare
+// page.
 async function page(request, event) {
+    const copy = await keptCopy(request.url);
     try {
-        return await pageFromNetwork(request, event);
+        return await pageFromNetwork(request, event, copy ? NETWORK_WAIT_MS : NETWORK_WAIT_NO_COPY_MS);
     } catch (e) {
-        const cache = await caches.open(PAGES);
-        let cached = await cache.match(request.url);
-        if (cached && tooOld(cached)) {
-            await cache.delete(request.url);
-            cached = undefined;
-        }
-        if (cached) {
+        if (copy) {
             // Show the page's "you're offline" note: on a slow connection the
-            // phone still counts as online, so the page itself wouldn't.
-            const html = (await cached.text()).replace(' comp-offline" hidden>', ' comp-offline" data-from-copy>');
-            return new Response(html, { headers: cached.headers });
+            // phone still counts as online, so the page itself wouldn't. A
+            // timeout (our own abort) is marked too, so the note says the
+            // page is slow rather than that the phone is offline.
+            const mark = e && e.name === 'AbortError' ? ' data-from-copy data-from-slow' : ' data-from-copy';
+            const html = (await copy.text()).replace(' comp-offline" hidden>', ' comp-offline"' + mark + '>');
+            return new Response(html, { headers: copy.headers });
         }
         return new Response(OFFLINE_PAGE, {
             status: 503,
@@ -159,14 +175,26 @@ async function page(request, event) {
 
 // asset is cache first: static URLs carry a version (?v=hash), so a cached one
 // is never stale. Keeping a new version of a file drops the older ones, which
-// would otherwise pile up with every release.
+// would otherwise pile up with every release. A page kept before a release
+// still asks for the older version, which is gone once a newer one has been
+// kept, so when the network fails the newest kept copy of the same file is
+// served: a slightly newer file beats a page without styles or scripts.
 async function asset(request, event) {
     const cache = await caches.open(STATIC);
     const cached = await cache.match(request);
     if (cached) {
         return cached;
     }
-    const response = await fetch(request);
+    let response;
+    try {
+        response = await fetch(request);
+    } catch (e) {
+        const other = await cache.match(request.url, { ignoreSearch: true });
+        if (other) {
+            return other;
+        }
+        throw e;
+    }
     if (response.ok && response.type === 'basic') {
         await cache.put(request.url, response.clone());
         event.waitUntil(dropOlder(cache, request.url).catch(() => {}));

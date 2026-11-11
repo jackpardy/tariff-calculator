@@ -8,17 +8,37 @@ const src = fs.readFileSync(process.argv[2], 'utf8');
 const store = new Map(); // url -> Response
 const cache = {
     async keys() { return [...store.keys()].map((u) => ({ url: u, toString() { return u; } })); },
-    async match(k) { const r = store.get(typeof k === 'string' ? k : k.url); return r ? r.clone() : undefined; },
+    async match(k, opts) {
+        const u = typeof k === 'string' ? k : k.url;
+        let r = store.get(u);
+        if (!r && opts && opts.ignoreSearch) {
+            const path = new URL(u).pathname;
+            for (const [key, v] of store) { if (new URL(key).pathname === path) { r = v; } }
+        }
+        return r ? r.clone() : undefined;
+    },
     async put(u, r) { store.set(u, r); },
     async delete(k) { return store.delete(typeof k === 'string' ? k : k.url); },
 };
 const listeners = {};
 let nextFetch;
+let fetchDelay = 0; // fake ms before nextFetch answers (honours an abort)
+const SCALE = 100; // timers run 100 times faster, so 4 s and 15 s are quick
 const ctx = {
     self: { addEventListener: (n, f) => { listeners[n] = f; }, location: { origin: 'https://x' }, registration: {}, clients: { claim: async () => {} }, skipWaiting() {} },
     caches: { open: async () => cache, keys: async () => ['pages-v1'], delete: async () => true, match: async (u) => cache.match(u) },
-    fetch: async () => { const f = nextFetch; if (f instanceof Error) throw f; return f; },
-    Response, URL, AbortController, setTimeout, clearTimeout, Date, Promise, Number,
+    fetch: async (req, init) => {
+        const f = nextFetch;
+        if (fetchDelay) {
+            await new Promise((resolve, reject) => {
+                const t = setTimeout(resolve, fetchDelay / SCALE);
+                init?.signal?.addEventListener('abort', () => { clearTimeout(t); reject(Object.assign(new Error('aborted'), { name: 'AbortError' })); });
+            });
+        }
+        if (f instanceof Error) throw f;
+        return f;
+    },
+    Response, URL, AbortController, setTimeout: (f, ms) => setTimeout(f, ms / SCALE), clearTimeout, Date, Promise, Number,
 };
 vm.createContext(ctx);
 vm.runInContext(src, ctx);
@@ -97,4 +117,51 @@ await Promise.all(assetWaits);
 check('a new version of a static file is kept', (await r.text()) === 'new' && store.has('https://x/static/js/app.js?v=new'));
 check('the older version is dropped', !store.has('https://x/static/js/app.js?v=old'));
 check('other files are left', store.has('https://x/static/css/app.css?v=old'));
+// A page kept before a deploy asks for the older version of a file. Offline,
+// it gets the kept newer one.
+store.clear();
+nextFetch = ok('css1', new Date());
+await ctx.asset({ url: 'https://x/static/css/styles.css?v=1' }, { waitUntil: () => {} });
+nextFetch = ok('css2', new Date());
+const w2 = [];
+await ctx.asset({ url: 'https://x/static/css/styles.css?v=2' }, { waitUntil: (p) => w2.push(p) });
+await Promise.all(w2);
+check('v=1 is dropped once v=2 is kept', !store.has('https://x/static/css/styles.css?v=1') && store.has('https://x/static/css/styles.css?v=2'));
+nextFetch = new Error('offline');
+r = await ctx.asset({ url: 'https://x/static/css/styles.css?v=1' }, { waitUntil: () => {} });
+check('offline, the older version gets the kept newer one', (await r.text()) === 'css2');
+let threw = false;
+try { await ctx.asset({ url: 'https://x/static/css/never.css?v=1' }, { waitUntil: () => {} }); } catch (e) { threw = true; }
+check('offline, a file never kept still fails', threw);
+
+// A slow answer. No kept copy: wait past 4 s, and take the page if it
+// arrives before 15 s.
+store.clear();
+nextFetch = ok('<p>fresh</p>', new Date());
+fetchDelay = 8000;
+r = await page({ url: 'https://x/competitions/new-page' });
+check('a never-kept page waits past 4 s and gets the page', r.status === 200 && (await r.text()) === '<p>fresh</p>');
+// Never arriving: the offline page, with Try again.
+fetchDelay = 20000;
+r = await page({ url: 'https://x/competitions/new-page2' });
+const offlineHTML = await r.text();
+check('after 15 s the offline page has Try again', r.status === 503 && offlineHTML.includes('Try again'));
+// A kept copy: the 4 s fallback stays, and the banner says the page is slow.
+store.set('https://x/competitions/kept', ok('<p class="x comp-offline" hidden>k</p>', new Date()));
+nextFetch = ok('<p>fresh</p>', new Date());
+fetchDelay = 8000;
+r = await page({ url: 'https://x/competitions/kept' });
+let html = await r.text();
+check('a kept copy is shown after 4 s, marked as slow', html.includes('data-from-copy') && html.includes('data-from-slow'));
+// A real failure is marked as a copy only.
+fetchDelay = 0;
+nextFetch = new Error('offline');
+r = await page({ url: 'https://x/competitions/kept' });
+html = await r.text();
+check('a real failure is not marked as slow', html.includes('data-from-copy') && !html.includes('data-from-slow'));
+// A kept copy yields to a page answering in time.
+nextFetch = ok('<p>live</p>', new Date());
+fetchDelay = 2000;
+r = await page({ url: 'https://x/competitions/kept' });
+check('a kept copy yields to a page answering within 4 s', (await r.text()) === '<p>live</p>');
 process.exit(fails ? 1 : 0);
