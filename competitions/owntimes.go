@@ -120,39 +120,41 @@ func (s *Schedule) SetTimes(timings map[string]Timings, events map[string]EventT
 	return s.retime(fixed)
 }
 
-// KeepOwnTimes gives a fresh plan's flights, after KeepIDs, the own times of
-// the flights whose IDs they kept, and times it again (Retime). old are the
-// flights the plan replaces (the draft's, placed and not). It says which of
-// them had own times that are dropped, because no new flight has their ID,
-// so the page can name them first, and which flights' times the own times
-// changed.
-func (s *Schedule) KeepOwnTimes(old []ScheduledFlight) (dropped []ScheduledFlight, shifts []FlightShift) {
+// Replan plans a timetable again, as PlanStaffed does, its fresh flights
+// keeping what the flights they were had. Once the flights are made, and
+// before any is placed, each takes the ID of the flight it was, as KeepIDs
+// gives them (old: the published flights, then the draft's; fresh says
+// which nothing has happened to yet), and that flight's own times in the
+// draft (draft: its flights, placed and not), so it's placed at its true
+// length. It says which of the draft's flights had own times that no fresh
+// flight took, because none is that flight any more.
+func Replan(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64, old, draft []ScheduledFlight, fresh func(id string) bool) (Schedule, []ScheduledFlight) {
 	own := map[string]ScheduledFlight{}
 	var keys []string
-	for _, g := range old {
-		if _, seen := own[FlightKey(g)]; g.OwnTimes() && !seen {
-			own[FlightKey(g)] = g
-			keys = append(keys, FlightKey(g))
+	for _, g := range draft {
+		if _, seen := own[g.ID]; g.ID != "" && g.OwnTimes() && !seen {
+			own[g.ID] = g
+			keys = append(keys, g.ID)
 		}
 	}
-	kept := map[string]bool{}
-	for _, fs := range [][]ScheduledFlight{s.Flights, s.Unplaced} {
-		for i := range fs {
-			if g, ok := own[FlightKey(fs[i])]; ok {
-				fs[i].WarmUpMinutes, fs[i].CompetingMinutes = cloneInt(g.WarmUpMinutes), cloneInt(g.CompetingMinutes)
-				kept[FlightKey(fs[i])] = true
+	taken := map[string]bool{}
+	s := planStaffed(entries, eventOrder, setup, staff, seed, func(flights []ScheduledFlight) {
+		made := Schedule{Flights: flights}
+		made.keepIDs(old, fresh)
+		for i := range flights {
+			if g, ok := own[flights[i].ID]; ok {
+				flights[i].WarmUpMinutes, flights[i].CompetingMinutes = cloneInt(g.WarmUpMinutes), cloneInt(g.CompetingMinutes)
+				taken[g.ID] = true
 			}
 		}
-	}
+	})
+	var dropped []ScheduledFlight
 	for _, k := range keys {
-		if !kept[k] {
+		if !taken[k] {
 			dropped = append(dropped, own[k])
 		}
 	}
-	if len(kept) == 0 {
-		return dropped, nil
-	}
-	return dropped, s.retime(nil)
+	return s, dropped
 }
 
 // cloneInt is a copy of an optional number, so two flights never share one.

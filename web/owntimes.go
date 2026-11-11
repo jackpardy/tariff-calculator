@@ -122,15 +122,19 @@ func (p *competitionPages) tryTimes(w http.ResponseWriter, r *http.Request, c st
 			return
 		}
 		var dropped []competitions.ScheduledFlight
+		misfit := ""
 		err := p.changeDraft(r, c, func(s *competitions.Schedule) error {
 			if _, err := ch.change(s, fixed); err != nil {
 				return timesRefused(err)
 			}
 			var err error
-			dropped, err = p.replan(c, s, entries, people, same, marks)
-			return err
+			if dropped, err = p.replan(c, s, entries, people, same, marks); err != nil {
+				return err
+			}
+			misfit = notFitting(*s, entries, same)
+			return nil
 		})
-		notice := ch.done + " Planned the timetable again with them."
+		notice := ch.done + " Planned the timetable again with them." + misfit
 		if len(dropped) > 0 {
 			notice += " Own times dropped: " + flightNames(dropped) + "."
 		}
@@ -207,9 +211,10 @@ func movedLine(shifts []competitions.FlightShift, days []competitions.Day) strin
 }
 
 // replan plans the timetable s afresh from its setup, as Plan again does:
-// keeping flights' IDs (so what's marked on the day stays with them), their
-// own times where the flight is still there afterwards, and giving every
-// panel its officials. It says which flights' own times were dropped.
+// keeping flights' IDs (so what's marked on the day stays with them) and
+// their own times where the flight is still there afterwards, placing them
+// at that length (competitions.Replan), and giving every panel its
+// officials. It says which flights' own times were dropped.
 func (p *competitionPages) replan(c store.Competition, s *competitions.Schedule, entries []store.Entry, people []competitions.RotaPerson, same samePeople, marks dayMarks) ([]competitions.ScheduledFlight, error) {
 	if err := s.Setup.Check(c.EventNames()); err != nil {
 		return nil, refused("Fix the setup first: " + strings.Join(sentences(err), " "))
@@ -222,11 +227,22 @@ func (p *competitionPages) replan(c store.Competition, s *competitions.Schedule,
 		old = slices.Clone(c.Published.Flights)
 	}
 	old = slices.Concat(old, draft)
-	*s = competitions.PlanStaffed(schedEntries(entries, same), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()))
-	s.KeepIDs(old, func(id string) bool { return !marks.underWay(id) })
-	dropped, _ := s.KeepOwnTimes(draft)
+	var dropped []competitions.ScheduledFlight
+	*s, dropped = competitions.Replan(schedEntries(entries, same), c.EventNames(), s.Setup, staffing(c.Competition, people), uint64(p.now().UnixNano()),
+		old, draft, func(id string) bool { return !marks.underWay(id) })
 	p.staff(s, c, entries, people, same)
 	return dropped, nil
+}
+
+// notFitting is what a plan's notice adds when something doesn't fit:
+// flights or blocked time left out, or anything the timetable's problems
+// list (a flight past the end of its day, say).
+func notFitting(s competitions.Schedule, entries []store.Entry, same samePeople) string {
+	people, names := clashPeople(entries, same)
+	if len(s.Unplaced)+len(s.UnplacedBlocks) > 0 || len(s.Problems(people, names)) > 0 {
+		return " Some of it doesn't fit: see below."
+	}
+	return ""
 }
 
 // planAgainSays is what planning again does, in the words Plan again uses,

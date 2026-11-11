@@ -393,9 +393,7 @@ func (p *competitionPages) planTimetable(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			return err
 		}
-		if n := len(s.Unplaced) + len(s.UnplacedBlocks); n > 0 {
-			notice += " Some of it doesn't fit: see below."
-		}
+		notice += notFitting(*s, entries, same)
 		if len(dropped) > 0 {
 			notice += " Own times dropped: " + flightNames(dropped) + "."
 		}

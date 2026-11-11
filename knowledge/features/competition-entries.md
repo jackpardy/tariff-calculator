@@ -1170,9 +1170,11 @@ are then filled flight by flight.
   plan posted anyway is refused, nothing changed. Before then, **Plan again**
   asks once, on **Before you change it** (what was changed by hand is lost),
   with no browser pop-up first. Planning again keeps flights' own times
-  where the flight is still there (`Schedule.KeepOwnTimes`, by the IDs
-  `KeepIDs` kept), and the ask names any it would drop (planned on a copy
-  first); so does the notice after. Changes by hand (moves,
+  where the flight is still there (`competitions.Replan`: each fresh flight
+  takes its old flight's ID, by `KeepIDs`' rule, and own times before it's
+  placed, so it's placed at that length, or left out where there's no
+  room), and the ask names any it would drop (planned on a copy first); so
+  does the notice after, and it says when some of it doesn't fit. Changes by hand (moves,
   seats, redraws) and the "what ifs" still work. **Publish changes** says
   first what a new draft would no longer show (`dayMarks.lost`): flights started or finished
   that aren't in it (their times and who's up are dropped, by name), panel

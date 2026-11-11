@@ -544,8 +544,17 @@ func PlanSchedule(entries []SchedEntry, eventOrder []string, setup Setup, seed u
 // PlanStaffed is PlanSchedule, also preferring times when enough of each
 // event's judges are free to fill its panel.
 func PlanStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64) Schedule {
+	return planStaffed(entries, eventOrder, setup, staff, seed, nil)
+}
+
+// planStaffed is PlanStaffed; keep, if any, gives the flights IDs and own
+// times once they're made, before they're placed.
+func planStaffed(entries []SchedEntry, eventOrder []string, setup Setup, staff *Staffing, seed uint64, keep func([]ScheduledFlight)) Schedule {
 	rng := rand.New(rand.NewPCG(seed, 7))
 	flights, people := flightsOf(entries, eventOrder, setup, rng)
+	if keep != nil {
+		keep(flights)
+	}
 	runs := runsOf(flights)
 	// Longest first packs the days best, after the events a must ties to a
 	// day or area, which have least choice.
@@ -881,7 +890,8 @@ func (p *planner) layout(run []ScheduledFlight, lengths []int, area string, day,
 		if p.setup.AcrossBreaks {
 			t = p.afterBlocks(area, day, t, lengths[k])
 		}
-		out[k] = ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: area, Start: t, End: t + lengths[k], CompetingAt: t + p.setup.lead(f)}
+		out[k] = f
+		out[k].Day, out[k].Area, out[k].Start, out[k].End, out[k].CompetingAt = day, area, t, t+lengths[k], t+p.setup.lead(f)
 		t += lengths[k]
 	}
 	return out

@@ -59,6 +59,12 @@ func (s *Schedule) identify(next func() uint64) {
 // its panel's check-ins follow the seat. A flight that's none of them never
 // has an old flight's ID.
 func (s *Schedule) KeepIDs(old []ScheduledFlight, fresh func(id string) bool) {
+	s.keepIDs(old, fresh)
+	s.Identify()
+}
+
+// keepIDs is KeepIDs, leaving the flights that keep none without an ID.
+func (s *Schedule) keepIDs(old []ScheduledFlight, fresh func(id string) bool) {
 	gymnasts := func(f ScheduledFlight) []string {
 		out := slices.Clone(f.Entries)
 		slices.Sort(out)
@@ -103,7 +109,6 @@ func (s *Schedule) KeepIDs(old []ScheduledFlight, fresh func(id string) bool) {
 			}
 		}
 	}
-	s.Identify()
 }
 
 // Actual is when a flight really started and finished (zero for not yet).

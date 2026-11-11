@@ -441,33 +441,70 @@ func TestTimesBreaks(t *testing.T) {
 	}), "B runs either side of Lunch")
 }
 
-// Planning again keeps a flight's own times where a new flight kept its ID,
-// and says which it drops.
-func TestKeepOwnTimes(t *testing.T) {
+// Planning again keeps a flight's own times with the flight, by the IDs it
+// keeps, and places it at that length: on a day with room it fits like any
+// other flight, and with none it's left out. Own times whose flight is gone
+// are said to be dropped.
+func TestReplanOwnTimes(t *testing.T) {
 	entries := append(people("L1", Trampoline, 14), people("L2", Trampoline, 6)...)
+	events := []string{"L1", "L2"}
+	// One panel, two days of 6 hours: both events fit on the first by the
+	// averages, and not once L1's flight has its own times.
 	setup := venue()
 	setup.Areas = setup.Areas[:1]
-	old := PlanSchedule(entries, []string{"L1", "L2"}, setup, 1)
-	old.Flights[0].WarmUpMinutes = ptr(30)
-	gone := ScheduledFlight{ID: "gone", Flight: Flight{Event: "L9"}, CompetingMinutes: ptr(20)}
-	fresh := PlanSchedule(entries, []string{"L1", "L2"}, setup, 2)
-	fresh.KeepIDs(old.Flights, func(string) bool { return true })
-	dropped, shifts := fresh.KeepOwnTimes(append(slices.Clone(old.Flights), gone))
-	if len(dropped) != 1 || dropped[0].ID != "gone" {
-		t.Errorf("only gone's own times dropped: %+v", dropped)
+	setup.Days = []Day{{Name: "Saturday", Start: "09:00", End: "15:00"}, {Name: "Sunday", Start: "09:00", End: "15:00"}}
+	draft := PlanSchedule(entries, events, setup, 1)
+	if slices.ContainsFunc(draft.Flights, func(f ScheduledFlight) bool { return f.Day != 0 }) {
+		t.Fatal("by the averages, all on Saturday")
 	}
-	i := slices.IndexFunc(fresh.Flights, func(f ScheduledFlight) bool { return f.ID == old.Flights[0].ID })
-	if i < 0 {
-		t.Fatal("the flight kept its ID")
+	i := slices.IndexFunc(draft.Flights, func(f ScheduledFlight) bool { return f.Event == "L1" && f.Number == 1 })
+	draft.Flights[i].WarmUpMinutes = ptr(240) // L1 is then 330 minutes of the day's 360
+	id := draft.Flights[i].ID
+	all := func(string) bool { return true }
+	own := func(s Schedule) (ScheduledFlight, bool) {
+		for _, f := range slices.Concat(s.Flights, s.Unplaced) {
+			if f.ID == id {
+				return f, true
+			}
+		}
+		return ScheduledFlight{}, false
 	}
-	f := fresh.Flights[i]
-	if f.WarmUpMinutes == nil || *f.WarmUpMinutes != 30 || f.End-f.Start != setup.duration(f) || f.CompetingAt != f.Start+10+30 {
-		t.Errorf("its own warm-up carried and timed: %+v", f)
+	for seed := range uint64(5) {
+		s, dropped := Replan(entries, events, setup, nil, seed, draft.Flights, draft.Flights, all)
+		f, ok := own(s)
+		if !ok || f.WarmUpMinutes == nil || *f.WarmUpMinutes != 240 || len(dropped) != 0 {
+			t.Fatalf("seed %d: the flight keeps its ID and own times: %+v, dropped %v", seed, f, dropped)
+		}
+		if len(s.Unplaced) > 0 || f.End-f.Start != setup.duration(f) || f.CompetingAt != f.Start+10+240 {
+			t.Errorf("seed %d: placed at its true length: %s–%s, %d unplaced", seed, Clock(f.Start), Clock(f.End), len(s.Unplaced))
+		}
+		check(t, s) // nothing past the day's end, nothing overlapping
 	}
-	if len(shifts) == 0 {
-		t.Error("the longer flight moved something")
+
+	// A gymnast fewer in L1: the flight is known by its number, and its
+	// own times go where its ID does.
+	fewer := slices.DeleteFunc(slices.Clone(entries), func(e SchedEntry) bool { return e.ID == draft.Flights[i].Entries[0] })
+	s, _ := Replan(fewer, events, setup, nil, 1, draft.Flights, draft.Flights, all)
+	if f, ok := own(s); !ok || f.Event != "L1" || f.Number != 1 || f.WarmUpMinutes == nil {
+		t.Errorf("by its number, the ID and own times together: %+v", f)
 	}
-	check(t, fresh)
+
+	// No room for it: left out, with its own times, not run past the end.
+	draft.Flights[i].WarmUpMinutes = ptr(400)
+	s, _ = Replan(entries, events, setup, nil, 1, draft.Flights, draft.Flights, all)
+	if f, ok := own(s); !ok || !slices.ContainsFunc(s.Unplaced, func(g ScheduledFlight) bool { return g.ID == id }) || f.WarmUpMinutes == nil {
+		t.Errorf("left out: %+v", s.Unplaced)
+	}
+	check(t, s)
+
+	// L1 no longer entered: its own times are dropped.
+	s, dropped := Replan(people("L2", Trampoline, 6), events, setup, nil, 1, draft.Flights, draft.Flights, all)
+	if len(dropped) != 1 || dropped[0].ID != id {
+		t.Errorf("dropped: %+v", dropped)
+	}
+	if _, ok := own(s); ok {
+		t.Error("no flight has its ID")
+	}
 }
 
 // The delay "what if": quicker turns shorten competing only, shorter

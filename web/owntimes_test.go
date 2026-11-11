@@ -256,28 +256,43 @@ func TestFlightTimesDontFit(t *testing.T) {
 	if !strings.Contains(body, `href="`+tt+`#day-0-area-Panel_201"`) || strings.Contains(do(t, h, http.MethodGet, tt, nil).Body.String(), "its own times") {
 		t.Error("Leave it goes back, nothing changed")
 	}
-	fields := func() url.Values {
-		f := url.Values{}
-		for _, m := range regexp.MustCompile(`<input type="hidden" name="([^"]+)" value="([^"]*)"`).FindAllStringSubmatch(body[:strings.Index(body, "Plan again with these times")], -1) {
-			f.Set(m[1], unescape(m[2]))
-		}
-		return f
-	}()
+	fields := planFields(t, body)
 	if fields.Get("plan") != "1" {
 		t.Fatalf("Plan again posts plan=1: %v", fields)
 	}
 
-	// Plan again with these times: planned again, the flight keeping them.
+	// Plan again with these times, with no room for the event on the day:
+	// it's left out, not run past the end, and the notice says so.
 	location := redirected(t, h, tt+"/times", fields)
-	if n := noticeOf(t, location); !strings.HasPrefix(n, "Times saved. Planned the timetable again with them.") {
+	if n := noticeOf(t, location); n != "Times saved. Planned the timetable again with them. Some of it doesn't fit: see below." {
 		t.Errorf("planned again: %s", n)
 	}
 	page := do(t, h, http.MethodGet, tt, nil).Body.String()
-	if !strings.Contains(page, "its own times") || !strings.Contains(page, "competing 09:10 · finishes about 10:10") {
-		t.Error("the flight keeps its own times when planned again")
+	if strings.Contains(page, "runs past the end") {
+		t.Error("nothing runs past the end of the day")
 	}
 	if !historyHas(t, h, admin, "Organiser", "Changed a flight's times and planned the timetable again") {
 		t.Error("the history says so")
+	}
+
+	// With a Sunday too, a long warm-up is planned in like any other
+	// flight: the event goes on Sunday, nothing past the end of a day.
+	h, _, _, tt = flightTimesSetup(t, true)
+	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"10:30"}, "add": {"1"}})
+	redirected(t, h, tt+"/setup/days", url.Values{"day-0-name": {"Saturday"}, "day-0-start": {"09:00"}, "day-0-end": {"10:30"},
+		"day-1-name": {"Sunday"}, "day-1-start": {"09:00"}, "day-1-end": {"12:00"}})
+	res = timesPost(t, h, tt, first, "60", "15", nil)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("a 60-minute warm-up asks first: %d", res.StatusCode)
+	}
+	location = redirected(t, h, tt+"/times", planFields(t, readBody(t, res)))
+	if n := noticeOf(t, location); n != "Times saved. Planned the timetable again with them." {
+		t.Errorf("planned again, all of it fitting: %s", n)
+	}
+	page = do(t, h, http.MethodGet, tt, nil).Body.String()
+	if !strings.Contains(page, "its own times") || !strings.Contains(page, "Warm-up 09:00 · competing 10:10 · finishes about 10:25") ||
+		strings.Contains(page, "runs past the end") || strings.Contains(page, "Problems to look at") {
+		t.Error("the flight keeps its own times, placed at that length on Sunday")
 	}
 
 	// Made anyway: what it breaks shows with the problems.
@@ -394,6 +409,21 @@ func TestTimelineCSVCompeting(t *testing.T) {
 	if err != nil || len(rows) < 3 || rows[1][3] != "Competing from" || rows[2][3] != "09:10" {
 		t.Errorf("the CSV: %v %v", rows, err)
 	}
+}
+
+// planFields are the fields Plan again with these times posts, from the
+// ask's page.
+func planFields(t *testing.T, body string) url.Values {
+	t.Helper()
+	i := strings.Index(body, "Plan again with these times")
+	if i < 0 {
+		t.Fatal("no Plan again with these times")
+	}
+	f := url.Values{}
+	for _, m := range regexp.MustCompile(`<input type="hidden" name="([^"]+)" value="([^"]*)"`).FindAllStringSubmatch(body[:i], -1) {
+		f.Set(m[1], unescape(m[2]))
+	}
+	return f
 }
 
 // readBody is a response's body, as text.

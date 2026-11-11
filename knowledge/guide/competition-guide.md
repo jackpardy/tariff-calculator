@@ -418,7 +418,9 @@ a **Change** button to open it.
    says what moved ("1 flight on Panel 2 starts 5 minutes later"). If that
    would break something, **Before you change it** says what, and offers
    **Plan again with these times** (it names any flight whose own times
-   planning again would drop), **Make the change anyway** or **Leave it**.
+   planning again would drop; the plan fits the flight in at its own
+   length, or says what doesn't fit), **Make the change anyway** or
+   **Leave it**.
    Once the competition has begun there's no planning again, and a flight
    that has started keeps its times (correct them on **On the day**).
    Moving a gymnast in or out of a flight keeps its own times.
