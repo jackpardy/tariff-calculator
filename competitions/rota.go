@@ -83,6 +83,7 @@ type RotaPerson struct {
 	// take a seat.
 	Offer       string
 	Unqualified bool
+	Gone        []string // levels their offer says "up to" that the competition hasn't any more (Competition.GoneLevels)
 }
 
 // whyNot says why they can't take a role at an event, after a colon: "they
@@ -91,6 +92,9 @@ func (p RotaPerson) whyNot(role string) string {
 	switch {
 	case p.Unqualified && isJudge(role):
 		return "they aren't marked qualified"
+	case len(p.Gone) > 0 && slices.Contains(LevelRoles, role):
+		line := GoneLine(p.Gone)
+		return strings.ToLower(line[:1]) + line[1:]
 	case p.Offer == "":
 		return "they offer nothing"
 	}

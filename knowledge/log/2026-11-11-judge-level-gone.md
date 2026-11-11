@@ -1,0 +1,1 @@
+* **Update**: [A judge offering "up to" a level that has gone](features/competition-entries.md) (renamed or taken away) takes that role at no level, not every level; the offer says "Says up to T2, which isn't a level any more: ask them, or set it" on the Officials page and on the judge's own page, the seat dropdown gives the same reason, and a seat they already hold is reported.
