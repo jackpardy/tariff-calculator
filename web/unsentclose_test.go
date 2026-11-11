@@ -27,11 +27,14 @@ var (
 	afterDeadline  = inDublin(2030, time.March, 10, 12, 0)
 )
 
-func newUnsentShop(t *testing.T) *unsentShop {
+func newUnsentShop(t *testing.T, tweak ...func(url.Values)) *unsentShop {
 	t.Helper()
 	h, clock := competitionServerAt(t, inDublin(2030, time.February, 1, 12, 0))
 	form := newCompetition()
 	form["level"] = append(form["level"], "builtin-level:bucs-l4")
+	for _, f := range tweak {
+		f(form)
+	}
 	s := &unsentShop{h: h, clock: clock, admin: created(t, h, form),
 		l4: url.Values{"level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}}
 	c := aClub(t, h, s.admin, "UCD", false, "Gus", "Hal", "Zoe")

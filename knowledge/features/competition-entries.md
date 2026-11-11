@@ -2039,6 +2039,17 @@ Where a competition requires it, each entry needs a coach's **sign-off**
   routines** or not (ADR 0007 Decision 3; new coaches do): one who doesn't
   sees their members' entries, checked, but has no sign-off buttons, and a
   sign-off from them is refused.
+- Once a member's change can't be sent (see "When entries, changes and
+  sign-offs close"), the coach's page for the entry shows and signs off what
+  the competition holds (`heldAs`). Under it, apart, are the line saying the
+  change wasn't sent, a collapsed "What Gus changed it to, not sent" with its
+  card, and, where late changes are allowed, a note that the member can ask
+  for one. The form posts the held copy it showed (`held`: its id and when it
+  was sent); the sign-off then goes onto the competition's copy only
+  (`Store.SignOffHeld`), never the member's unsent version. A form without it,
+  or from before the copy changed, is refused ("This entry changed since you
+  opened this page; nothing was changed."). Before the close, or with nothing
+  unsent, the page is as it was.
 - **Qualifications** (ADR 0007 Decision 4): the comp sec gives a coach up to
   four, each from the built-in list (British Gymnastics levels 1–4 and
   Gymnastics Ireland levels 1–3, in trampoline, tumbling and DMT) with a

@@ -442,6 +442,20 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// Once the member's change can't be sent, the coach signs off what the
+	// competition holds; the change is shown apart from it.
+	own := e
+	var held store.Entry
+	var lost unsent
+	if unsentClosed(c, e, p.now()) {
+		sent, err := p.entriesOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		e, lost = heldAs(c, e, sent, p.now(), e.MemberName)
+		held, _ = heldCopy(sent, own)
+	}
 	shown, err := card(c.Competition, e.Entry, club)
 	if err != nil {
 		failed(w, r, err)
@@ -451,7 +465,16 @@ func (p *competitionPages) coachEntry(w http.ResponseWriter, r *http.Request) {
 	frame := coachFrame(r, coach, club, coachEntriesTab, nil)
 	page := views.SignoffPage{
 		Frame: &frame, Back: coachPath(r.PathValue("token")), Competition: summary(c, p.now()),
-		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline,
+		Card: shown, Signoff: shown.Signoff, Action: r.URL.Path + "?discipline=" + e.Discipline, Unsent: lost.Line, UnsentFor: e.MemberName,
+	}
+	if lost.Line != "" && !lost.Never {
+		page.Held = heldToken(held)
+		if unsentCard, err := card(c.Competition, own.Entry, club); err == nil {
+			page.UnsentCard = &unsentCard
+		}
+		if lateOpen(c, p.now()) {
+			page.LateAsk = "yes"
+		}
 	}
 	if !coach.SignsOff {
 		page.Cannot = "Your club hasn't set you to sign off routines, so you can see this entry but not sign it off."
@@ -490,7 +513,32 @@ func (p *competitionPages) signOff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	signed := r.FormValue("signed") == "1"
-	if err := p.st.SignOff(r.Context(), coach, e.MemberID, c.ID, e.Discipline, signed, limitNote(r.FormValue("note"))); err != nil {
+	// What the coach saw: the member's entry, or once the change can't be
+	// sent, the competition's copy. A form for the other isn't signed.
+	var held store.Entry
+	var lost unsent
+	if unsentClosed(c, e, p.now()) {
+		sent, err := p.entriesOf(r.Context(), c.ID)
+		if err != nil {
+			failed(w, r, err)
+			return
+		}
+		own := e
+		e, lost = heldAs(c, e, sent, p.now(), e.MemberName)
+		held, _ = heldCopy(sent, own)
+	}
+	heldNow := lost.Line != "" && !lost.Never
+	if shown := r.FormValue("held"); heldNow != (shown != "") || heldNow && shown != heldToken(held) {
+		refuse(w, r, coachPath(r.PathValue("token")), "This entry changed since you opened this page; nothing was changed.")
+		return
+	}
+	var err error
+	if heldNow {
+		err = p.st.SignOffHeld(r.Context(), coach, e.MemberID, c.ID, e.Discipline, held.ID, signed, limitNote(r.FormValue("note")))
+	} else {
+		err = p.st.SignOff(r.Context(), coach, e.MemberID, c.ID, e.Discipline, signed, limitNote(r.FormValue("note")))
+	}
+	if err != nil {
 		failed(w, r, err)
 		return
 	}

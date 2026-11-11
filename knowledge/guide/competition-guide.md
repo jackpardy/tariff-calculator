@@ -1024,8 +1024,15 @@ the list by competition, level, problems or sign-off.
    **Not yet** with a note of what needs to change. The next entry waiting
    for you at that competition opens, until there's none left.
 
-If they change the entry, it needs signing off again. Where a competition needs
-sign-off, entries without it are flagged to the organiser.
+If they change the entry, it needs signing off again. If a member changed it
+but their club didn't send the change before entries closed, you sign off what
+the competition holds: its level and routine are the ones the organiser has. The
+member's change is under it, with a line saying it wasn't sent ("Gus changed
+this to BUCS L4 on 6 Feb, but it wasn't sent before entries closed. The
+competition has BUCS L3."); **What Gus changed it to, not sent** opens it so
+you can see it, but it isn't what you sign. Where the competition allows late
+changes, the page says they can ask for one, and it comes to you to sign off as
+usual. Where a competition needs sign-off, entries without it are flagged to the organiser.
 
 Your page has two sections: **Entries** (the entries above) and **Gymnasts**:
 the members you see, with how many routines each keeps on their page and how

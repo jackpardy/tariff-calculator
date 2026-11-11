@@ -76,6 +76,20 @@ func heldAs(c store.Competition, e store.MemberEntry, sent []store.Entry, now ti
 	return e, unsent{Line: line}
 }
 
+// heldCopy is the competition's copy of a member's entry, if it holds one the
+// pages can show (sent are the competition's entries): not one removed or held.
+func heldCopy(sent []store.Entry, e store.MemberEntry) (store.Entry, bool) {
+	i := slices.IndexFunc(sent, func(s store.Entry) bool { return s.MemberID == e.MemberID && s.Entry.Discipline == e.Discipline })
+	if i < 0 {
+		return store.Entry{}, false
+	}
+	return sent[i], true
+}
+
+// heldToken says which copy a coach saw to sign off, to post back: the copy
+// and when it was sent, so a form from before it was replaced is known.
+func heldToken(h store.Entry) string { return fmt.Sprintf("%s@%d", h.ID, h.SentAt.UnixNano()) }
+
 // newClosed says a member's entry can't be saved: new entries have closed (the
 // competition is open for changes to what it holds) and the club hasn't sent
 // it, so it never will be. existing is the member's entry, if they have one.
