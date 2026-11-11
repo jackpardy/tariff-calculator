@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"tariffCalculator/competitions"
 	"tariffCalculator/views"
 )
 
@@ -277,5 +278,17 @@ func TestWarmingUpAndCompetingShown(t *testing.T) {
 	mark("finish")
 	if m := dayAll(t, h, dara+"/day"); strings.Contains(m, "On your panel now:") {
 		t.Error("nothing once it's finished")
+	}
+}
+
+// The real times say Setup's least warm-up where it has one, as a small
+// flight's warm-up goes by it.
+func TestRealTimesSayTheLeast(t *testing.T) {
+	at := func(m int) time.Time { return time.Date(2030, 3, 16, 9, m, 0, 0, time.UTC) }
+	f := competitions.ScheduledFlight{ID: "f", Flight: competitions.Flight{Event: "BUCS L3", Number: 1, Of: 1, Entries: []string{"a", "b"}}, Discipline: competitions.Trampoline}
+	s := competitions.Schedule{Setup: competitions.Setup{Timings: map[string]competitions.Timings{competitions.Trampoline: {WarmUp: 0.5, LeastWarmUp: 10, PerCompetitor: 5}}}, Flights: []competitions.ScheduledFlight{f}}
+	got := realTimesOf(s, 0, map[string]competitions.Actual{"f": {Started: at(0), WarmUpOver: at(9)}})
+	if len(got) != 1 || got[0] != "Trampoline: warm-up 4.5 min a competitor (set 0.5, at least 10 min, from 1 flight)" {
+		t.Errorf("%q", got)
 	}
 }

@@ -175,6 +175,10 @@ func realTimesOf(s competitions.Schedule, day int, actual map[string]competition
 		var parts []string
 		if m.WarmUpFlights > 0 {
 			part := fmt.Sprintf("warm-up %.1f min a competitor (set %s", m.WarmUp, figure(set.WarmUp))
+			if set.LeastWarmUp > 0 {
+				// The least, which a small flight's warm-up goes by.
+				part += fmt.Sprintf(", at least %d min", set.LeastWarmUp)
+			}
 			if !same {
 				part += ", " + flights(m.WarmUpFlights)
 			}

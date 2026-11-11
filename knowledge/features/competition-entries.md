@@ -1419,8 +1419,8 @@ Started may tap it.
 timetable, **Real times today** opens to a line for each discipline with a
 flight measured: its real warm-up and competing a competitor, beside
 Setup's figures ("Trampoline: warm-up 1.2 min a competitor (set 1),
-competing 4.6 (set 5), from 6 flights"; each with its own count when they
-differ). Warm-up is from Started to Warm-up over, competing from Warm-up
+competing 4.6 (set 5), from 6 flights"; "set 0, at least 10 min" where
+Setup has a least warm-up; each with its own count when they differ). Warm-up is from Started to Warm-up over, competing from Warm-up
 over to Finished, over the flights' gymnasts (`competitions.MeasuredTimes`);
 a flight whose Warm-up over was skipped counts for neither, one not finished
 only for its warm-up.
