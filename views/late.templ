@@ -9,9 +9,9 @@ type LateRequestPage struct {
 	BackTo       string // the page Back is, e.g. the competition's name
 	Notice       string
 	Gymnast      string
-	Current      string   // the entry's event now; "" asking to enter late
-	New          bool     // asking to enter late (or asked)
-	Allowed      []string // the kinds that can be asked for here, with fees
+	Current      string     // the entry's event now; "" asking to enter late
+	New          bool       // asking to enter late (or asked)
+	Allowed      []string   // the kinds that can be asked for here, with fees
 	Status       LateStatus // the latest request, if any
 	Signoff      bool       // the competition needs a coach's sign-off
 	SignoffFirst bool       // the organiser can't accept a request until a coach signs it off
@@ -53,39 +53,49 @@ templ LateRequest(p LateRequestPage) {
 				}
 			</div>
 		}
-		if p.Ask {
-			if p.New {
-				<p class="mb-2">New entries have closed. You can ask the organiser to enter late:</p>
-			} else {
-				<p class="mb-2">Entries have closed. You can ask the organiser for:</p>
+		if p.Ask && p.Status.Text != "" {
+			// Asked already: changing what's asked is there, folded away.
+			@opens("", "", "Change what you asked for", len(p.Problems) > 0) {
+				@lateAskForm(p)
 			}
-			<ul class="mb-3">
-				for _, a := range p.Allowed {
-					<li>{ a }</li>
-				}
-			</ul>
-			<p class="mb-4 is-size-7">
-				if p.New {
-					Fill in the entry below and send it. It isn't in the competition unless the organiser accepts it.
-				} else {
-					Change the entry below and send it.
-				}
-				The organiser sees it at once, and can reply to it here.
-				if p.SignoffFirst {
-					They can't accept it until a coach signs it off (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link).
-				} else if p.Signoff {
-					A coach can sign it off too (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link): the organiser sees whether they have.
-				}
-				if p.New {
-					Then they accept it (it becomes your entry, on the waiting list if the level is full) or say why not.
-				} else {
-					Then they accept it (it replaces the entry, and needs checking again) or say why not. Until then, the entry stays as it is.
-				}
-			</p>
-			@problemList(p.Problems)
-			@entryForm(p.Form)
+		} else if p.Ask {
+			@lateAskForm(p)
 		}
 	}
+}
+
+// lateAskForm is the form asking for a late request, with what it's for.
+templ lateAskForm(p LateRequestPage) {
+	if p.New {
+		<p class="mb-2">New entries have closed. You can ask the organiser to enter late:</p>
+	} else {
+		<p class="mb-2">Entries have closed. You can ask the organiser for:</p>
+	}
+	<ul class="mb-3">
+		for _, a := range p.Allowed {
+			<li>{ a }</li>
+		}
+	</ul>
+	<p class="mb-4 is-size-7">
+		if p.New {
+			Fill in the entry below and send it. It isn't in the competition unless the organiser accepts it.
+		} else {
+			Change the entry below and send it.
+		}
+		The organiser sees it at once, and can reply to it here.
+		if p.SignoffFirst {
+			They can't accept it until a coach signs it off (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link).
+		} else if p.Signoff {
+			A coach can sign it off too (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link): the organiser sees whether they have.
+		}
+		if p.New {
+			Then they accept it (it becomes your entry, on the waiting list if the level is full) or say why not.
+		} else {
+			Then they accept it (it replaces the entry, and needs checking again) or say why not. Until then, the entry stays as it is.
+		}
+	</p>
+	@problemList(p.Problems)
+	@entryForm(p.Form)
 }
 
 // enterMemberLabel is the comp sec's button to enter a member: asked for
@@ -95,6 +105,14 @@ func enterMemberLabel(open bool) string {
 		return "Enter a member"
 	}
 	return "Ask to enter a member late"
+}
+
+// enterThemLabel is that form's button.
+func enterThemLabel(open bool) string {
+	if open {
+		return "Enter them"
+	}
+	return "Ask"
 }
 
 // lateTitle is a late request page's heading.

@@ -776,6 +776,9 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 // lateKindPlural is a kind of late request in a sentence, e.g. "level
 // changes".
 func lateKindPlural(kind string) string {
+	if kind == competitions.LateNew {
+		return "late entries"
+	}
 	return strings.ToLower(competitions.LateKindName(kind)) + "s"
 }
 
