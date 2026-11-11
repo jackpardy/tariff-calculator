@@ -226,6 +226,15 @@ entry's link opens that page) and My competition. Not on home pages that
 list competitions, the club link's page (whose sender isn't known), or any
 admin page.
 
+**Who reads them.** Only the organiser's and the co-organisers'
+(everything) links see a message, its replies, the organiser's note on
+resolving it and any count of it, because only they can resolve concerns.
+The helper links (card checking, chairs of judges, timetable, venue screen)
+see the concerns helpers flagged, never the messages: they share a table
+(`concerns`, [ADR 0009](../../docs/adr/0009-helper-links.md)), but
+`concernViews` in `web/access.go` leaves messages out unless the link may
+resolve.
+
 **Named, never typed.** The form says who it's from, as the organiser will
 see it, worked out from the link (`teller` in `web/tellpages.go`): "Ann
 Ryan, a member of UCD", "Cara Byrne, a coach at UCD", "Club admin, UCD"
