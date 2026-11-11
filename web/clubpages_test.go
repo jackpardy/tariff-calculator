@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -317,7 +316,7 @@ func TestAdminLinksSavedWhenOpened(t *testing.T) {
 	admin := withoutQuery(created(t, s.h, newCompetition()))
 	helper := madeLink(t, s.h, admin, "Mary", "everything")
 	club := aClub(t, s.h, admin, "UCD", false)
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	saved := func(key string) string {
