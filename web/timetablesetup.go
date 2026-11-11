@@ -226,7 +226,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		badRequest(w, err)
 		return
 	}
-	timings := map[string]competitions.Timings{}
+	posted := map[string]competitions.Timings{} // the figures posted, by discipline
 	for _, d := range c.Disciplines() {
 		key := offerKey(d)
 		per, err1 := strconv.ParseFloat(r.FormValue("per-"+key), 64)
@@ -236,10 +236,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 			back(w, r, "Nothing was changed: timings should be numbers.")
 			return
 		}
-		t := competitions.Timings{PerCompetitor: per, Between: between, MaxFlight: most}
-		if t != competitions.DefaultTimings(d) {
-			timings[d] = t
-		}
+		posted[d] = competitions.Timings{PerCompetitor: per, Between: between, MaxFlight: most}
 	}
 	rest, err := strconv.Atoi(r.FormValue("rest"))
 	if err != nil {
@@ -247,6 +244,15 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	p.saveSetup(w, r, c, "Timings saved.", func(s *competitions.Schedule, _ *setupChange) error {
+		// The warm-up figures aren't on the form: they stay as they are.
+		timings := map[string]competitions.Timings{}
+		for d, p := range posted {
+			t := s.Setup.TimingsFor(d)
+			t.PerCompetitor, t.Between, t.MaxFlight = p.PerCompetitor, p.Between, p.MaxFlight
+			if t != competitions.DefaultTimings(d) {
+				timings[d] = t
+			}
+		}
 		s.Setup.Timings = timings
 		s.Setup.Rest, s.Setup.RestMust = rest, r.FormValue("restMust") == "1"
 		if r.Form.Has("separate") {

@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -141,11 +142,33 @@ func (r Rule) Describe(days []Day) string {
 	return out + " (prefer)"
 }
 
-// Timings are a discipline's settings (Decision 13).
+// Timings are a discipline's settings (Decision 13, roadmap 15). A flight is
+// its changeover, then its warm-up (its gymnasts times WarmUp, but no less
+// than LeastWarmUp), then its competing (its gymnasts times PerCompetitor),
+// each rounded up to a whole minute. Timetables saved before warm-up had
+// figures of its own read with none, so "between" was warm-up and changeover
+// together and is the changeover now.
 type Timings struct {
-	PerCompetitor float64 `json:"per_competitor"` // minutes, all their turns (a pair, for synchro)
-	Between       int     `json:"between"`        // minutes before each flight: warm-up and changeover
-	MaxFlight     int     `json:"max_flight"`     // the most in a flight
+	WarmUp        float64 `json:"warm_up,omitempty"`       // minutes warming up per competitor
+	LeastWarmUp   int     `json:"least_warm_up,omitempty"` // the least warm-up a flight has, in minutes
+	PerCompetitor float64 `json:"per_competitor"`          // minutes competing, all their turns (a pair, for synchro)
+	Between       int     `json:"between"`                 // the changeover before each flight, in minutes
+	MaxFlight     int     `json:"max_flight"`              // the most in a flight
+}
+
+// EventTimes are an event's own warm-up and competing figures, in place of
+// its discipline's; the changeover and largest flight stay the discipline's.
+type EventTimes struct {
+	WarmUp        float64 `json:"warm_up,omitempty"`
+	LeastWarmUp   int     `json:"least_warm_up,omitempty"`
+	PerCompetitor float64 `json:"per_competitor"`
+}
+
+// lengths are the warm-up and competing, in whole minutes, the timings give
+// a flight of n.
+func (t Timings) lengths(n int) (warmUp, competing int) {
+	warmUp = max(t.LeastWarmUp, int(math.Ceil(float64(n)*t.WarmUp)))
+	return warmUp, int(math.Ceil(float64(n) * t.PerCompetitor))
 }
 
 // DefaultTimings are a discipline's defaults: 5 minutes per gymnast for
@@ -169,6 +192,9 @@ type Setup struct {
 	Blocks  []Block            `json:"blocks,omitempty"`
 	Rules   []Rule             `json:"rules,omitempty"`
 	Timings map[string]Timings `json:"timings,omitempty"` // by discipline; missing: the defaults
+	// EventTimes are events' own figures, by event (as Rule.Event names it);
+	// an event without is timed by its discipline's.
+	EventTimes map[string]EventTimes `json:"event_times,omitempty"`
 	// Rest is the minutes wanted between a person's turns, so one running long
 	// doesn't make them late for the next; RestMust makes it a must.
 	Rest     int   `json:"rest,omitempty"`
@@ -185,6 +211,43 @@ func (s Setup) TimingsFor(discipline string) Timings {
 		return t
 	}
 	return DefaultTimings(discipline)
+}
+
+// TimingsForEvent are the timings an event's flights go by: its discipline's,
+// with the event's own warm-up and competing figures where it has them.
+func (s Setup) TimingsForEvent(discipline, event string) Timings {
+	t := s.TimingsFor(discipline)
+	if e, ok := s.EventTimes[event]; ok {
+		t.WarmUp, t.LeastWarmUp, t.PerCompetitor = e.WarmUp, e.LeastWarmUp, e.PerCompetitor
+	}
+	return t
+}
+
+// AverageTimes are the warm-up and competing, in whole minutes, a flight's
+// figures give its gymnasts (its event's, else its discipline's), leaving
+// aside any times of its own.
+func (s Setup) AverageTimes(f ScheduledFlight) (warmUp, competing int) {
+	return s.TimingsForEvent(f.Discipline, f.Event).lengths(len(f.Entries))
+}
+
+// FlightTimes are a flight's changeover, warm-up and competing, in whole
+// minutes: its own warm-up and competing where it has them, else what the
+// averages give. Its length is the three together.
+func (s Setup) FlightTimes(f ScheduledFlight) (changeover, warmUp, competing int) {
+	warmUp, competing = s.AverageTimes(f)
+	if f.WarmUpMinutes != nil {
+		warmUp = *f.WarmUpMinutes
+	}
+	if f.CompetingMinutes != nil {
+		competing = *f.CompetingMinutes
+	}
+	return s.TimingsFor(f.Discipline).Between, warmUp, competing
+}
+
+// lead is how far into a flight competing starts: its changeover and warm-up.
+func (s Setup) lead(f ScheduledFlight) int {
+	changeover, warmUp, _ := s.FlightTimes(f)
+	return changeover + warmUp
 }
 
 // DefaultSetup is a starting point: one day, a trampoline panel per discipline
@@ -324,14 +387,30 @@ func (s Setup) Check(events []string) error {
 		}
 	}
 	for d, t := range s.Timings {
-		if t.PerCompetitor <= 0 || t.PerCompetitor > 30 || t.Between < 0 || t.Between > 120 || t.MaxFlight < 1 || t.MaxFlight > 60 {
+		if !warmUpAndCompeting(t.WarmUp, t.LeastWarmUp, t.PerCompetitor) || t.Between < 0 || t.Between > 120 || t.MaxFlight < 1 || t.MaxFlight > 60 {
 			errs = append(errs, fmt.Errorf("%s's timings are out of range", DisciplineName(d)))
+		}
+	}
+	for _, ev := range slices.Sorted(maps.Keys(s.EventTimes)) {
+		t := s.EventTimes[ev]
+		switch {
+		case !slices.Contains(events, ev):
+			errs = append(errs, fmt.Errorf("times of its own are for an event %q the competition doesn't offer", ev))
+		case !warmUpAndCompeting(t.WarmUp, t.LeastWarmUp, t.PerCompetitor):
+			errs = append(errs, fmt.Errorf("%s's own times are out of range", ev))
 		}
 	}
 	if s.Rest < 0 || s.Rest > 240 {
 		errs = append(errs, errors.New("rest should be from 0 to 240 minutes"))
 	}
 	return errors.Join(errs...)
+}
+
+// warmUpAndCompeting says whether warm-up and competing figures are in range:
+// up to 30 minutes per competitor (some competing), and a least warm-up up
+// to 120.
+func warmUpAndCompeting(warmUp float64, least int, competing float64) bool {
+	return warmUp >= 0 && warmUp <= 30 && least >= 0 && least <= 120 && competing > 0 && competing <= 30
 }
 
 // ScheduledFlight is a flight placed on an area at a time.
@@ -344,10 +423,30 @@ type ScheduledFlight struct {
 	Discipline string `json:"discipline,omitempty"`
 	Day        int    `json:"day"`
 	Area       string `json:"area"`
-	Start      int    `json:"start"` // minutes since midnight, when its warm-up starts
+	Start      int    `json:"start"` // minutes since midnight, when its warm-up starts (its changeover first)
 	End        int    `json:"end"`
-	Officials  []Duty `json:"officials,omitempty"` // its panel's seats, from the rota
+	// CompetingAt is when its competing starts, after its changeover and
+	// warm-up; 0 in a timetable saved before it was kept (CompetingStarts).
+	CompetingAt int    `json:"competing_at,omitempty"`
+	Officials   []Duty `json:"officials,omitempty"` // its panel's seats, from the rota
+	// Its own warm-up and competing, in minutes all told, set by the
+	// organiser in place of what the averages give; nil for the averages.
+	WarmUpMinutes    *int `json:"warm_up_minutes,omitempty"`
+	CompetingMinutes *int `json:"competing_minutes,omitempty"`
 }
+
+// CompetingStarts is when a flight's competing starts. A flight in a
+// timetable saved before that was kept starts competing after its
+// changeover, by the setup it's in, and never after it ends.
+func (f ScheduledFlight) CompetingStarts(setup Setup) int {
+	if f.CompetingAt > 0 {
+		return f.CompetingAt
+	}
+	return min(f.Start+setup.TimingsFor(f.Discipline).Between, f.End)
+}
+
+// OwnTimes says whether a flight has times of its own, either of them.
+func (f ScheduledFlight) OwnTimes() bool { return f.WarmUpMinutes != nil || f.CompetingMinutes != nil }
 
 // ScheduledBlock is blocked time placed on its areas.
 type ScheduledBlock struct {
@@ -420,10 +519,11 @@ func flightsOf(entries []SchedEntry, eventOrder []string, setup Setup, rng *rand
 	return out, people
 }
 
-// duration is how long a flight takes, in whole minutes.
+// duration is how long a flight takes, in whole minutes: its changeover,
+// warm-up and competing (FlightTimes).
 func (s Setup) duration(f ScheduledFlight) int {
-	t := s.TimingsFor(f.Discipline)
-	return t.Between + int(math.Ceil(float64(len(f.Entries))*t.PerCompetitor))
+	changeover, warmUp, competing := s.FlightTimes(f)
+	return changeover + warmUp + competing
 }
 
 // Staffing is who may judge each event, so that flights go where enough of
@@ -781,7 +881,7 @@ func (p *planner) layout(run []ScheduledFlight, lengths []int, area string, day,
 		if p.setup.AcrossBreaks {
 			t = p.afterBlocks(area, day, t, lengths[k])
 		}
-		out[k] = ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: area, Start: t, End: t + lengths[k]}
+		out[k] = ScheduledFlight{Flight: f.Flight, Discipline: f.Discipline, Day: day, Area: area, Start: t, End: t + lengths[k], CompetingAt: t + p.setup.lead(f)}
 		t += lengths[k]
 	}
 	return out

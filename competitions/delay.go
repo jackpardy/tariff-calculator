@@ -169,6 +169,8 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 				}
 				r.Merged = append(r.Merged, fmt.Sprintf("%s and %s on %s (%d)", first.Name(), next.Name(), area, len(first.Entries)+len(next.Entries)))
 				first.Entries = append(slices.Clone(first.Entries), next.Entries...)
+				// A merged flight goes by the averages: neither's own times fit it.
+				first.WarmUpMinutes, first.CompetingMinutes = nil, nil
 				merged[idx[k]], gone[idx[k+1]] = true, true
 				k++
 			}
@@ -188,6 +190,8 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 	// Shift each delayed area's later flights, keeping their order.
 	var shifted []int
 	waited := map[int]string{} // flights that waited for blocked time
+	leads := map[int]int{}     // eased flights' changeover and warm-up, by index in out
+	underWay := map[int]bool{}
 	for _, area := range areas {
 		var idx []int
 		for i, f := range out.Flights {
@@ -203,6 +207,7 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 			f := &out.Flights[i]
 			if f.Start < d.From { // under way: it finishes that much later
 				f.End += d.Minutes
+				underWay[i] = true
 				cursor = f.End
 				shifted = append(shifted, i)
 				u++
@@ -219,7 +224,7 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 				g := out.Flights[j]
 				lengths[k] = g.End - g.Start
 				if d.Between != nil || d.Quicker > 0 || merged[j] {
-					lengths[k] = out.easedLength(g, d)
+					leads[j], lengths[k] = out.easedTimes(g, d)
 				}
 				total += lengths[k]
 			}
@@ -293,6 +298,24 @@ func (s Schedule) Delayed(d Delay, people map[string][]string) (Schedule, DelayR
 					r.Unplaced = append(r.Unplaced, out.Flights[j].Name())
 				}
 			}
+		}
+	}
+
+	// When competing starts follows each flight: as far into it as it was, or
+	// as the easing makes it. One under way starts competing that much later
+	// if it hadn't yet.
+	for i := range out.Flights {
+		f, was := &out.Flights[i], s.Flights[origin[i]]
+		from := was.CompetingStarts(s.Setup)
+		switch lead, eased := leads[i]; {
+		case underWay[i] && from >= d.From:
+			f.CompetingAt = from + d.Minutes
+		case underWay[i]:
+			f.CompetingAt = from
+		case eased:
+			f.CompetingAt = min(f.Start+lead, f.End)
+		default:
+			f.CompetingAt = min(f.Start+from-was.Start, f.End)
 		}
 	}
 
@@ -449,16 +472,24 @@ func (s Schedule) mustApart(a, b string) bool {
 	return false
 }
 
-// easedLength is a flight's length with the delay's changeovers and quicker
-// turns.
-func (s Schedule) easedLength(f ScheduledFlight, d Delay) int {
-	t := s.Setup.TimingsFor(f.Discipline)
-	between := t.Between
+// easedTimes are how far into a flight competing starts (its changeover and
+// warm-up) and its length, with the delay's changeovers and quicker turns:
+// shorter changeovers shorten its changeover, quicker turns its competing,
+// from its own times where it has them.
+func (s Schedule) easedTimes(f ScheduledFlight, d Delay) (lead, length int) {
+	changeover, warmUp, competing := s.Setup.FlightTimes(f)
 	if d.Between != nil {
-		between = *d.Between
+		changeover = *d.Between
 	}
-	per := t.PerCompetitor * float64(100-d.Quicker) / 100
-	return between + int(math.Ceil(float64(len(f.Entries))*per))
+	if d.Quicker > 0 {
+		if f.CompetingMinutes != nil {
+			competing = int(math.Ceil(float64(competing) * float64(100-d.Quicker) / 100))
+		} else {
+			per := s.Setup.TimingsForEvent(f.Discipline, f.Event).PerCompetitor * float64(100-d.Quicker) / 100
+			competing = int(math.Ceil(float64(len(f.Entries)) * per))
+		}
+	}
+	return changeover + warmUp, changeover + warmUp + competing
 }
 
 // placeAround is where a flight of length minutes from t goes on a held-up
