@@ -195,7 +195,7 @@ func TestChangesSentInTheBackground(t *testing.T) {
 	admin := created(t, h, newCompetition())
 	var names []string
 	for i := range 12 {
-		names = append(names, fmt.Sprintf("Gymnast %d", i))
+		names = append(names, fmt.Sprintf("Gymnast %c", 'A'+i))
 	}
 	aClub(t, h, admin, "UCD", true, names...)
 	clubID := regexp.MustCompile(`<option value="([^"]+)"[^>]*>UCD</option>`).FindStringSubmatch(do(t, h, http.MethodGet, admin+"/desk", nil).Body.String())[1]

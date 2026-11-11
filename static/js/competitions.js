@@ -32,8 +32,19 @@
     // replaced admin link, or a personal link (named for the person and the
     // club or competition), takes the place of the one with its name
     // (replaces); otherwise two competitions or clubs of one name are both kept.
+    // replaces can be a function saying which saved link is the one replaced:
+    // a member's link replaces only the same member's (a new link for them),
+    // never another person's of the same name; both are kept, and the newer
+    // is told apart by "(2)".
     function keepLink(key, name, url, extra = {}, replaces = false) {
-        const links = loadLinks(key).filter((l) => l.url !== url && !(replaces && l.name === name));
+        const others = loadLinks(key).filter((l) => l.url !== url);
+        const same = typeof replaces === 'function' ? replaces : (l) => replaces && l.name === name;
+        const links = others.filter((l) => !same(l));
+        if (typeof replaces === 'function') {
+            const taken = new Set(links.map((l) => l.name));
+            const base = name;
+            for (let n = 2; taken.has(name); n++) { name = `${base} (${n})`; }
+        }
         links.unshift({ name, url, ...extra });
         try { localStorage.setItem(key, JSON.stringify(links)); } catch (e) { /* not saved: the page says to copy it */ }
     }
@@ -76,7 +87,12 @@
         const club = document.querySelector('[data-club-admin]');
         if (club) { keepLink(linkKeys.clubs, club.dataset.clubName, club.dataset.clubAdmin, {}, club.hasAttribute('data-replaces')); }
         const member = document.querySelector('[data-member-link]');
-        if (member) { keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink, { coach: member.hasAttribute('data-member-coach') }, true); }
+        if (member) {
+            // club and who say which club and member the link is for (one-way tags, not ids).
+            const { memberClub: club, memberWho: who, memberPerson: person } = member.dataset;
+            keepLink(linkKeys.members, member.dataset.memberName, member.dataset.memberLink, { coach: member.hasAttribute('data-member-coach'), club, who, person },
+                (l) => !!who && l.who === who);
+        }
         const coach = document.querySelector('[data-coach-link]');
         if (coach) { keepLink(linkKeys.coaches, coach.dataset.coachName, coach.dataset.coachLink, {}, true); }
         const gymnast = document.querySelector('[data-gymnast-link]');
@@ -89,6 +105,27 @@
         if (competition) { keepLink(linkKeys.competitions, competition.dataset.competitionName, location.origin + competition.dataset.competitionPage); }
         const clubPage = document.querySelector('[data-club-page]');
         if (clubPage) { keepLink(linkKeys.clubs, clubPage.dataset.clubName, location.origin + clubPage.dataset.clubPage); }
+    }
+
+    // joinedHere says, on a club's join page, which pages this browser
+    // already has at the club, each to open, so joining again as the same
+    // person isn't done by mistake. Links saved before the club was kept with
+    // them aren't matched.
+    function joinedHere() {
+        const box = document.querySelector('[data-joined-here]');
+        if (!box) { return; }
+        const mine = loadLinks(linkKeys.members).filter((l) => l.club && l.club === box.dataset.joinedHere);
+        if (mine.length === 0) { return; }
+        const list = box.querySelector('[data-joined-list]');
+        for (const l of mine) {
+            const a = Object.assign(document.createElement('a'), { href: l.url, className: 'button is-small ml-2', textContent: 'Open' });
+            const item = document.createElement('li');
+            item.append(`${l.person || l.name}`, a);
+            list.append(item);
+        }
+        box.hidden = false;
+        const else_ = document.querySelector('[data-joined-else]');
+        if (else_) { else_.hidden = false; }
     }
 
     // linkItem is a list item linking to a saved link.
@@ -1181,6 +1218,7 @@
         dayPage();
         copyButtons();
         saveLinks();
+        joinedHere();
         newCompetition();
         hub();
         clubLink();
