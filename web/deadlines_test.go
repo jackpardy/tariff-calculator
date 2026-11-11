@@ -37,8 +37,8 @@ func TestLaterDeadlines(t *testing.T) {
 	redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
 
 	// New entries closed; Ivy can still change hers, and the page says until when.
-	if page := do(t, h, http.MethodGet, enter, nil).Body.String(); strings.Contains(page, `name="gymnast"`) {
-		t.Error("no new entries")
+	if page := do(t, h, http.MethodGet, enter, nil).Body.String(); !strings.Contains(page, "Ask to enter late") || strings.Contains(page, ">Enter</button>") {
+		t.Error("no new entries, only asking to enter late")
 	}
 	page := do(t, h, http.MethodGet, ivy, nil).Body.String()
 	if !strings.Contains(page, "Change the entry") || !strings.Contains(page, "Changes to entries until Saturday 16 March 2030, 09:00") {

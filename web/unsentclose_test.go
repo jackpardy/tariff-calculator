@@ -117,6 +117,7 @@ func TestChangeNotSentBeforeClose(t *testing.T) {
 	// With late changes allowed, the page offers the link to ask; a refused one
 	// changes nothing here.
 	redirected(t, s.h, s.admin+"/late/settings", url.Values{"late-level": {"1"}, "fee-level": {"10"}})
+	redirected(t, s.h, s.club+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 	page = memberCompetitionPage(t, s.h, s.gus)
 	ask := regexp.MustCompile(`href="([^"]+/late\?discipline=)"`).FindStringSubmatch(page)
 	if !said(page, gusLine) || ask == nil {
@@ -190,6 +191,8 @@ func TestNeverSentAfterClose(t *testing.T) {
 func TestNewEntryRefusedAfterClose(t *testing.T) {
 	s := newUnsentShop(t)
 	redirected(t, s.h, s.admin+"/later-deadlines", url.Values{"changesDate": {"2030-03-16"}, "changesTime": {"09:00"}})
+	// Late entries turned off (they're allowed unless they are).
+	redirected(t, s.h, s.admin+"/late/settings", url.Values{})
 	// The forms as they were while entries were open.
 	zoeSave := formAction(t, memberCompetitionPage(t, s.h, s.zoe), s.zoe+"/competitions/")
 	compPage := clubEntriesPage(t, s.h, s.club)

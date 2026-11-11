@@ -47,14 +47,14 @@ differently, and what a "comp sec" or "team manager" does varies.
    | Permission | Allows |
    |---|---|
    | *(every role)* **See the club** | Club home, the competitions and each one's entries, the members and coaches lists and each member's routines and skills (looking, not changing), timetables and calendars, desk messages; Feedback |
-   | **Enter and change entries** | Enter a member, change or withdraw a member's entry, offers to help, late changes (`enter-member`, `members/{member}/competitions/{id}`…, `/offer`, `/late`, `/withdraw`, `add-offer`) |
+   | **Enter and change entries** | Enter a member, change or withdraw a member's entry, offers to help, late requests (`enter-member`, `members/{member}/competitions/{id}`…, `/offer`, `/late`, `/late/reply` (2026-11-11: answering the organiser about a late request), `/withdraw`, `add-offer`) |
    | **Send entries** | Send the club's entries and coaches to the organiser (`/competitions/{id}/send`, `/competitions/{id}/coaches`) |
    | **Fees** | Each competition's fees and invoice (`/fees`, `/invoice`) |
    | **Manage members** | The join link (to share it); remove a member, give a member a new link, choose a member's coach, members' judging qualifications (`members/{member}/remove`, `/new-link`, `/coach`, `/judging`…) |
    | **Manage coaches** | Add, remove and re-link coaches, make a member a coach, who signs off, coaches' qualifications (`/coaches`…, `coaches/from-member`) |
    | **Certificates** | Open coaches' and judges' certificate files (personal documents; off unless chosen) |
    | **Talk to the organiser** | Tell the organiser and add to the club's messages; hear about changes by push or email (`/organiser`, `/notify`) |
-   | **Club settings** | Coaches see everyone, members' skills open (`coaches-see-all`, `skills-open`) |
+   | **Club settings** | Coaches see everyone, members' skills open, what members send themselves (`coaches-see-all`, `skills-open`, `member-sends`: added 2026-11-11) |
 
    The club admin makes a role by naming it and ticking permissions
    ("Treasurer": Fees; "Team manager": Talk to the organiser). A club

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -456,6 +457,7 @@ func (p *competitionPages) clubCoachesPart(r *http.Request, club store.Club, pag
 func (p *competitionPages) clubSettingsPart(r *http.Request, club store.Club, page *views.ClubPage) error {
 	page.KeptUntil = store.KeptUntil(club.LastUsed).In(local).Format("2 January 2006")
 	page.SkillsOpen = club.SkillsOpen
+	page.MemberSends = p.memberSendsView(r.Context(), club)
 	if err := p.clubRolesPart(r, club, page); err != nil {
 		return err
 	}
@@ -527,8 +529,14 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			}
 		}
 		cc.NoSigner = c.Signoff && !slices.ContainsFunc(coaches, func(co store.Coach) bool { return co.SignsOff })
-		// To enter a member: who, and in what, while entries are open.
-		if cc.Competition.Open && enter {
+		if cc.LateToSend, err = p.st.ClubLateToSend(ctx, club.ID, c.ID); err != nil {
+			return nil, err
+		}
+		if c.ClubsSend && club.MemberSends != (store.MemberSends{}) {
+			cc.ClubsSend = clubsSendLine(c)
+		}
+		// To enter a member: who, and in what, while entries are open (or, closed, to ask to enter them late).
+		if (cc.Competition.Open || lateNewOpen(c, p.now())) && enter {
 			for _, m := range members {
 				cc.Members = append(cc.Members, views.FlightOption{Value: m.ID, Label: m.Name})
 			}
@@ -626,13 +634,28 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if cc.Competition.ChangesOpen && enter && !lost.Never {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
+			lateURL := base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" && !home {
 				if lr, ok := late[id]; ok {
-					row.Late = views.LateStatus{Text: lateStatusText(c, lr), State: lateState(lr)}
+					row.Late = p.lateStatus(ctx, c, lr)
 				}
-				if lateOpen(c, p.now()) && enter {
-					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
+				if (lateOpen(c, p.now()) || row.Late.Text != "") && enter {
+					row.LateAsk = lateURL
 				}
+			}
+			// Asked to enter late: where it stands, and the way to its replies.
+			if state == entryAsked && !home {
+				if lr, ok := late[rem.ID]; ok {
+					row.Late = p.lateStatus(ctx, c, lr)
+				}
+				row.Status = "Asked to enter late"
+				if enter {
+					row.LateAsk = lateURL
+				}
+			}
+			if lost.Never && enter && !home && lateNewOpen(c, p.now()) {
+				row.AskLate = strings.TrimSuffix(lateURL, "?discipline="+url.QueryEscape(e.Discipline))
+				row.Discipline = e.Discipline
 			}
 			// Its flight, while it's still at the level sent: changed to another,
 			// the old flight isn't theirs to go to.
@@ -704,6 +727,30 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	c, err := p.st.Competition(r.Context(), compID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	// Members' late requests go to the organiser with it (while changes are
+	// closed, they're all it sends).
+	late, err := p.st.SendLateRequests(r.Context(), club.ID, compID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	lateSent := ""
+	if late > 0 {
+		lateSent = " " + views.Count(late, "late request", "late requests") + " went to the organiser."
+	}
+	if !c.ChangesOpen(p.now()) {
+		if late == 0 {
+			refuse(w, r, clubCompetitionPath(r.PathValue("token"), compID), "Nothing to send; nothing was changed.")
+			return
+		}
+		seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), "Sent."+lateSent)
+		return
+	}
 	// Offers go with the entries: counted before, as they stand now.
 	offers, err := p.offersToSend(r.Context(), club.ID, compID)
 	if err != nil {
@@ -711,11 +758,6 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := p.st.Send(r.Context(), club.ID, compID, members)
-	if err != nil {
-		failed(w, r, err)
-		return
-	}
-	c, err := p.st.Competition(r.Context(), compID)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -736,7 +778,7 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	if offers > 0 {
 		sentWhat = append(sentWhat, views.Count(offers, "offer to judge or help", "offers to judge or help"))
 	}
-	if changed != nil && n == 0 && offers == 0 {
+	if changed != nil && n == 0 && offers == 0 && late == 0 {
 		noteRefused(w) // nothing went, so nothing to record
 	}
 	notice := fmt.Sprintf("Sent %s to %s.", strings.Join(sentWhat, " and "), c.Name)
@@ -747,7 +789,7 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	if left := counted(result.Removed); left > 0 {
 		notice += fmt.Sprintf(" %d %s removed by the organiser, so %s sent.", left, map[bool]string{true: "was", false: "were"}[left == 1], map[bool]string{true: "it wasn't", false: "they weren't"}[left == 1])
 	}
-	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice)
+	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice+lateSent)
 }
 
 // memberOfClub is the member and competition a comp sec's member entry URL
@@ -1345,7 +1387,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 					ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s)
 					place = s.Waiting
 					ev.Late = p.lateStatusOf(ctx, c, s.ID)
-					if lateOpen(c, now) {
+					if lateOpen(c, now) || ev.Late.Text != "" {
 						ev.LateAsk = path + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(d)
 					}
 				}
@@ -1380,6 +1422,14 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 				ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
 			}
 			state := lost.state(memberState(e, rem, removed, place))
+			lateURL := path + "/competitions/" + c.ID + "/late"
+			switch {
+			case state == entryAsked:
+				ev.Late = p.lateStatusOf(ctx, c, rem.ID)
+				ev.LateAsk = lateURL + "?discipline=" + url.QueryEscape(d)
+			case lost.Never && lateNewOpen(c, now):
+				ev.AskLate = lateURL
+			}
 			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
 			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place)
 			mc.Problems += len(shown.Problems)
@@ -1390,6 +1440,9 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		}
 		ev.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
 		ev.Form.Member, ev.Form.Key = true, "-"+c.ID+"-"+d
+		if ev.Card == nil && lateNewOpen(c, now) {
+			ev.AskLate = path + "/competitions/" + c.ID + "/late" // nothing saved: the form there
+		}
 		ev.Form.Kept, ev.Form.KeptOn = kept, "your page"
 		if key == failedID {
 			ev.Form.Problems = problems
@@ -1456,6 +1509,26 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 		return
 	}
 	notice := "Entry saved for " + c.Name + ". Your club's competition secretary sends it to the competition."
+	// Where the club lets its members send their own (and the competition
+	// takes them), it goes now: a new entry, or a change to one sent.
+	if club, err := p.st.ClubByID(r.Context(), m.ClubID); err == nil {
+		ms, sent := memberSends(club, c), existing != nil && existing.Sent()
+		if (!sent && ms.Entries || sent && ms.Changes) && c.ChangesOpen(p.now()) {
+			if result, err := p.st.Send(r.Context(), club.ID, c.ID, []string{m.ID}); err != nil {
+				failed(w, r, err)
+				return
+			} else if slices.Contains(result.Sent, store.SentEntry{MemberID: m.ID, Discipline: e.Discipline}) {
+				notice = "Entry saved and sent to " + c.Name + "."
+				what := "Sent their entry to " + c.Name + ": " + e.Gymnasts() + " · " + e.Event()
+				if sent {
+					what = "Sent a change to " + c.Name + ": " + e.Gymnasts() + " · " + e.Event()
+				}
+				if err := p.st.RecordClub(r.Context(), club.ID, m.Name, what+" (sent themselves)"); err != nil {
+					log.Printf("Club history: %s: %v", club.ID, err)
+				}
+			}
+		}
+	}
 	seeOther(w, r, memberCompetitionPath(r.PathValue("token"), c.ID)+"?discipline="+url.QueryEscape(e.Discipline), notice)
 }
 
@@ -1612,5 +1685,13 @@ func (p *competitionPages) enterMember(w http.ResponseWriter, r *http.Request) {
 		seeOther(w, r, clubCompetitionPath(r.PathValue("token"), r.PathValue("id")), "Choose a member to enter.")
 		return
 	}
-	http.Redirect(w, r, base+"/members/"+url.PathEscape(member)+"/competitions/"+url.PathEscape(r.PathValue("id"))+"?discipline="+url.QueryEscape(r.URL.Query().Get("discipline")), http.StatusSeeOther)
+	to := base + "/members/" + url.PathEscape(member) + "/competitions/" + url.PathEscape(r.PathValue("id"))
+	// New entries closed: one the competition doesn't hold is asked for late.
+	if c, err := p.st.Competition(r.Context(), r.PathValue("id")); err == nil && lateNewOpen(c, p.now()) {
+		existing, err := p.memberEntry(r, member, c.ID)
+		if err == nil && (existing == nil || !existing.Sent()) {
+			to += "/late"
+		}
+	}
+	http.Redirect(w, r, to+"?discipline="+url.QueryEscape(r.URL.Query().Get("discipline")), http.StatusSeeOther)
 }

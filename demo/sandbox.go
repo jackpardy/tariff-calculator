@@ -196,6 +196,7 @@ func Sandbox(h Clocked, size Size, now time.Time) (Copy, error) {
 	at = now.Add(-3 * time.Hour)
 	s.messages(day)
 	s.messages(open)
+	s.lateRequests(day)
 	if s.err != nil {
 		return sofar(), fmt.Errorf("messages to the organiser: %w", s.err)
 	}
@@ -286,6 +287,60 @@ func (s *seeder) messages(m made) {
 	if id := send(from, "My card shows the wrong club."); id != "" {
 		s.post(concern(id)+"/resolve", url.Values{"note": {"Fixed: it was under the wrong club."}})
 		s.post(from+"/organiser/"+id, url.Values{"text": {"Thanks, but my page still shows the old club."}})
+	}
+}
+
+// lateRequests asks the organiser of a competition the seed made, once its
+// new entries have closed, to enter two members late (late requests,
+// 2026-11-11): one waiting for a coach's sign-off, which the organiser has
+// replied to; one a coach has signed off, waiting for the organiser. Each
+// asks in a discipline the member didn't enter. With new entries still
+// open, nothing is asked.
+func (s *seeder) lateRequests(m made) {
+	if s.err != nil {
+		return
+	}
+	ids := func() []string {
+		var out []string
+		for _, id := range regexp.MustCompile(`/late/([^/"]+)/reject`).FindAllStringSubmatch(s.get(m.admin+"/late"), -1) {
+			out = append(out, id[1])
+		}
+		return out
+	}
+	// ask asks for a member of the run in a discipline of theirs they
+	// didn't enter, at the lowest level; the request's id, "" for none.
+	ask := func(run clubRun, note string) string {
+		for _, p := range run.members {
+			for _, d := range []struct{ discipline, level string }{{"tumbling", s.v.tumbling[0]}, {"dmt", s.v.dmt[0]}} {
+				before := len(ids())
+				late := p.link + "/competitions/" + m.id + "/late"
+				rec := s.do(http.MethodPost, late, url.Values{"discipline": {d.discipline}, "level": {d.level}, "category": {p.category}, "note": {note}})
+				if rec.Code != http.StatusSeeOther {
+					continue
+				}
+				if now := ids(); len(now) > before {
+					return now[len(now)-1]
+				}
+			}
+		}
+		return ""
+	}
+	run := func(i int) clubRun { return m.runs[i%len(m.runs)] }
+	// These two clubs let members ask to enter late themselves.
+	for _, i := range []int{5, 6} {
+		s.post(run(i).admin+"/member-sends", url.Values{"lateEntries": {"1"}})
+	}
+	if id := ask(run(5), "Sorry: she was injured when entries closed, and is fit again."); id != "" {
+		s.post(m.admin+"/late/"+id+"/reply", url.Values{"reply": {"Can be entered if her coach signs it off by Friday."}})
+	}
+	second := run(6)
+	if id := ask(second, "I'd like to try DMT too, if there's room."); id != "" {
+		for _, coach := range second.coaches {
+			if link := regexp.MustCompile(regexp.QuoteMeta(coach) + `/late/` + id).FindString(s.get(coach)); link != "" {
+				s.post(link, url.Values{"note": {"Seen it in training."}})
+				break
+			}
+		}
 	}
 }
 

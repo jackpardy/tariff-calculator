@@ -32,6 +32,10 @@ type Competition struct {
 	// Messages lets people at the competition send the organiser messages
 	// from their own pages (on unless the organiser turns it off).
 	Messages bool
+	// ClubsSend is the organiser taking club members' entries and requests
+	// only as their club sends them (migration 55): a member's own save or
+	// ask waits for the club, whatever the club lets its members send.
+	ClubsSend bool
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -99,7 +103,7 @@ func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error)
 	return out, rows.Err()
 }
 
-const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages`
+const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages, clubs_send`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
@@ -107,7 +111,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages, &c.ClubsSend); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -590,6 +594,13 @@ func full(ctx context.Context, tx *sql.Tx, competitionID string) error {
 // link, or an entry link), or as a new individual when "as" is "". It
 // returns the entry, and the new individual's personal link if one was made.
 func (s *Store) AddIndividualEntry(ctx context.Context, competitionID, as string, e competitions.Entry) (Entry, string, error) {
+	return s.addIndividualEntry(ctx, competitionID, as, e, nil)
+}
+
+// addIndividualEntry is AddIndividualEntry; with late, once new entries
+// have closed, the entry is asked for (Asked) and late runs in the same
+// transaction, to make the request.
+func (s *Store) addIndividualEntry(ctx context.Context, competitionID, as string, e competitions.Entry, late func(*sql.Tx, Entry) error) (Entry, string, error) {
 	data, err := json.Marshal(e)
 	if err != nil {
 		return Entry{}, "", err
@@ -598,10 +609,15 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID, as string
 	if e.Discipline == competitions.Synchro {
 		out.PartnerLink = newToken()
 	}
+	if late != nil {
+		out.Removal = Asked
+	}
 	var token string
 	err = s.tx(ctx, func(tx *sql.Tx) error {
-		if err := s.open(ctx, tx, competitionID, entering); err != nil {
-			return err
+		if late == nil {
+			if err := s.open(ctx, tx, competitionID, entering); err != nil {
+				return err
+			}
 		}
 		var err error
 		if out.IndividualID, token, err = s.individualFor(ctx, tx, as, e.Gymnast); err != nil {
@@ -611,10 +627,15 @@ func (s *Store) AddIndividualEntry(ctx context.Context, competitionID, as string
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_name, individual, gymnast, entry, sent_at, signoff_token, signoff_hash,
-			discipline, partner_token, partner_hash, entered_at, individual_id, person_key)
-			VALUES ($1, $2, '', TRUE, $3, $4, $5, $6, $7, $8, $9, $10, $5, $11, $12)`, out.ID, competitionID, e.Gymnast, string(data), out.SentAt.Format(timeLayout),
-			out.SignoffLink, hash(out.SignoffLink), e.Discipline, out.PartnerLink, nullHash(out.PartnerLink), out.IndividualID, out.PersonKey); err != nil {
+			discipline, partner_token, partner_hash, entered_at, individual_id, person_key, removal)
+			VALUES ($1, $2, '', TRUE, $3, $4, $5, $6, $7, $8, $9, $10, $5, $11, $12, $13)`, out.ID, competitionID, e.Gymnast, string(data), out.SentAt.Format(timeLayout),
+			out.SignoffLink, hash(out.SignoffLink), e.Discipline, out.PartnerLink, nullHash(out.PartnerLink), out.IndividualID, out.PersonKey, out.Removal); err != nil {
 			return err
+		}
+		if late != nil {
+			if err := late(tx, out); err != nil {
+				return err
+			}
 		}
 		return full(ctx, tx, competitionID)
 	})
@@ -678,7 +699,7 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		if removal == Removed || removal == Withdrew {
+		if removal == Removed || removal == Withdrew || removal == Asked {
 			return ErrRemoved
 		}
 		partner, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM entries WHERE id = $1`, e, id)
@@ -717,7 +738,7 @@ func (s *Store) WithdrawIndividualEntry(ctx context.Context, token string) error
 		if err := s.open(ctx, tx, competitionID, changing); err != nil {
 			return err
 		}
-		if removal == Removed {
+		if removal == Removed || removal == Asked {
 			return ErrRemoved
 		}
 		if err := affected(tx.ExecContext(ctx, `UPDATE entries SET removal = $2, removal_note = '', removal_to = '', resent = FALSE WHERE id = $1`, id, Withdrew)); err != nil {

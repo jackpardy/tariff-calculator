@@ -1,50 +1,159 @@
 package views
 
 // LateRequestPage is where a club or individual asks to change an entry
-// after the deadline (roadmap 2026-10-08).
+// after the deadline, or to enter late (late requests, 2026-11-11), and
+// sees where their request stands, with the organiser's replies.
 type LateRequestPage struct {
-	Competition CompetitionSummary
-	Back        string
-	BackTo      string // the page Back is, e.g. the competition's name
-	Gymnast     string
-	Current     string   // the entry's event now
-	Allowed     []string // the kinds of change allowed, with fees
-	Status      LateStatus // the latest request, if any
-	CoachFirst  bool     // a coach signs it off before the organiser sees it
-	Problems    []string
-	Form        EntryForm
+	Competition  CompetitionSummary
+	Back         string
+	BackTo       string // the page Back is, e.g. the competition's name
+	Notice       string
+	Gymnast      string
+	Current      string     // the entry's event now; "" asking to enter late
+	New          bool       // asking to enter late (or asked)
+	Allowed      []string   // the kinds that can be asked for here, with fees
+	Status       LateStatus // the latest request, if any
+	Signoff      bool       // the competition needs a coach's sign-off
+	SignoffFirst bool       // the organiser can't accept a request until a coach signs it off
+	Thread       []SentPost // the organiser's replies and the answers to them
+	Answer       string     // where answering posts; "" once it's decided
+	Discipline   string     // the discipline answering posts with
+	Ask          bool       // the form, to ask (or ask again)
+	Problems     []string
+	Form         EntryForm
 }
 
-// LateRequest is the page for asking for a late change.
+// LateRequest is the page for asking for a late change, or to enter late.
 templ LateRequest(p LateRequestPage) {
-	@competitionLayout("Late change · " + p.Competition.Name) {
+	@competitionLayout(lateTitle(p.New) + " · " + p.Competition.Name) {
 		@backLink(p.Back, p.BackTo)
-		<h1 class="title is-4">Ask for a late change</h1>
-		<p class="subtitle is-6">{ p.Gymnast } · { p.Current } · { p.Competition.Name }</p>
-		<p class="mb-2">Entries have closed. You can ask the organiser for:</p>
-		<ul class="mb-3">
-			for _, a := range p.Allowed {
-				<li>{ a }</li>
+		<h1 class="title is-4">{ lateTitle(p.New) }</h1>
+		<p class="subtitle is-6">
+			{ p.Gymnast }
+			if p.Current != "" {
+				· { p.Current }
 			}
-		</ul>
-		<p class="mb-4 is-size-7">
-			Change the entry below and send it.
-			if p.CoachFirst {
-				It goes to your coach to sign off first (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link), then to the organiser.
-			}
-			The organiser checks whether it can be fitted in, then accepts it (it replaces the entry, and needs checking again) or says why not. Until then, the entry stays as it is.
+			· { p.Competition.Name }
 		</p>
-		@lateStatusLine(p.Status, "mb-4")
-		@problemList(p.Problems)
-		@entryForm(p.Form)
+		if p.Notice != "" {
+			@notice(p.Notice)
+		}
+		if p.Status.Text != "" {
+			<div class="box">
+				@lateStatusLine(p.Status, "mb-2")
+				@lateThread(p.Thread)
+				if p.Answer != "" {
+					@opens("", "", "Reply to the organiser", false) {
+						<form method="post" action={ templ.SafeURL(p.Answer) } class="mt-1">
+							<input type="hidden" name="discipline" value={ p.Discipline }/>
+							<textarea class="textarea is-small mb-2" name="text" required maxlength="1000" rows="2" placeholder="An answer, or more to say about it" aria-label="Your reply"></textarea>
+							<button class="button is-small" type="submit">Send</button>
+						</form>
+					}
+				}
+			</div>
+		}
+		if p.Ask && p.Status.Text != "" {
+			// Asked already: changing what's asked is there, folded away.
+			@opens("", "", askAgainLabel(p.Status), len(p.Problems) > 0) {
+				@lateAskForm(p)
+			}
+		} else if p.Ask {
+			@lateAskForm(p)
+		}
 	}
 }
 
-// LateAdminPage is the organiser's page of late changes.
+// lateAskForm is the form asking for a late request, with what it's for.
+templ lateAskForm(p LateRequestPage) {
+	if p.New {
+		<p class="mb-2">New entries have closed. You can ask the organiser to enter late:</p>
+	} else {
+		<p class="mb-2">Entries have closed. You can ask the organiser for:</p>
+	}
+	<ul class="mb-3">
+		for _, a := range p.Allowed {
+			<li>{ a }</li>
+		}
+	</ul>
+	<p class="mb-4 is-size-7">
+		if p.New {
+			Fill in the entry below and send it. It isn't in the competition unless the organiser accepts it.
+		} else {
+			Change the entry below and send it.
+		}
+		The organiser sees it at once, and can reply to it here.
+		if p.SignoffFirst {
+			They can't accept it until a coach signs it off (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link).
+		} else if p.Signoff {
+			A coach can sign it off too (a member's coach on their coach page; if you entered on your own, your coach through your sign-off link): the organiser sees whether they have.
+		}
+		if p.New {
+			Then they accept it (it becomes your entry, on the waiting list if the level is full) or say why not.
+		} else {
+			Then they accept it (it replaces the entry, and needs checking again) or say why not. Until then, the entry stays as it is.
+		}
+	</p>
+	@problemList(p.Problems)
+	@entryForm(p.Form)
+}
+
+// askAgainLabel opens the form under a request asked already: to ask again
+// once it's been turned down (a new request), or to change it while it waits.
+func askAgainLabel(s LateStatus) string {
+	if s.Label == "Turned down" {
+		return "Ask again"
+	}
+	return "Change what you asked for"
+}
+
+// enterMemberLabel is the comp sec's button to enter a member: asked for
+// late once new entries have closed.
+func enterMemberLabel(open bool) string {
+	if open {
+		return "Enter a member"
+	}
+	return "Ask to enter a member late"
+}
+
+// enterThemLabel is that form's button.
+func enterThemLabel(open bool) string {
+	if open {
+		return "Enter them"
+	}
+	return "Ask"
+}
+
+// lateTitle is a late request page's heading.
+func lateTitle(asked bool) string {
+	if asked {
+		return "Ask to enter late"
+	}
+	return "Ask for a late change"
+}
+
+// lateThread is a request's thread as the asker sees it: the organiser's
+// replies, and what was added to them.
+templ lateThread(posts []SentPost) {
+	for _, r := range posts {
+		<div class={ "comp-tell-post", templ.KV("is-organiser", r.Organiser) }>
+			if r.Organiser {
+				<p class="is-size-7 has-text-grey">The organiser replied, { r.At }</p>
+			} else if r.By != "" {
+				<p class="is-size-7 has-text-grey">{ r.By } replied, { r.At }</p>
+			} else {
+				<p class="is-size-7 has-text-grey">You replied, { r.At }</p>
+			}
+			<p class="comp-feedback-text">{ r.Text }</p>
+		</div>
+	}
+}
+
+// LateAdminPage is the organiser's page of late requests.
 type LateAdminPage struct {
 	Base, Notice string
 	Competition  CompetitionSummary
-	Menu []MenuSection
+	Menu         []MenuSection
 	Signoff      bool // entries need a coach's sign-off
 	SignoffFirst bool
 	Kinds        []LateKindField
@@ -53,7 +162,7 @@ type LateAdminPage struct {
 	Timetable    string // the timetable, when its draft has changes to publish; "" if not
 }
 
-// LateKindField is a kind of late change, for the form.
+// LateKindField is a kind of late request, for the form.
 type LateKindField struct {
 	Kind, Name, Fee string
 	On              bool
@@ -62,16 +171,19 @@ type LateKindField struct {
 // LateRequestView is a request, for the organiser.
 type LateRequestView struct {
 	ID, Who, Kind, Gymnast, From, To, Note, At, Fee, Status, Link string
-	Waiting                                                       bool // for the organiser to decide
-	ForCoach                                                      bool // waiting for a coach to sign it off
+	Waiting                                                       bool         // for the organiser to decide
+	Signoff                                                       *SignoffView // its coach's sign-off, where the competition needs one
+	Blocked                                                       string       // why it can't be accepted yet: it needs signing off first
 	Checks                                                        []string
 	NewCard                                                       *EntryCard // the card as it would be, while waiting
+	Thread                                                        []ThreadPost
+	Before                                                        []string // earlier requests for the entry turned down, e.g. "Asked before for BUCS L4, turned down 11 Nov: level is full"
 }
 
-// LateAdmin is the organiser's page of late changes.
+// LateAdmin is the organiser's page of late requests.
 templ LateAdmin(p LateAdminPage) {
-	@competitionLayout("Late changes · " + p.Competition.Name) {
-		<h1 class="title is-4">Late changes</h1>
+	@competitionLayout("Late requests · " + p.Competition.Name) {
+		<h1 class="title is-4">Late requests</h1>
 		<p class="subtitle is-6">{ p.Competition.Name }</p>
 		@pageMenu(p.Menu)
 		if p.Notice != "" {
@@ -80,7 +192,7 @@ templ LateAdmin(p LateAdminPage) {
 		if p.Timetable != "" {
 			<p class="mb-3 is-size-7">The draft timetable has changes not published yet. <a href={ templ.SafeURL(p.Timetable) }>Open the timetable to publish them →</a></p>
 		}
-		@changeLine("Late changes", p.Now, false) {
+		@changeLine("Late requests", p.Now, false) {
 			<form method="post" action={ templ.SafeURL(p.Base + "/late/settings") }>
 				for _, k := range p.Kinds {
 					<div class="comp-flight-actions mb-2">
@@ -95,21 +207,21 @@ templ LateAdmin(p LateAdminPage) {
 				if p.Signoff {
 					<label class="checkbox mb-2">
 						<input type="checkbox" name="signoffFirst" value="1" checked?={ p.SignoffFirst }/>
-						A coach must sign off a late change before it comes to you
+						A late request can't be accepted until a coach has signed it off
 					</label>
 				}
-				<p class="help mb-2">Level change: a different level, with its routines. Routine change: new routines at the same level. Clubs and gymnasts ask from their pages once entries close; the fee goes on their invoice if you accept.</p>
+				<p class="help mb-2">Late entry: a new entry once new entries close. Level change: a different level, with its routines. Routine change: new routines at the same level. Clubs and gymnasts ask from their pages; each request comes to you at once, and the fee goes on their invoice if you accept.</p>
 				<button class="button is-small is-primary" type="submit">Save</button>
 			</form>
 		}
 		if len(p.Requests) == 0 {
-			@emptyLine("No late changes asked for.")
+			@emptyLine("No late requests.")
 		}
 		for _, r := range p.Requests {
-			<div class={ "box", templ.KV("has-text-grey", !r.Waiting) }>
+			<div class={ "box", templ.KV("has-text-grey", !r.Waiting) } id={ "late-" + r.ID }>
 				<p>
 					<strong><a href={ templ.SafeURL(r.Link) }>{ r.Gymnast }</a></strong> · { r.Kind }:
-					if r.From != r.To {
+					if r.From != "" && r.From != r.To {
 						{ r.From } → <strong>{ r.To }</strong>
 					} else {
 						{ r.To }
@@ -128,6 +240,20 @@ templ LateAdmin(p LateAdminPage) {
 				if r.Note != "" {
 					<p class="is-size-7">Their note: { r.Note }</p>
 				}
+				for _, b := range r.Before {
+					<p class="is-size-7">{ b }</p>
+				}
+				if r.Waiting && r.Signoff != nil {
+					<p class="mt-1">
+						@signoffLine(*r.Signoff)
+					</p>
+				}
+				for _, t := range r.Thread {
+					<div class={ "comp-tell-post", templ.KV("is-organiser", t.Organiser) }>
+						<p class="is-size-7 has-text-grey">{ t.Who } replied, { t.At }</p>
+						<p class="comp-feedback-text">{ t.Text }</p>
+					</div>
+				}
 				if r.Waiting {
 					<ul class="is-size-7 mt-2 mb-2">
 						for _, c := range r.Checks {
@@ -136,75 +262,101 @@ templ LateAdmin(p LateAdminPage) {
 					</ul>
 					if r.NewCard != nil {
 						<details class="mb-2">
-							<summary class="is-size-7">See the new card</summary>
+							<summary class="is-size-7">See the card</summary>
 							@entryCard(*r.NewCard)
 						</details>
 					}
+					if r.Blocked != "" {
+						<p class="is-size-7 mb-2">{ r.Blocked }</p>
+					}
 					<div class="comp-flight-actions">
-						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/accept") } class="comp-flight-actions">
-							<input class="input is-small" name="note" maxlength="300" placeholder="Note (optional)" aria-label="Note with accepting"/>
-							<button class="button is-small is-primary" type="submit">Accept</button>
-						</form>
+						if r.Blocked == "" {
+							<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/accept") } class="comp-flight-actions">
+								<input class="input is-small" name="note" maxlength="300" placeholder="Note (optional)" aria-label="Note with accepting"/>
+								<button class="button is-small is-primary" type="submit">Accept</button>
+							</form>
+						} else {
+							<button class="button is-small is-primary" type="button" disabled title={ r.Blocked }>Accept</button>
+						}
 						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/reject") } class="comp-flight-actions">
 							<input class="input is-small" name="reason" required maxlength="300" placeholder="Why not (they see it)" aria-label="Reason for not accepting"/>
-							<button class="button is-small" type="submit">Not accepted</button>
+							<button class="button is-small" type="submit">Turn down</button>
 						</form>
 					</div>
-				} else if r.ForCoach {
-					<p class="is-size-7 has-text-grey">{ r.Status }</p>
-					<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/reject") } class="comp-flight-actions mt-1">
-						<input class="input is-small" name="reason" required maxlength="300" placeholder="Why not (they see it)" aria-label="Reason for not accepting"/>
-						<button class="button is-small" type="submit">Not accepted</button>
-					</form>
+					@opens("", "", "Reply", false) {
+						<form method="post" action={ templ.SafeURL(p.Base + "/late/" + r.ID + "/reply") } class="mt-1">
+							<textarea class="textarea is-small mb-2" name="reply" required maxlength="1000" rows="2" placeholder="They see this with their request, e.g. it can be accepted if signed off by Friday" aria-label="Your reply"></textarea>
+							<button class="button is-small is-primary" type="submit">Send reply</button>
+						</form>
+					}
 				} else {
-					<p class="is-size-7">{ r.Status }</p>
+					<p class="is-size-7 mt-1">{ r.Status }</p>
 				}
 			</div>
 		}
 	}
 }
 
-// LateStatus is where the latest late change asked for an entry stands:
-// in words, and as a state (asked and waiting, accepted, or not accepted).
+// LateStatus is where the latest late request about an entry stands: in
+// words, and as a chip (Label: Asked, Waiting for sign-off, Signed off,
+// Accepted or Turned down).
 type LateStatus struct {
 	Text  string // "" for none
+	Label string
 	State State
 }
 
-// lateStatusLine is a late change's state as a chip, then what it is.
+// lateStatusLine is a late request's state as a chip, then what it is.
 templ lateStatusLine(s LateStatus, class string) {
 	if s.Text != "" {
 		<p class={ "is-size-7", class }>
-			@StateChip(s.State, "Late change")
+			@StateChip(s.State, s.Label)
 			<span class="ml-1">{ s.Text }</span>
 		</p>
 	}
 }
 
-// lateLine shows where a late change stands, and links to ask for one.
+// lateLine shows where a late request stands, and links to it (or to ask
+// for one).
 templ lateLine(status LateStatus, ask string) {
 	@lateStatusLine(status, "mb-2")
 	if ask != "" {
-		<p class="is-size-7 mb-2"><a href={ templ.SafeURL(ask) }>Ask for a late change</a></p>
+		if status.Text != "" {
+			<p class="is-size-7 mb-2"><a href={ templ.SafeURL(ask) }>Open the request, to see replies or answer</a></p>
+		} else {
+			<p class="is-size-7 mb-2"><a href={ templ.SafeURL(ask) }>Ask for a late change</a></p>
+		}
 	}
 }
 
-// LateSignoffPage is a coach signing off a late change.
-type LateSignoffPage struct {
-	Competition    CompetitionSummary
-	Back, Action   string
-	BackTo         string // the page Back is, e.g. "Entries"
-	What, Note     string // e.g. "Level change to BUCS L5"; the gymnast's note
-	Card           EntryCard
-	AskName        bool // an individual's coach gives their name
-	Problems       []string
+// askLateButton asks to enter late with the entry saved, in one tap (the
+// late request page's use=saved).
+templ askLateButton(action, discipline string) {
+	if action != "" {
+		<form method="post" action={ templ.SafeURL(action) } class="mb-2">
+			<input type="hidden" name="discipline" value={ discipline }/>
+			<input type="hidden" name="use" value="saved"/>
+			<button class="button is-small is-primary" type="submit">Ask to enter late</button>
+		</form>
+	}
 }
 
-// LateSignoff shows a late change's new card, for a coach to sign off.
+// LateSignoffPage is a coach signing off a late request.
+type LateSignoffPage struct {
+	Competition  CompetitionSummary
+	Back, Action string
+	BackTo       string // the page Back is, e.g. "Entries"
+	What, Note   string // e.g. "Level change to BUCS L5"; the gymnast's note
+	Card         EntryCard
+	AskName      bool // an individual's coach gives their name
+	Problems     []string
+}
+
+// LateSignoff shows a late request's card, for a coach to sign off.
 templ LateSignoff(p LateSignoffPage) {
-	@competitionLayout("Sign off a late change · " + p.Competition.Name) {
+	@competitionLayout("Sign off a late request · " + p.Competition.Name) {
 		@backLink(p.Back, p.BackTo)
-		<h1 class="title is-4">Sign off a late change</h1>
+		<h1 class="title is-4">Sign off a late request</h1>
 		<p class="subtitle is-6">{ p.Card.Gymnast } · { p.What } · { p.Competition.Name }</p>
 		if p.Note != "" {
 			<p class="mb-3 is-size-7">Their note: { p.Note }</p>
@@ -225,22 +377,22 @@ templ LateSignoff(p LateSignoffPage) {
 					<input class="input is-small" id="late-note" name="note" maxlength="300"/>
 				</div>
 				<button class="button is-small is-primary" type="submit">Sign off</button>
-				<p class="help">Then it goes to the organiser, who accepts it or says why not. If accepted, the entry is signed off as you signed this.</p>
+				<p class="help">The organiser sees you've signed it off, and accepts it or says why not. If accepted, the entry is signed off as you signed this.</p>
 			</form>
 		</div>
 	}
 }
 
-// CoachLate is a late change for a coach to sign off.
+// CoachLate is a late request for a coach to sign off.
 type CoachLate struct {
 	Member, What, Link string
 }
 
-// coachLates lists the late changes a coach can sign off.
+// coachLates lists the late requests a coach can sign off.
 templ coachLates(list []CoachLate) {
 	if len(list) > 0 {
 		<div class="notification is-warning is-light">
-			<p><strong>Late changes to sign off</strong></p>
+			<p><strong>Late requests to sign off</strong></p>
 			<ul class="is-size-7">
 				for _, l := range list {
 					<li><a href={ templ.SafeURL(l.Link) }>{ l.Member } · { l.What }</a></li>

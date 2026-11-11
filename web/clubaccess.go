@@ -53,6 +53,7 @@ var clubRoutes = map[string]string{
 	"POST /members/{member}/competitions/{id}/offer":      store.ClubEnter,
 	"GET /members/{member}/competitions/{id}/late":        store.ClubEnter,
 	"POST /members/{member}/competitions/{id}/late":       store.ClubEnter,
+	"POST /members/{member}/competitions/{id}/late/reply": store.ClubEnter,
 	"POST /competitions/{id}/send":                        store.ClubSend,
 	"POST /competitions/{id}/coaches":                     store.ClubSend,
 	"GET /competitions/{id}/fees":                         store.ClubFees,
@@ -78,6 +79,7 @@ var clubRoutes = map[string]string{
 	"GET /settings":                                       store.ClubSettings,
 	"POST /coaches-see-all":                               store.ClubSettings,
 	"POST /skills-open":                                   store.ClubSettings,
+	"POST /member-sends":                                  store.ClubSettings,
 	"POST /roles":                                         adminOnly,
 	"POST /roles/{role}":                                  adminOnly,
 	"POST /roles/{role}/remove":                           adminOnly,
@@ -262,7 +264,12 @@ func (p *competitionPages) describeClub(r *http.Request, club store.Club, patter
 	case "/members/{member}/competitions/{id}/offer":
 		return "Changed " + member() + "'s offer to help at " + competition()
 	case "/members/{member}/competitions/{id}/late":
+		if copied, ok := p.memberCopy(r); !ok || copied.Removal == store.Asked {
+			return "Asked to enter " + entry() + " late"
+		}
 		return "Asked for a late change: " + entry()
+	case "/members/{member}/competitions/{id}/late/reply":
+		return "Replied to the organiser about a late request: " + entry()
 	case "/members/{member}/new-link":
 		return "Made a new link for " + member()
 	case "/members/{member}/remove":
@@ -295,6 +302,8 @@ func (p *competitionPages) describeClub(r *http.Request, club store.Club, patter
 		return "Removed a qualification of " + coach(r.PathValue("coach"))
 	case "/coaches-see-all":
 		return "Changed who coaches see"
+	case "/member-sends":
+		return "Changed what members send themselves"
 	case "/skills-open":
 		return "Changed who sees members' skills"
 	case "/competitions/{id}/organiser":

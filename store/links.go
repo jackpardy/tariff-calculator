@@ -200,6 +200,7 @@ type Concern struct {
 	ResolvedAt time.Time // zero while it's open
 	ResolvedBy string
 	Resolution string // the organiser's own note, from resolving it
+	Late       bool   // a late request's thread (migration 54)
 }
 
 // Post is something added to a message after it was sent: the organiser's
@@ -265,7 +266,7 @@ func (s *Store) FlagConcern(ctx context.Context, competitionID, entryID, who, te
 func (s *Store) TellOrganiser(ctx context.Context, competitionID string, about About, from Sender, text string) (Concern, error) {
 	var n int
 	since := formatTime(s.now().Add(-24 * time.Hour))
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1 AND sender = $2 AND at > $3`,
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1 AND sender = $2 AND at > $3 AND NOT late`,
 		competitionID, from.ID, since).Scan(&n); err != nil {
 		return Concern{}, err
 	}
@@ -309,6 +310,12 @@ func jsonList(list []string) (string, error) {
 	return string(b), err
 }
 
+// SetClubsSend makes a competition take club members' entries and requests
+// only as their club sends them, or lets the clubs' own settings say.
+func (s *Store) SetClubsSend(ctx context.Context, competitionID string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET clubs_send = $1 WHERE id = $2`, on, competitionID))
+}
+
 // SetMessages lets people send the competition's organiser messages, or
 // stops them.
 func (s *Store) SetMessages(ctx context.Context, competitionID string, on bool) error {
@@ -318,7 +325,7 @@ func (s *Store) SetMessages(ctx context.Context, competitionID string, on bool) 
 // Concerns are a competition's concerns and messages, open ones first, each
 // latest first, with their threads.
 func (s *Store) Concerns(ctx context.Context, competitionID string) ([]Concern, error) {
-	return s.concerns(ctx, `competition_id = $1`, competitionID)
+	return s.concerns(ctx, `competition_id = $1 AND NOT late`, competitionID)
 }
 
 // SentBy are the messages one sender (Sender.ID) has sent a competition's
@@ -327,7 +334,7 @@ func (s *Store) SentBy(ctx context.Context, competitionID, sender string) ([]Con
 	if sender == "" {
 		return nil, nil
 	}
-	all, err := s.concerns(ctx, `competition_id = $1 AND sender = $2`, competitionID, sender)
+	all, err := s.concerns(ctx, `competition_id = $1 AND sender = $2 AND NOT late`, competitionID, sender)
 	slices.SortStableFunc(all, func(a, b Concern) int { return b.At.Compare(a.At) })
 	return all, err
 }
@@ -336,7 +343,7 @@ func (s *Store) SentBy(ctx context.Context, competitionID, sender string) ([]Con
 // first, each latest first, with their threads.
 func (s *Store) concerns(ctx context.Context, where string, args ...any) ([]Concern, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, entry_id, entries, events, who, role, club, sender, text, at, acknowledged_at, acknowledged_by,
-		resolved_at, resolved_by, resolution FROM concerns
+		resolved_at, resolved_by, resolution, late FROM concerns
 		WHERE `+where+` ORDER BY resolved_at <> '', at DESC, rowid DESC`, args...)
 	if err != nil {
 		return nil, err
@@ -348,7 +355,7 @@ func (s *Store) concerns(ctx context.Context, where string, args ...any) ([]Conc
 		var c Concern
 		var entries, events, at, ack, resolved string
 		if err := rows.Scan(&c.ID, &c.EntryID, &entries, &events, &c.Who, &c.Role, &c.Club, &c.Sender, &c.Text, &at, &ack, &c.AckBy,
-			&resolved, &c.ResolvedBy, &c.Resolution); err != nil {
+			&resolved, &c.ResolvedBy, &c.Resolution, &c.Late); err != nil {
 			return nil, err
 		}
 		json.Unmarshal([]byte(entries), &c.Entries)

@@ -22,6 +22,9 @@ const (
 	// so it stays listed and its links work, and they can put it back until
 	// the deadline. Only they can.
 	Withdrew = "withdrawn"
+	// Asked is an entry asked for after new entries closed (a late request,
+	// 2026-11-11): out of the competition unless the organiser accepts it.
+	Asked = "asked"
 )
 
 // Who sees the reason an entry was removed or held.
@@ -69,7 +72,12 @@ func (s *Store) RestoreEntry(ctx context.Context, competitionID, id string) erro
 
 // RemovedEntries are a competition's removed and held entries, by gymnast.
 func (s *Store) RemovedEntries(ctx context.Context, competitionID string) ([]Entry, error) {
-	return s.entriesWhere(ctx, `competition_id = $1 AND removal <> ''`, competitionID)
+	return s.entriesWhere(ctx, `competition_id = $1 AND removal NOT IN ('', 'asked')`, competitionID)
+}
+
+// AskedEntries are a competition's entries asked for late, still out of it.
+func (s *Store) AskedEntries(ctx context.Context, competitionID string) ([]Entry, error) {
+	return s.entriesWhere(ctx, `competition_id = $1 AND removal = 'asked'`, competitionID)
 }
 
 // ClubRemovals are a club's entries the organiser of a competition removed or

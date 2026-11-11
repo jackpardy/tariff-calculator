@@ -47,7 +47,7 @@ var clubAllows = map[string][]string{
 		"GET /members/{member}/routines", "GET /members/{member}/skills", "POST /feedback"},
 	store.ClubEnter: {"GET /competitions/{id}/enter-member", "GET /members/{member}/competitions/{id}", "POST /members/{member}/competitions/{id}",
 		"POST /members/{member}/competitions/{id}/withdraw", "GET /competitions/{id}/add-offer", "GET /members/{member}/competitions/{id}/offer",
-		"POST /members/{member}/competitions/{id}/offer", "GET /members/{member}/competitions/{id}/late", "POST /members/{member}/competitions/{id}/late"},
+		"POST /members/{member}/competitions/{id}/offer", "GET /members/{member}/competitions/{id}/late", "POST /members/{member}/competitions/{id}/late", "POST /members/{member}/competitions/{id}/late/reply"},
 	store.ClubSend: {"POST /competitions/{id}/send", "POST /competitions/{id}/coaches"},
 	store.ClubFees: {"GET /competitions/{id}/fees", "GET /competitions/{id}/invoice"},
 	store.ClubMembers: {"POST /members/{member}/new-link", "POST /members/{member}/remove", "POST /members/{member}/coach",
@@ -57,7 +57,7 @@ var clubAllows = map[string][]string{
 	store.ClubCertificates: {"GET /coaches/{coach}/qualifications/{q}/certificate", "GET /members/{member}/judging/{q}"},
 	store.ClubOrganiser: {"POST /competitions/{id}/organiser", "POST /competitions/{id}/organiser/{message}",
 		"GET /competitions/{id}/notify", "POST /competitions/{id}/notify"},
-	store.ClubSettings: {"GET /settings", "POST /coaches-see-all", "POST /skills-open"},
+	store.ClubSettings: {"GET /settings", "POST /coaches-see-all", "POST /skills-open", "POST /member-sends"},
 	adminOnly: {"POST /roles", "POST /roles/{role}", "POST /roles/{role}/remove", "POST /links", "POST /links/{link}/role",
 		"POST /links/{link}/remove", "POST /ties/remove", "POST /replace-link", "POST /delete"},
 }

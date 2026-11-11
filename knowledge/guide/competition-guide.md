@@ -87,8 +87,8 @@ performed as written.
 under its title: **Entries**, **Timetable**, **On the day** (once the
 timetable is published) and **Settings**. Tap a section to open it; its own
 pages are listed under the bar, with the page you're on marked. **Entries** has
-All entries, People, Late changes, Coaches (when you approve coaches) and Fees, with a count beside
-Late changes and Coaches when something waits for you. **Timetable** has
+All entries, People, Late requests, Coaches (when you approve coaches) and Fees, with a count beside
+Late requests and Coaches when something waits for you. **Timetable** has
 Flights (the timetable itself), Setup, Officials, Simulate and the two "what if" pages. **On the day** has
 Areas (the day's page), Desk messages and the Venue screen. **Settings** has
 Competition (the settings themselves) and History.
@@ -162,19 +162,31 @@ pair's one routine), checked as the Routine Builder checks them.
   but never sent isn't in the competition. A change a club saved but didn't
   send before the closing time isn't either: the club's and the member's
   pages show what you hold, with a line saying so.
-- **Late changes:** tap **Late changes** to choose what clubs and gymnasts
-  can ask for once entries close (a **level change**, a **routine change**,
-  or both), each with a fee charged only if you accept. Each request shows
+- **Club members** (on Settings): **Only take what clubs send** makes club
+  members' entries and requests (entries, changes, late changes, asking to
+  enter late) wait for their club to send them, whatever the club lets its
+  members do. What members sent already stays; gymnasts entering on their
+  own aren't affected.
+- **Late requests:** tap **Late requests** to choose what clubs and gymnasts
+  can ask for once entries close (a **late entry**, allowed unless you untick
+  it; a **level change**; a **routine change**), each with a fee charged only
+  if you accept. A member's entry that was never sent has **Ask to enter
+  late** under it; comp secs and gymnasts on their own ask with the usual
+  entry form. Each request shows
   whether it fits: the new card's problems, whether the new level is full,
   and where it would go in the draft timetable and what that moves.
   **Accept** applies it (it needs checking and signing off again, goes into
   the draft timetable for you to publish, and the fee goes on their
-  invoice) or say why it's **Not accepted**. Members, comp secs and
-  individuals ask with **Ask for a late change** on their pages. Where
-  entries need sign-off, tick **A coach must sign off a late change before
-  it comes to you**: the coach signs off the new card first (on their coach
-  page, or an individual's coach through the sign-off link), and accepting
-  carries that sign-off onto the entry.
+  invoice; a late entry over a full level's limit goes on its waiting list)
+  or **Turn down** with a reason. Members, comp secs and individuals ask for
+  changes with **Ask for a late change** on their pages. Every request comes
+  to you at once, showing whether a coach has signed it off. **Reply** to
+  one without deciding it ("can be entered if signed off by Friday"): they
+  see it with their request, are told, and can answer. Where entries need
+  sign-off, tick **A late request can't be accepted until a coach has signed
+  it off** to hold Accept back until the coach signs (on their coach page,
+  or an individual's coach through the sign-off link); accepting carries
+  that sign-off onto the entry.
 - **Limits and waiting lists** (on the Settings page): give an
   event a limit and, once it's full, later entries go on its waiting list
   in the order they came in. The next one moves up by itself when an entry
@@ -747,7 +759,16 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   [Roles and links](#roles-and-links)), then a row for each setting, with its
   button at the right. **Members' skills**, **Change**: **Let every member see
   everyone's skills** shares members' skills with the whole club (otherwise
-  each member's are seen by them, their coaches and you). **History**,
+  each member's are seen by them, their coaches and you). **Who sends**,
+  **Change**: four ticks, all off until you tick them: **Members can send
+  their own entries**, **Members can send changes to their entries**,
+  **Members can ask for late changes**, **Members can ask to enter late**.
+  Ticked, what a member saves or asks for goes straight to the competition
+  and your history says they sent it; not ticked, it waits for you, counted
+  on the competition's page ("1 late request to send") and sent with **Send
+  new and changed**. A competition can take only what clubs send; then its
+  page, and this row, say so, and members' entries and requests there wait
+  for you whatever you've ticked. **History**,
   **Show**: what was changed through the club's links, when and by whom.
   **Club admin link**, **Replace**, and **Delete the club**, **Delete**, open
   to do it; replacing the club admin link asks first, as the old one stops

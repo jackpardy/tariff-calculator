@@ -95,6 +95,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerFees(handle)
 	p.registerLimits(handle)
 	p.registerLate(handle)
+	p.registerMemberSends(handle)
 	p.registerDesk(handle)
 	p.registerDay(handle)
 	p.registerScreen(handle)

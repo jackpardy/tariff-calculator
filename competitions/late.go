@@ -9,45 +9,64 @@ import (
 // individual can ask to change an entry, in the ways the organiser allows,
 // each with its own fee, charged if it's accepted.
 
-// The kinds of late change.
+// The kinds of late request (late requests, 2026-11-11: a late new entry is
+// one too).
 const (
+	LateNew      = "new"      // a new entry, once new entries have closed
 	LateLevel    = "level"    // a different level, with its routines
 	LateRoutines = "routines" // new routines at the same level
 )
 
-// LateKinds are the kinds of late change, in the order pages list them.
-var LateKinds = []string{LateLevel, LateRoutines}
+// LateKinds are the kinds of late request, in the order pages list them.
+var LateKinds = []string{LateNew, LateLevel, LateRoutines}
 
-// LateKindName names a kind of late change.
+// LateChangeKinds are the kinds that change an entry the competition has.
+var LateChangeKinds = []string{LateLevel, LateRoutines}
+
+// LateKindName names a kind of late request.
 func LateKindName(kind string) string {
-	if kind == LateRoutines {
+	switch kind {
+	case LateNew:
+		return "Late entry"
+	case LateRoutines:
 		return "Routine change"
 	}
 	return "Level change"
 }
 
-// LateRule is whether a kind of late change is allowed, and its fee.
+// LateRule is whether a kind of late request is allowed, and its fee. A late
+// entry is allowed unless turned off (Off), so competitions made before it
+// existed allow it too; the other kinds only once turned on.
 type LateRule struct {
 	On  bool `json:"on,omitempty"`
+	Off bool `json:"off,omitempty"` // a late entry's: turned off
 	Fee int  `json:"fee,omitempty"` // in cents, charged when accepted
 }
 
-// LateChanges are the late changes the organiser allows, by kind, and
-// whether a coach must sign off a request before it reaches the organiser.
+// LateChanges are the late requests the organiser allows, by kind, and
+// whether a coach must sign a request off before the organiser can accept
+// it.
 type LateChanges struct {
 	Rules        map[string]LateRule `json:"rules,omitempty"`
 	SignoffFirst bool                `json:"signoff_first,omitempty"`
 }
 
-// Rule is a kind's rule.
-func (l LateChanges) Rule(kind string) LateRule { return l.Rules[kind] }
+// Rule is a kind's rule, On saying whether it's allowed.
+func (l LateChanges) Rule(kind string) LateRule {
+	r := l.Rules[kind]
+	if kind == LateNew {
+		r.On = !r.Off
+	}
+	return r
+}
 
-// Allowed says whether a kind of late change can be asked for.
-func (l LateChanges) Allowed(kind string) bool { return l.Rules[kind].On }
+// Allowed says whether a kind of late request can be made.
+func (l LateChanges) Allowed(kind string) bool { return l.Rule(kind).On }
 
-// Any says whether any late change can be asked for.
+// Any says whether any change to an entry the competition has can be asked
+// for late.
 func (l LateChanges) Any() bool {
-	return slices.ContainsFunc(LateKinds, l.Allowed)
+	return slices.ContainsFunc(LateChangeKinds, l.Allowed)
 }
 
 // LateKind is the kind of late change from one entry to another: a level

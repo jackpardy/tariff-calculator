@@ -136,6 +136,13 @@ type EnterPage struct {
 	Competition CompetitionSummary
 	Form        EntryForm
 	Disciplines []DisciplineTab // to choose from, when there are several
+	Late        bool            // new entries have closed, and entering late can be asked for
+}
+
+// lateEnterLine says, above the form, that entering now is asking to enter
+// late.
+templ lateEnterLine() {
+	<p class="notification is-info is-light">New entries have closed, but you can ask the organiser to enter late: fill in the entry and send it. It isn't in the competition unless they accept it, and you see their answer, and any replies, on your page.</p>
 }
 
 // DisciplineTab is one of a competition's disciplines to enter.
@@ -149,7 +156,10 @@ templ CompetitionEnter(p EnterPage) {
 	@competitionLayout("Enter " + p.Competition.Name) {
 		<h1 class="title is-4">Enter { p.Competition.Name }</h1>
 		@competitionFacts(p.Competition)
-		if p.Competition.Open {
+		if p.Competition.Open || p.Late {
+			if p.Late {
+				@lateEnterLine()
+			}
 			if len(p.Disciplines) > 1 {
 				<div class="tabs is-small">
 					<ul>

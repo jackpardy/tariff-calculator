@@ -213,6 +213,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		// Fees: €12 an entry, €5 for a late level change.
 		redirected(t, h, admin+"/fees/settings", url.Values{"fee-": {"12"}})
 		redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "fee-level": {"5"}})
+		redirected(t, h, clubs["UCD"]+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 
 		// Ann asks to move to BUCS L4; the organiser accepts.
 		ask := regexp.MustCompile(regexp.QuoteMeta(members["Ann"]) + `/competitions/[^/"]+/late\?discipline=`).FindString(memberCompetitionPage(t, h, members["Ann"]))
@@ -229,7 +230,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		if notice := noticeOf(t, redirected(t, h, admin+"/late/"+id[1]+"/accept", url.Values{})); !strings.HasPrefix(notice, "Accepted: Ann is in BUCS L4.") {
 			t.Errorf("accepted: %q", notice)
 		}
-		if page := memberCompetitionPage(t, h, members["Ann"]); !strings.Contains(page, "Level change to BUCS L4: accepted (€5, on the invoice)") || !strings.Contains(page, chip(t, views.Done, "Late change")) {
+		if page := memberCompetitionPage(t, h, members["Ann"]); !strings.Contains(page, "Level change to BUCS L4: accepted (€5, on the invoice)") || !strings.Contains(page, chip(t, views.Done, "Accepted")) {
 			t.Error("Ann sees it accepted, with its fee")
 		}
 		if got := myPageOf(t, "Ann"); len(got.Events) != 1 || got.Events[0].Event != "BUCS L4" {

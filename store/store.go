@@ -929,6 +929,25 @@ var migrations = []string{
 	// 53: the marshal's Warm-up over tap (roadmap 15): when a flight's
 	// warm-up ended and its competing began; empty for not yet, or skipped.
 	`ALTER TABLE flight_times ADD COLUMN warm_up_over_at TEXT NOT NULL DEFAULT '';`,
+
+	// 54: late requests (2026-11-11): each carries a thread, a message to
+	// the organiser of its own (thread: the concern's id; concerns.late
+	// keeps it out of the messages and concerns), and reaches the organiser
+	// at once, signed off or not: one waiting for a coach is waiting now.
+	`ALTER TABLE late_requests ADD COLUMN thread TEXT NOT NULL DEFAULT '';
+	ALTER TABLE concerns ADD COLUMN late BOOLEAN NOT NULL DEFAULT FALSE;
+	UPDATE late_requests SET status = '' WHERE status = 'coach';`,
+
+	// 55: what a club's members send themselves (2026-11-11), each off
+	// until the club turns it on: their new entries, changes to them, late
+	// changes and late entries. Off, the comp sec sends it. And a
+	// competition's organiser can take members' only as their club sends
+	// them (clubs_send), whatever the club's settings.
+	`ALTER TABLE clubs ADD COLUMN member_sends_entries BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_sends_changes BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_asks_late_changes BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_asks_late_entries BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE competitions ADD COLUMN clubs_send BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

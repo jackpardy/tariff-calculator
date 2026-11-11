@@ -104,6 +104,9 @@ const (
 	senderReceived = "received"
 	senderReplied  = "replied"
 	senderResolved = "resolved"
+	// A late request's (latepages.go): accepted, or turned down.
+	senderAccepted   = "accepted"
+	senderTurnedDown = "turned down"
 )
 
 // tellSender tells a message's sender, at every address they've asked to
@@ -154,7 +157,7 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 			if n.mail == nil {
 				continue
 			}
-			body := line + "\n\nYour message:\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
+			body := line + "\n\n" + yours(k) + ":\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
 				"\nTo stop these emails:\n" + n.offLink(told[0].Token) + "\n"
 			ds = append(ds, delivery{about: "Replies: emailing about " + c.ID, email: &email{told[0].Address, subject, body, map[string]string{
 				"List-Unsubscribe":      "<" + n.offLink(told[0].Token) + ">",
@@ -175,10 +178,27 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 	return fmt.Sprintf("They see it on their page, and are told at %d addresses.", len(ds))
 }
 
+// yours is what the sender sent, as an email quoting it names it: their
+// message, or their late request (a request's thread, latepages.go).
+func yours(k store.Concern) string {
+	if k.Late {
+		return "Your request"
+	}
+	return "Your message"
+}
+
 // senderNews is what the sender is told: an email's subject, and the line
 // that's the push's body and starts the email.
 func senderNews(c store.Competition, what, reply string) (subject, line string) {
 	switch {
+	case what == senderAccepted:
+		line = "The organiser of " + c.Name + " accepted your late request."
+		if reply != "" {
+			line += "\n\n" + reply
+		}
+		return "Your late request to " + c.Name + " is accepted", line
+	case what == senderTurnedDown:
+		return "Your late request to " + c.Name + " wasn't accepted", "The organiser of " + c.Name + " didn't accept your late request:\n\n" + reply
 	case reply != "" && what == senderResolved:
 		return "Reply from the organiser of " + c.Name, "The organiser of " + c.Name + " replied, and marked your message resolved:\n\n" + reply
 	case reply != "":

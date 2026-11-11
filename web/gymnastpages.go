@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 
 	"tariffCalculator/competitions"
 	"tariffCalculator/store"
@@ -212,7 +213,7 @@ func (p *competitionPages) renderGymnastCompetition(w http.ResponseWriter, r *ht
 	gc.MyLinks = p.competitionLinks(r.Context(), c, linksFor{base: first, key: mine[0].Key(), people: []string{mine[0].Key()},
 		tell: individualTeller(mine[0]), back: "gymnast"})
 	// Another discipline: the first not entered yet, if there's one.
-	if left := notEntered(c.Competition, mine); gc.Competition.Open && c.Individuals && len(left) > 0 {
+	if left := notEntered(c.Competition, mine); (gc.Competition.Open || lateNewOpen(c, p.now())) && c.Individuals && len(left) > 0 {
 		gc.Enter = gymnastCompetitionPath(token, c.ID) + "/enter?discipline=" + url.QueryEscape(left[0])
 	}
 	open := r.URL.Query().Get("entry")
@@ -276,7 +277,13 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	token := r.PathValue("token")
-	added, _, err := p.st.AddIndividualEntry(r.Context(), c.ID, token, e)
+	var added store.Entry
+	var err error
+	if lateNewOpen(c, p.now()) {
+		added, _, _, err = p.st.AskToEnterLateOnOwn(r.Context(), c.ID, token, e, limitNote(strings.TrimSpace(r.FormValue("note"))))
+	} else {
+		added, _, err = p.st.AddIndividualEntry(r.Context(), c.ID, token, e)
+	}
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -291,7 +298,7 @@ func (p *competitionPages) gymnastEnter(w http.ResponseWriter, r *http.Request) 
 func (p *competitionPages) gymnastEnterPage(r *http.Request, ind store.Individual, c store.Competition, mine []store.Entry, e competitions.Entry, problems []string) views.GymnastPage {
 	back := gymnastCompetitionPath(r.PathValue("token"), c.ID)
 	page := p.gymnastPage(r, ind, gymnastCompetitions)
-	enter := &views.GymnastEnter{Back: back, Competition: summary(c, p.now())}
+	enter := &views.GymnastEnter{Back: back, Competition: summary(c, p.now()), Late: lateNewOpen(c, p.now())}
 	for _, m := range mine {
 		tab := views.DisciplineTab{Name: competitions.DisciplineName(m.Entry.Discipline), URL: back + "?entry=" + url.QueryEscape(m.ID)}
 		enter.Entered = append(enter.Entered, tab)
@@ -307,6 +314,9 @@ func (p *competitionPages) gymnastEnterPage(r *http.Request, ind store.Individua
 	if enter.Already == nil {
 		form := entryForm(c.Competition, e, r.URL.Path, "Enter")
 		form.Member, form.Problems = true, problems
+		if enter.Late {
+			form.Submit, form.Note = "Ask to enter late", true
+		}
 		enter.Form = &form
 	}
 	page.Enter = enter

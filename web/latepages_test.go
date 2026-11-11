@@ -219,7 +219,7 @@ func TestAcceptLateAfterPlanning(t *testing.T) {
 
 	// Ivy into BUCS L4, which is full: she waits, out of the draft.
 	redirected(t, h, ls.ivy+"/late", l4Entry("Ivy"))
-	if notice := accept(); notice != "Accepted: Ivy is 1st on BUCS L4's waiting list." {
+	if notice := accept(); notice != "Accepted: Ivy is 1st on BUCS L4's waiting list. They see it on their page." {
 		t.Errorf("accepted onto the waiting list: %q", notice)
 	}
 	if f := draftFlightOf(t, ls.s.st, c, ivy.ID); f != "" {
@@ -233,13 +233,13 @@ func TestAcceptLateAfterPlanning(t *testing.T) {
 		t.Fatal("the comp sec can ask for Ann")
 	}
 	redirected(t, h, unescape(ask), l4Entry(""))
-	if notice := accept(); notice != "Accepted: Ann is in BUCS L4. The draft timetable has them in BUCS L4: publish it when you're ready." {
+	if notice := accept(); notice != "Accepted: Ann is in BUCS L4. The draft timetable has them in BUCS L4: publish it when you're ready. They see it on their page." {
 		t.Errorf("accepted into the draft: %q", notice)
 	}
 	if f := draftFlightOf(t, ls.s.st, c, ann.ID); f != "BUCS L4" {
 		t.Errorf("Ann's draft flight: %q", f)
 	}
-	if to := redirected(t, h, admin+"/late/nonsense/accept", url.Values{}); noticeOf(t, to) != "That request has been decided already." {
+	if to := redirected(t, h, admin+"/late/nonsense/accept", url.Values{}); noticeOf(t, to) != "That request isn't there any more; nothing was changed." {
 		t.Errorf("not a request waiting: %s", to)
 	}
 	if !historyHas(t, h, admin, "Organiser", "Accepted a late change") {

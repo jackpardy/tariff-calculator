@@ -59,7 +59,12 @@ func SeedPages(h http.Handler, out, pages io.Writer, seed uint64) error {
 
 func seedTo(h http.Handler, out, pages io.Writer, seed uint64, size Size) error {
 	s := &seeder{h: h, rng: rand.New(rand.NewPCG(seed, 99)), size: size, pages: pages, v: &bucs}
-	return s.run(out)
+	if err := s.run(out); err != nil {
+		return err
+	}
+	// Late entries, once its new entries have closed (until then, none).
+	s.lateRequests(s.made)
+	return s.err
 }
 
 type seeder struct {

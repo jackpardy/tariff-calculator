@@ -69,7 +69,7 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := labels(menu); got != "Entries, Timetable, On the day, Settings" {
 		t.Errorf("the organiser's sections: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "All entries, People, Late changes, Coaches, Fees" {
+	if got := items(menu, "Entries"); got != "All entries, People, Late requests, Coaches, Fees" {
 		t.Errorf("entries: %s", got)
 	}
 	if got := items(menu, "Timetable"); got != "Flights, Setup, Officials, Panel timeline, Simulate, What if there's a delay, What if an official leaves" {
@@ -97,7 +97,7 @@ func TestOrgMenuByAccess(t *testing.T) {
 	if got := labels(menu); got != "Entries, Timetable, Settings" {
 		t.Errorf("before the timetable is published: %s", got)
 	}
-	if got := items(menu, "Entries"); got != "All entries, People, Late changes, Fees" {
+	if got := items(menu, "Entries"); got != "All entries, People, Late requests, Fees" {
 		t.Errorf("entries without coach approval: %s", got)
 	}
 	if got := items(menu, "Timetable"); got != "Flights, Setup, Officials, Simulate" {
@@ -305,7 +305,7 @@ func TestMenuOnOrganiserPages(t *testing.T) {
 	}{
 		{"", "Entries", "All entries"},
 		{strings.TrimPrefix(entry, admin), "Entries", "All entries"},
-		{"/late", "Entries", "Late changes"},
+		{"/late", "Entries", "Late requests"},
 		{"/fees", "Entries", "Fees"},
 		{"/timetable", "Timetable", "Flights"},
 		{"/officials", "Timetable", "Officials"},

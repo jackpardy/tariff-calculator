@@ -93,7 +93,7 @@ func TestLateChanges(t *testing.T) {
 		t.Errorf("accepted into the draft timetable: %s", loc)
 	}
 	statuses := do(t, h, http.MethodGet, ivy, nil).Body.String() + clubEntriesPage(t, h, club)
-	if !strings.Contains(statuses, "accepted (€10, on the invoice)") || !strings.Contains(statuses, "not accepted. BUCS L4 is full on the day") {
+	if !strings.Contains(statuses, "accepted (€10, on the invoice)") || !strings.Contains(statuses, "turned down. BUCS L4 is full on the day") {
 		t.Errorf("each sees the decision: %s", statuses)
 	}
 
@@ -136,18 +136,23 @@ func TestLateChangeSignoff(t *testing.T) {
 
 	redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
 	redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "signoffFirst": {"1"}})
+	redirected(t, h, club+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 
 	// X asks; it waits for a coach.
 	ask := regexp.MustCompile(regexp.QuoteMeta(x) + `/competitions/[^/"]+/late\?discipline=`).FindString(memberCompetitionPage(t, h, x))
 	if ask == "" {
 		t.Fatal("X can ask")
 	}
-	if loc := redirected(t, h, strings.ReplaceAll(ask, "&amp;", "&"), l4); !strings.Contains(loc, "gone+to+your+coach") {
-		t.Errorf("it goes to the coach first: %s", loc)
+	if loc := redirected(t, h, strings.ReplaceAll(ask, "&amp;", "&"), l4); !strings.Contains(loc, "A+coach+needs+to+sign+it+off+before+the+organiser+can+accept+it") {
+		t.Errorf("it goes to the organiser, saying a coach signs it first: %s", loc)
 	}
 	late := do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
-	if !strings.Contains(late, "waiting for a coach to sign it off") || strings.Contains(late, "/accept") {
-		t.Fatalf("the organiser can't accept it yet: %s", late)
+	if !strings.Contains(late, "Waiting for sign-off") || !strings.Contains(late, "It can&#39;t be accepted until a coach signs it off") || strings.Contains(late, "/accept") {
+		t.Fatalf("the organiser sees it at once, but can't accept it yet: %s", late)
+	}
+	id := regexp.MustCompile(`/late/([^/"]+)/reject`).FindStringSubmatch(late)[1]
+	if loc := redirected(t, h, admin+"/late/"+id+"/accept", url.Values{}); !strings.Contains(loc, "can%27t+be+accepted+until+a+coach+signs+it+off") {
+		t.Errorf("accepting it is refused, with the reason: %s", loc)
 	}
 
 	// Ann signs it off from her page.
@@ -169,7 +174,7 @@ func TestLateChangeSignoff(t *testing.T) {
 		}
 		return v
 	}())
-	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Late changes to sign off") {
+	if page := do(t, h, http.MethodGet, signoff, nil).Body.String(); !strings.Contains(page, "Late requests to sign off") {
 		t.Fatal("Ivy's coach sees it on her sign-off link")
 	}
 	if rec := do(t, h, http.MethodPost, signoff+"/late", url.Values{}); rec.Code != http.StatusUnprocessableEntity {
@@ -179,7 +184,7 @@ func TestLateChangeSignoff(t *testing.T) {
 
 	// Both reach the organiser, signed off; accepted, the entries are signed off.
 	late = do(t, h, http.MethodGet, admin+"/late", nil).Body.String()
-	if !strings.Contains(late, "Signed off by Ann.") || !strings.Contains(late, "Signed off by Coach C.") {
+	if !strings.Contains(late, "Signed off") || !strings.Contains(late, "by Ann") || !strings.Contains(late, "by Coach C") || strings.Contains(late, "Waiting for sign-off") {
 		t.Fatalf("the checks say who signed off: %s", late)
 	}
 	for _, m := range regexp.MustCompile(`/late/([^/"]+)/accept`).FindAllStringSubmatch(late, -1) {

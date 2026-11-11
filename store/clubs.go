@@ -20,8 +20,25 @@ type Club struct {
 	JoinLink      string
 	CoachesSeeAll bool // every coach sees every member, not just their own and those without a coach
 	SkillsOpen    bool // every member sees everyone's skills (ADR 0011 Decision 3)
+	MemberSends   MemberSends
 	CreatedAt     time.Time
 	LastUsed      time.Time
+}
+
+// MemberSends are what a club's members send to a competition themselves
+// (2026-11-11); the comp sec sends the rest. All off until the club turns
+// them on.
+type MemberSends struct {
+	Entries     bool // their new entries
+	Changes     bool // changes to entries the competition has
+	LateChanges bool // asking for late changes
+	LateEntries bool // asking to enter late
+}
+
+// SetMemberSends changes what a club's members send themselves.
+func (s *Store) SetMemberSends(ctx context.Context, clubID string, ms MemberSends) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE clubs SET member_sends_entries = $1, member_sends_changes = $2,
+		member_asks_late_changes = $3, member_asks_late_entries = $4 WHERE id = $5`, ms.Entries, ms.Changes, ms.LateChanges, ms.LateEntries, clubID))
 }
 
 // CreateClub stores a club and returns it with its admin link. The name must
@@ -42,8 +59,10 @@ func (s *Store) CreateClub(ctx context.Context, name string) (Club, string, erro
 func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used FROM clubs WHERE `+where, args...).
-		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used)
+	ms := &c.MemberSends
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used,
+		member_sends_entries, member_sends_changes, member_asks_late_changes, member_asks_late_entries FROM clubs WHERE `+where, args...).
+		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used, &ms.Entries, &ms.Changes, &ms.LateChanges, &ms.LateEntries)
 	if err != nil {
 		return Club{}, notFound(err)
 	}
@@ -383,15 +402,24 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 				return ErrClosed
 			}
 		}
-		// A synchro entry gets a partner link; naming a different partner
-		// makes a new one, unconfirmed.
-		token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
-			WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`, e, memberID, competitionID, e.Discipline)
-		if err != nil {
+		now := s.stamp()
+		if err := upsertMemberEntry(ctx, tx, memberID, competitionID, e, data, now); err != nil {
 			return err
 		}
-		now := s.stamp()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
+		return touch(ctx, tx, clubID, now)
+	})
+}
+
+// upsertMemberEntry keeps a member's entry (e, as data), replacing any they
+// had: a synchro entry gets a partner link, and naming a different partner
+// makes a new one, unconfirmed.
+func upsertMemberEntry(ctx context.Context, tx *sql.Tx, memberID, competitionID string, e competitions.Entry, data []byte, now string) error {
+	token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
+			WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`, e, memberID, competitionID, e.Discipline)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry,
 				updated_at = CASE WHEN member_entries.entry = excluded.entry AND member_entries.partner_token = excluded.partner_token
@@ -403,11 +431,8 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
 				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,
 				partner_token = excluded.partner_token, partner_hash = excluded.partner_hash`,
-			memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token)); err != nil {
-			return err
-		}
-		return touch(ctx, tx, clubID, now)
-	})
+		memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token))
+	return err
 }
 
 // WithdrawMemberEntry removes a member's entry for a competition's
