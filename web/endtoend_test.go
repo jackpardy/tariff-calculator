@@ -213,6 +213,7 @@ func TestCompetitionEndToEnd(t *testing.T) {
 		// Fees: €12 an entry, €5 for a late level change.
 		redirected(t, h, admin+"/fees/settings", url.Values{"fee-": {"12"}})
 		redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "fee-level": {"5"}})
+		redirected(t, h, clubs["UCD"]+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 
 		// Ann asks to move to BUCS L4; the organiser accepts.
 		ask := regexp.MustCompile(regexp.QuoteMeta(members["Ann"]) + `/competitions/[^/"]+/late\?discipline=`).FindString(memberCompetitionPage(t, h, members["Ann"]))

@@ -20,7 +20,8 @@ import (
 
 // What the organiser has decided about a late request.
 const (
-	LateWaiting  = "" // for the organiser
+	LateWaiting  = ""     // for the organiser
+	LateClub     = "club" // a member's, for their comp sec to send (2026-11-11)
 	LateAccepted = "accepted"
 	LateRejected = "rejected"
 )
@@ -54,7 +55,11 @@ type LateRequest struct {
 }
 
 // Open says whether it's still to be decided.
-func (r LateRequest) Open() bool { return r.Status == LateWaiting }
+func (r LateRequest) Open() bool { return r.Status == LateWaiting || r.Status == LateClub }
+
+// Sent says whether it has reached the organiser: not one a member asked
+// for, waiting for their comp sec to send.
+func (r LateRequest) Sent() bool { return r.Status != LateClub }
 
 // SignedOff says whether a coach has signed it off.
 func (r LateRequest) SignedOff() bool { return !r.SignedAt.IsZero() }
@@ -71,7 +76,9 @@ func (s *Store) SetLate(ctx context.Context, competitionID string, late competit
 // RequestLateChange asks to change an entry after the deadline, from
 // someone (from, whose thread it is), replacing any request for it still
 // to be decided and keeping that one's thread.
-func (s *Store) RequestLateChange(ctx context.Context, competitionID, entryID string, e competitions.Entry, who, note string, from Sender) (LateRequest, error) {
+// With held, it's a member's that waits for their comp sec to send it
+// (LateClub).
+func (s *Store) RequestLateChange(ctx context.Context, competitionID, entryID string, e competitions.Entry, who, note string, from Sender, held bool) (LateRequest, error) {
 	c, err := s.Competition(ctx, competitionID)
 	if err != nil {
 		return LateRequest{}, err
@@ -90,7 +97,7 @@ func (s *Store) RequestLateChange(ctx context.Context, competitionID, entryID st
 	var r LateRequest
 	err = s.tx(ctx, func(tx *sql.Tx) error {
 		var err error
-		r, err = s.addLate(ctx, tx, competitionID, entryID, kind, e, who, note, from)
+		r, err = s.addLate(ctx, tx, competitionID, entryID, kind, e, who, note, from, held)
 		return err
 	})
 	return r, err
@@ -98,13 +105,16 @@ func (s *Store) RequestLateChange(ctx context.Context, competitionID, entryID st
 
 // addLate keeps a request, replacing any for the entry still to be decided
 // and taking over its thread, or starting one from from.
-func (s *Store) addLate(ctx context.Context, tx *sql.Tx, competitionID, entryID, kind string, e competitions.Entry, who, note string, from Sender) (LateRequest, error) {
+func (s *Store) addLate(ctx context.Context, tx *sql.Tx, competitionID, entryID, kind string, e competitions.Entry, who, note string, from Sender, held bool) (LateRequest, error) {
 	data, err := json.Marshal(e)
 	if err != nil {
 		return LateRequest{}, err
 	}
 	r := LateRequest{ID: newID(), CompetitionID: competitionID, EntryID: entryID, Kind: kind, Entry: e, Who: who, Note: note, At: parseTime(s.stamp())}
-	if err := tx.QueryRowContext(ctx, `SELECT thread FROM late_requests WHERE competition_id = $1 AND entry_id = $2 AND status = '' AND thread <> ''`,
+	if held {
+		r.Status = LateClub
+	}
+	if err := tx.QueryRowContext(ctx, `SELECT thread FROM late_requests WHERE competition_id = $1 AND entry_id = $2 AND status IN ('', 'club') AND thread <> ''`,
 		competitionID, entryID).Scan(&r.Thread); err != nil && err != sql.ErrNoRows {
 		return LateRequest{}, err
 	}
@@ -113,11 +123,11 @@ func (s *Store) addLate(ctx context.Context, tx *sql.Tx, competitionID, entryID,
 			return LateRequest{}, err
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM late_requests WHERE competition_id = $1 AND entry_id = $2 AND status = ''`, competitionID, entryID); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM late_requests WHERE competition_id = $1 AND entry_id = $2 AND status IN ('', 'club')`, competitionID, entryID); err != nil {
 		return LateRequest{}, err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO late_requests (id, competition_id, entry_id, kind, entry, who, note, at, status, thread) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '', $9)`,
-		r.ID, competitionID, entryID, kind, string(data), who, note, s.stamp(), r.Thread)
+	_, err = tx.ExecContext(ctx, `INSERT INTO late_requests (id, competition_id, entry_id, kind, entry, who, note, at, status, thread) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $10, $9)`,
+		r.ID, competitionID, entryID, kind, string(data), who, note, s.stamp(), r.Thread, r.Status)
 	return r, err
 }
 
@@ -170,10 +180,12 @@ func (s *Store) LateThread(ctx context.Context, competitionID, id string, from S
 // AskToEnterLate asks to enter a club's member late, once new entries have
 // closed: their saved entry for discipline, or e if given (kept as their
 // entry first). The competition's copy is made, Asked, and the request with
-// it; asked again while it's still to be decided, the copy and the request
-// are replaced. ErrEntered if the competition has the entry already (or
-// turned it down).
-func (s *Store) AskToEnterLate(ctx context.Context, competitionID, memberID, discipline string, e *competitions.Entry, who, note string, from Sender) (LateRequest, error) {
+// it (held, waiting for the comp sec to send it: LateClub). Asked again
+// while it's still to be decided, the copy and the request are replaced;
+// after a turn-down, the copy is asked for again in a new request, with a
+// thread of its own, the one turned down staying as it was. ErrEntered if
+// the competition has the entry already.
+func (s *Store) AskToEnterLate(ctx context.Context, competitionID, memberID, discipline string, e *competitions.Entry, who, note string, from Sender, held bool) (LateRequest, error) {
 	c, err := s.Competition(ctx, competitionID)
 	if err != nil {
 		return LateRequest{}, err
@@ -211,14 +223,6 @@ func (s *Store) AskToEnterLate(ctx context.Context, competitionID, memberID, dis
 			return err
 		case removal != Asked:
 			return ErrEntered
-		default:
-			var open int
-			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM late_requests WHERE entry_id = $1 AND status = ''`, copyID).Scan(&open); err != nil {
-				return err
-			}
-			if open == 0 {
-				return ErrEntered // turned down
-			}
 		}
 		var entry string
 		var signedAt, partnerMember, partnerEntry sql.NullString
@@ -248,7 +252,7 @@ func (s *Store) AskToEnterLate(ctx context.Context, competitionID, memberID, dis
 			return err
 		}
 		var err error
-		if r, err = s.addLate(ctx, tx, competitionID, copyID, competitions.LateNew, asked, who, note, from); err != nil {
+		if r, err = s.addLate(ctx, tx, competitionID, copyID, competitions.LateNew, asked, who, note, from, held); err != nil {
 			return err
 		}
 		if err := full(ctx, tx, competitionID); err != nil {
@@ -275,10 +279,60 @@ func (s *Store) AskToEnterLateOnOwn(ctx context.Context, competitionID, as strin
 		// The sender as a message from their own page names them (web's individualTeller).
 		from := Sender{Role: RoleIndividual, Name: e.Gymnast, ID: "individual:" + added.Key()}
 		var err error
-		r, err = s.addLate(ctx, tx, competitionID, added.ID, competitions.LateNew, e, e.Gymnast, note, from)
+		r, err = s.addLate(ctx, tx, competitionID, added.ID, competitions.LateNew, e, e.Gymnast, note, from, false)
 		return err
 	})
 	return added, token, r, err
+}
+
+// AskAgainOnOwn asks again to enter an individual's entry asked for late
+// (entryID, still Asked: turned down, or still to be decided), as e: the
+// entry becomes e, and the request is a new one (replacing one still to be
+// decided, with its thread; after a turn-down, with a thread of its own).
+func (s *Store) AskAgainOnOwn(ctx context.Context, competitionID, entryID string, e competitions.Entry, note string, from Sender) (LateRequest, error) {
+	c, err := s.Competition(ctx, competitionID)
+	if err != nil {
+		return LateRequest{}, err
+	}
+	if !c.Late.Allowed(competitions.LateNew) {
+		return LateRequest{}, ErrNotAllowed
+	}
+	data, err := json.Marshal(e)
+	if err != nil {
+		return LateRequest{}, err
+	}
+	var r LateRequest
+	err = s.tx(ctx, func(tx *sql.Tx) error {
+		if err := affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, discipline = $3 WHERE competition_id = $4 AND id = $5 AND individual AND removal = 'asked'`,
+			string(data), e.Gymnast, e.Discipline, competitionID, entryID)); err != nil {
+			return ErrEntered
+		}
+		var err error
+		r, err = s.addLate(ctx, tx, competitionID, entryID, competitions.LateNew, e, e.Gymnast, note, from, false)
+		return err
+	})
+	return r, err
+}
+
+// SendLateRequests sends a club's members' late requests waiting for it to
+// the organiser, asked as of now; it returns how many.
+func (s *Store) SendLateRequests(ctx context.Context, clubID, competitionID string) (int, error) {
+	res, err := s.db.ExecContext(ctx, `UPDATE late_requests SET status = '', at = $1 WHERE competition_id = $2 AND status = 'club'
+		AND entry_id IN (SELECT id FROM entries WHERE competition_id = $2 AND club_id = $3)`, s.stamp(), competitionID, clubID)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	return int(n), err
+}
+
+// ClubLateToSend counts a club's members' late requests waiting for it to
+// send them.
+func (s *Store) ClubLateToSend(ctx context.Context, clubID, competitionID string) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM late_requests WHERE competition_id = $1 AND status = 'club'
+		AND entry_id IN (SELECT id FROM entries WHERE competition_id = $1 AND club_id = $2)`, competitionID, clubID).Scan(&n)
+	return n, err
 }
 
 const lateColumns = `id, competition_id, entry_id, kind, entry, who, note, at, status, reason, decided_at, decided_by, fee, signed_at, signed_by, signed_coach, sign_note, thread`
@@ -375,7 +429,7 @@ func (s *Store) RejectLateChange(ctx context.Context, competitionID, id, reason,
 // decided. coachID is a club's coach's id, "" for an individual's.
 func (s *Store) SignLateRequest(ctx context.Context, competitionID, id, coach, coachID, note string) error {
 	return affected(s.db.ExecContext(ctx, `UPDATE late_requests SET signed_at = $1, signed_by = $2, signed_coach = $3, sign_note = $4
-		WHERE competition_id = $5 AND id = $6 AND status = ''`, s.stamp(), coach, coachID, note, competitionID, id))
+		WHERE competition_id = $5 AND id = $6 AND status IN ('', 'club')`, s.stamp(), coach, coachID, note, competitionID, id))
 }
 
 // AcceptLateChange applies a request waiting for the organiser: the entry

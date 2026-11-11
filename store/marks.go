@@ -205,8 +205,10 @@ func (s *Store) SetSkillsOpen(ctx context.Context, clubID string, on bool) error
 func (s *Store) ClubByID(ctx context.Context, id string) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used FROM clubs WHERE id = $1`, id).
-		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used)
+	ms := &c.MemberSends
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used,
+		member_sends_entries, member_sends_changes, member_asks_late_changes, member_asks_late_entries FROM clubs WHERE id = $1`, id).
+		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used, &ms.Entries, &ms.Changes, &ms.LateChanges, &ms.LateEntries)
 	c.CreatedAt, c.LastUsed = parseTime(created), parseTime(used)
 	return c, notFound(err)
 }

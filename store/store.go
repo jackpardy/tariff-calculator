@@ -937,6 +937,17 @@ var migrations = []string{
 	`ALTER TABLE late_requests ADD COLUMN thread TEXT NOT NULL DEFAULT '';
 	ALTER TABLE concerns ADD COLUMN late BOOLEAN NOT NULL DEFAULT FALSE;
 	UPDATE late_requests SET status = '' WHERE status = 'coach';`,
+
+	// 55: what a club's members send themselves (2026-11-11), each off
+	// until the club turns it on: their new entries, changes to them, late
+	// changes and late entries. Off, the comp sec sends it. And a
+	// competition's organiser can take members' only as their club sends
+	// them (clubs_send), whatever the club's settings.
+	`ALTER TABLE clubs ADD COLUMN member_sends_entries BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_sends_changes BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_asks_late_changes BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN member_asks_late_entries BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE competitions ADD COLUMN clubs_send BOOLEAN NOT NULL DEFAULT FALSE;`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

@@ -117,6 +117,7 @@ func TestChangeNotSentBeforeClose(t *testing.T) {
 	// With late changes allowed, the page offers the link to ask; a refused one
 	// changes nothing here.
 	redirected(t, s.h, s.admin+"/late/settings", url.Values{"late-level": {"1"}, "fee-level": {"10"}})
+	redirected(t, s.h, s.club+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 	page = memberCompetitionPage(t, s.h, s.gus)
 	ask := regexp.MustCompile(`href="([^"]+/late\?discipline=)"`).FindStringSubmatch(page)
 	if !said(page, gusLine) || ask == nil {

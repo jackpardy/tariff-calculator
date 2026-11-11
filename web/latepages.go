@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -286,6 +287,34 @@ type lateTarget struct {
 	from    store.Sender
 	back    string
 	backTo  string // the page back is, for its link
+	// A member asking themselves, and what their club lets them send
+	// (2026-11-11): what it doesn't waits for the comp sec to send.
+	byMember bool
+	club     store.Club
+}
+
+// heldFor says whether a request of this kind, asked now, waits for the
+// club to send it: a member's, where the club doesn't let members ask for
+// it themselves.
+func (t lateTarget) heldFor(kind string) bool {
+	if !t.byMember {
+		return false
+	}
+	ms := memberSends(t.club, t.c)
+	if kind == competitions.LateNew {
+		return !ms.LateEntries
+	}
+	return !ms.LateChanges
+}
+
+// clubPoster is who of a club is acting, as other people see them: the
+// person a role's link is for, or the club's competition secretary for the
+// club admin's link (who is the link's holder, club the club's name).
+func clubPoster(club, who string) string {
+	if who == "" || who == club {
+		return club + " competition secretary"
+	}
+	return who
 }
 
 // late says whether the target is asking to enter late (or asked): the
@@ -311,16 +340,17 @@ func (p *competitionPages) lateTargetOf(w http.ResponseWriter, r *http.Request) 
 			failed(w, r, err)
 			return t, false
 		}
-		t.who, t.gymnast, t.member = a.name+" (competition secretary)", m.Name, m.ID
-		t.from = clubTeller(a.club, a.name, clubLinkOf(r).Who()).from
+		poster := clubPoster(a.name, clubLinkOf(r).Who())
+		t.who, t.gymnast, t.member = poster, m.Name, m.ID
+		t.from = clubTeller(a.club, a.name, poster).from
 	default:
-		club, err := p.st.ClubName(ctx, a.club)
+		club, err := p.st.ClubByID(ctx, a.club)
 		if err != nil {
 			failed(w, r, err)
 			return t, false
 		}
-		t.member = a.owner
-		t.from = memberTeller(store.Member{ID: a.owner, Name: a.name}, club).from
+		t.member, t.byMember, t.club = a.owner, true, club
+		t.from = memberTeller(store.Member{ID: a.owner, Name: a.name}, club.Name).from
 	}
 	entries, err := p.lateEntries(ctx, t.c.ID)
 	if err != nil {
@@ -377,12 +407,12 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// What can be asked: to enter late, while that's open and the entry
-	// isn't in (asked again only while the request is still to be decided,
-	// and only by a club, an individual's being their entry); otherwise a
-	// change, while those are open.
+	// isn't in (asked again while the request is still to be decided, or
+	// after a turn-down, as a new request); otherwise a change, while those
+	// are open.
 	canAsk := lateOpen(c, p.now())
 	if t.late() {
-		canAsk = lateNewOpen(c, p.now()) && (t.entry.ID == "" || t.member != "" && has && latest.Open())
+		canAsk = lateNewOpen(c, p.now()) && (t.entry.ID == "" || has)
 	}
 	if !canAsk && !has {
 		noteRefused(w)
@@ -424,14 +454,19 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 			problems = []string{competitions.LateKindName(kind) + "s aren't allowed after the deadline."}
 		}
 		if len(problems) == 0 {
-			_, err := p.st.RequestLateChange(ctx, c.ID, t.entry.ID, changed, t.who, note, t.from)
+			held := t.heldFor(kind)
+			_, err := p.st.RequestLateChange(ctx, c.ID, t.entry.ID, changed, t.who, note, t.from, held)
 			switch {
 			case errors.Is(err, store.ErrNotAllowed):
 				problems = []string{err.Error()}
 			case err != nil:
 				failed(w, r, err)
 				return
+			case held:
+				seeOther(w, r, t.back, "Late change saved. "+clubSendsLate)
+				return
 			default:
+				p.memberSent(ctx, t, "Asked for a late change: "+changed.Gymnasts()+" · "+changed.Event())
 				seeOther(w, r, t.back, "Your late change has gone to the organiser."+lateSignoffNote(c))
 				return
 			}
@@ -463,7 +498,7 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 		page.Status = p.lateStatus(ctx, c, latest)
 		if posts, ok := p.lateThreadOf(ctx, c, latest, t.from); ok {
 			page.Thread = posts
-			if latest.Open() {
+			if latest.Open() && latest.Sent() {
 				page.Answer = strings.TrimSuffix(r.URL.Path, "/") + "/reply"
 				page.Discipline = r.FormValue("discipline")
 			}
@@ -474,13 +509,48 @@ func (p *competitionPages) lateRequest(w http.ResponseWriter, r *http.Request) {
 	render(w, r, views.LateRequest(page))
 }
 
+// clubSendsLate is what a member is told of a late request their club
+// sends for them, in the words a saved entry has.
+const clubSendsLate = "Your club's competition secretary sends it to the organiser."
+
+// memberSent records in the club's history what a member sent the
+// competition themselves (what), where their club lets them.
+func (p *competitionPages) memberSent(ctx context.Context, t lateTarget, what string) {
+	if !t.byMember {
+		return
+	}
+	if err := p.st.RecordClub(ctx, t.club.ID, t.gymnast, what+" (sent themselves)"); err != nil {
+		log.Printf("Club history: %s: %v", t.club.ID, err)
+	}
+}
+
 // askLate asks to enter late: from the member's saved entry (use=saved,
-// one tap from their page), or the entry posted; an individual's entry is
-// asked for when they enter (askLateOnOwn).
+// one tap from their page), or the entry posted. An individual's entry is
+// asked for when they enter; asked again here, after a turn-down or while
+// it's still to be decided.
 func (p *competitionPages) askLate(w http.ResponseWriter, r *http.Request, t lateTarget, note string) {
 	c := t.c
 	if t.member == "" {
-		refuse(w, r, t.back, "That entry was asked for already; nothing was sent.")
+		e, problems := postedEntry(r, c.Competition, t.gymnast)
+		if len(problems) > 0 {
+			noteRefused(w)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			page := views.LateRequestPage{Competition: summary(c, p.now()), Back: t.back, BackTo: t.backTo, Gymnast: t.gymnast, New: true, Ask: true,
+				Problems: problems, Form: entryForm(c.Competition, e, r.URL.Path, "Ask to enter late"),
+				Signoff: c.Signoff, SignoffFirst: c.Signoff && c.Late.SignoffFirst}
+			page.Form.Member, page.Form.Note, page.Form.NoteText = true, true, note
+			render(w, r, views.LateRequest(page))
+			return
+		}
+		switch _, err := p.st.AskAgainOnOwn(r.Context(), c.ID, t.entry.ID, e, note, t.from); {
+		case errors.Is(err, store.ErrNotAllowed), errors.Is(err, store.ErrEntered):
+			refuse(w, r, t.back, "That can't be asked for now; nothing was sent.")
+			return
+		case err != nil:
+			failed(w, r, err)
+			return
+		}
+		seeOther(w, r, t.back, "Your request to enter late has gone to the organiser."+lateSignoffNote(c))
 		return
 	}
 	var posted *competitions.Entry
@@ -502,18 +572,23 @@ func (p *competitionPages) askLate(w http.ResponseWriter, r *http.Request, t lat
 		refuse(w, r, t.back, "There's no saved entry to ask with; nothing was sent.")
 		return
 	}
-	_, err := p.st.AskToEnterLate(r.Context(), c.ID, t.member, discipline, posted, t.who, note, t.from)
+	held := t.heldFor(competitions.LateNew)
+	asked, err := p.st.AskToEnterLate(r.Context(), c.ID, t.member, discipline, posted, t.who, note, t.from, held)
 	switch {
 	case errors.Is(err, store.ErrNotAllowed):
 		refuse(w, r, t.back, "The organiser isn't taking late entries; nothing was sent.")
 		return
 	case errors.Is(err, store.ErrEntered):
-		refuse(w, r, t.back, "That entry is in the competition already, or was turned down; nothing was sent.")
+		refuse(w, r, t.back, "That entry is in the competition already; nothing was sent.")
 		return
 	case err != nil:
 		failed(w, r, err)
 		return
+	case held:
+		seeOther(w, r, t.back, "Request to enter late saved. "+clubSendsLate)
+		return
 	}
+	p.memberSent(r.Context(), t, "Asked to enter "+asked.Entry.Gymnasts()+" · "+asked.Entry.Event()+" late")
 	seeOther(w, r, t.back, "Your request to enter late has gone to the organiser."+lateSignoffNote(c))
 }
 
@@ -557,6 +632,10 @@ func (p *competitionPages) answerLate(w http.ResponseWriter, r *http.Request) {
 	}
 	if !open {
 		refuse(w, r, back, "That request has been decided; nothing was sent.")
+		return
+	}
+	if !req.Sent() {
+		refuse(w, r, back, "That request hasn't gone to the organiser yet; nothing was sent.")
 		return
 	}
 	thread, err := p.st.LateThread(ctx, t.c.ID, req.ID, t.from)
@@ -635,6 +714,9 @@ func lateStatusText(c store.Competition, r store.LateRequest, signed bool) strin
 	case store.LateRejected:
 		return what + ": turned down. " + r.Reason
 	}
+	if !r.Sent() {
+		return what + ", saved " + r.At.In(local).Format("2 Jan, 15:04") + ": not sent yet. " + clubSendsLate
+	}
 	s := what + ", asked " + r.At.In(local).Format("2 Jan, 15:04")
 	switch {
 	case !c.Signoff:
@@ -659,6 +741,8 @@ func lateState(c store.Competition, r store.LateRequest, signed bool) (string, v
 		return "Accepted", views.Done
 	case r.Status == store.LateRejected:
 		return "Turned down", views.Stopped
+	case !r.Sent():
+		return "Not sent yet", views.NotYet
 	case !c.Signoff:
 		return "Asked", views.InProgress
 	case signed:
@@ -733,7 +817,16 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	page.Now = lateNow(allowed, c.Signoff && c.Late.SignoffFirst)
+	turnedDown := map[string][]store.LateRequest{} // by entry
 	for _, req := range requests {
+		if req.Status == store.LateRejected {
+			turnedDown[req.EntryID] = append(turnedDown[req.EntryID], req)
+		}
+	}
+	for _, req := range requests {
+		if !req.Sent() {
+			continue // a member's, for their club to send
+		}
 		e := byID[req.EntryID]
 		signed := p.signedOffForLate(ctx, c, req)
 		v := views.LateRequestView{ID: req.ID, Who: req.Who, Kind: competitions.LateKindName(req.Kind), Gymnast: req.Entry.Gymnasts(),
@@ -741,6 +834,12 @@ func (p *competitionPages) lateAdmin(w http.ResponseWriter, r *http.Request) {
 			Waiting: req.Open(), Status: lateStatusText(c, req, signed), Link: base + "/entries/" + req.EntryID}
 		if req.Kind == competitions.LateNew {
 			v.From = ""
+		}
+		// Asked again after a turn-down: what was turned down before, and why.
+		for _, before := range turnedDown[req.EntryID] {
+			if before.ID != req.ID && before.DecidedAt.Before(req.At.Add(time.Second)) && req.Open() {
+				v.Before = append(v.Before, fmt.Sprintf("Asked before for %s, turned down %s: %s", before.Entry.Event(), before.DecidedAt.In(local).Format("2 Jan"), before.Reason))
+			}
 		}
 		if fee := c.Late.Rule(req.Kind).Fee; fee > 0 {
 			v.Fee = c.Fees.Money(fee)
@@ -892,7 +991,8 @@ func lateBack(r *http.Request) string {
 func (p *competitionPages) decidable(w http.ResponseWriter, r *http.Request, c store.Competition) (store.LateRequest, bool) {
 	req, err := p.st.LateRequest(r.Context(), c.ID, r.PathValue("id"))
 	switch {
-	case errors.Is(err, store.ErrNotFound):
+	case errors.Is(err, store.ErrNotFound), err == nil && !req.Sent():
+		// A member's not sent by their club yet isn't the organiser's.
 		refuse(w, r, adminPath(r.PathValue("token"))+"/late", "That request isn't there any more; nothing was changed.")
 		return req, false
 	case err != nil:
@@ -1072,9 +1172,10 @@ func (p *competitionPages) replyLate(w http.ResponseWriter, r *http.Request) {
 // be accepted until a coach signs it off.
 func lateNow(allowed []string, signoffFirst bool) string {
 	if len(allowed) == 0 {
-		return "nothing can be asked for after the deadline"
+		return "Nothing can be asked for after the deadline"
 	}
 	now := strings.Join(allowed, " and ") + " can be asked for after the deadline"
+	now = strings.ToUpper(now[:1]) + now[1:]
 	if signoffFirst {
 		now += "; a coach signs each off before you can accept it"
 	}

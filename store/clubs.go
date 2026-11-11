@@ -20,8 +20,25 @@ type Club struct {
 	JoinLink      string
 	CoachesSeeAll bool // every coach sees every member, not just their own and those without a coach
 	SkillsOpen    bool // every member sees everyone's skills (ADR 0011 Decision 3)
+	MemberSends   MemberSends
 	CreatedAt     time.Time
 	LastUsed      time.Time
+}
+
+// MemberSends are what a club's members send to a competition themselves
+// (2026-11-11); the comp sec sends the rest. All off until the club turns
+// them on.
+type MemberSends struct {
+	Entries     bool // their new entries
+	Changes     bool // changes to entries the competition has
+	LateChanges bool // asking for late changes
+	LateEntries bool // asking to enter late
+}
+
+// SetMemberSends changes what a club's members send themselves.
+func (s *Store) SetMemberSends(ctx context.Context, clubID string, ms MemberSends) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE clubs SET member_sends_entries = $1, member_sends_changes = $2,
+		member_asks_late_changes = $3, member_asks_late_entries = $4 WHERE id = $5`, ms.Entries, ms.Changes, ms.LateChanges, ms.LateEntries, clubID))
 }
 
 // CreateClub stores a club and returns it with its admin link. The name must
@@ -42,8 +59,10 @@ func (s *Store) CreateClub(ctx context.Context, name string) (Club, string, erro
 func (s *Store) clubBy(ctx context.Context, where string, args ...any) (Club, error) {
 	var c Club
 	var created, used string
-	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used FROM clubs WHERE `+where, args...).
-		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used)
+	ms := &c.MemberSends
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, join_token, coaches_see_all, skills_open, created_at, last_used,
+		member_sends_entries, member_sends_changes, member_asks_late_changes, member_asks_late_entries FROM clubs WHERE `+where, args...).
+		Scan(&c.ID, &c.Name, &c.JoinLink, &c.CoachesSeeAll, &c.SkillsOpen, &created, &used, &ms.Entries, &ms.Changes, &ms.LateChanges, &ms.LateEntries)
 	if err != nil {
 		return Club{}, notFound(err)
 	}

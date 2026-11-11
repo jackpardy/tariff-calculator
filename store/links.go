@@ -200,6 +200,7 @@ type Concern struct {
 	ResolvedAt time.Time // zero while it's open
 	ResolvedBy string
 	Resolution string // the organiser's own note, from resolving it
+	Late       bool   // a late request's thread (migration 54)
 }
 
 // Post is something added to a message after it was sent: the organiser's
@@ -309,6 +310,12 @@ func jsonList(list []string) (string, error) {
 	return string(b), err
 }
 
+// SetClubsSend makes a competition take club members' entries and requests
+// only as their club sends them, or lets the clubs' own settings say.
+func (s *Store) SetClubsSend(ctx context.Context, competitionID string, on bool) error {
+	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET clubs_send = $1 WHERE id = $2`, on, competitionID))
+}
+
 // SetMessages lets people send the competition's organiser messages, or
 // stops them.
 func (s *Store) SetMessages(ctx context.Context, competitionID string, on bool) error {
@@ -336,7 +343,7 @@ func (s *Store) SentBy(ctx context.Context, competitionID, sender string) ([]Con
 // first, each latest first, with their threads.
 func (s *Store) concerns(ctx context.Context, where string, args ...any) ([]Concern, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, entry_id, entries, events, who, role, club, sender, text, at, acknowledged_at, acknowledged_by,
-		resolved_at, resolved_by, resolution FROM concerns
+		resolved_at, resolved_by, resolution, late FROM concerns
 		WHERE `+where+` ORDER BY resolved_at <> '', at DESC, rowid DESC`, args...)
 	if err != nil {
 		return nil, err
@@ -348,7 +355,7 @@ func (s *Store) concerns(ctx context.Context, where string, args ...any) ([]Conc
 		var c Concern
 		var entries, events, at, ack, resolved string
 		if err := rows.Scan(&c.ID, &c.EntryID, &entries, &events, &c.Who, &c.Role, &c.Club, &c.Sender, &c.Text, &at, &ack, &c.AckBy,
-			&resolved, &c.ResolvedBy, &c.Resolution); err != nil {
+			&resolved, &c.ResolvedBy, &c.Resolution, &c.Late); err != nil {
 			return nil, err
 		}
 		json.Unmarshal([]byte(entries), &c.Entries)

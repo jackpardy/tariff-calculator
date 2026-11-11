@@ -30,6 +30,7 @@ type ClubPage struct {
 	Menu                 []MenuSection // the sections of the comp sec's pages
 	KeptUntil            string        // when the club is deleted if no one uses it, on Settings (ADR 0011)
 	SkillsOpen           bool          // every member sees everyone's skills (ADR 0011)
+	MemberSends          MemberSendsView
 	// MemberOptions are the members who aren't coaches too, to make one;
 	// Ties the people whose own link opens these pages (ADR 0010).
 	MemberOptions []CoachOption
@@ -91,6 +92,8 @@ type ClubCompetition struct {
 	Tools        ListTools // the search and filters of its entries
 	ToSend       int       // entries never sent, or changed since
 	OffersToSend int       // offers to judge and help never sent, changed since, or withdrawn since
+	LateToSend   int       // members' late requests waiting for the club to send them
+	ClubsSend    string    // the competition takes only what clubs send, overriding the club's settings: the line saying so; "" if not
 	Offers       []ClubOfferRow
 	// ApproveCoaches says the competition approves coaches; Coaches are the
 	// club's who sign off, to send for approval (ADR 0007 Decision 5).
@@ -129,6 +132,16 @@ type ClubOfferRow struct {
 	State               State
 }
 
+// toSend counts what the club has to send: entries, offers and late
+// requests.
+func toSend(comp ClubCompetition) int { return comp.ToSend + comp.OffersToSend + comp.LateToSend }
+
+// sendable says whether the club's page offers sending: entries and offers
+// while changes are open, and late requests waiting, then too.
+func sendable(comp ClubCompetition) bool {
+	return comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) || comp.LateToSend > 0
+}
+
 // sendState is where sending stands: a chip for the entries and one for the
 // offers still to send, or All sent.
 templ sendState(comp ClubCompetition) {
@@ -138,7 +151,10 @@ templ sendState(comp ClubCompetition) {
 	if comp.OffersToSend > 0 {
 		@StateChip(Attention, Count(comp.OffersToSend, "offer to send", "offers to send"))
 	}
-	if comp.ToSend == 0 && comp.OffersToSend == 0 {
+	if comp.LateToSend > 0 {
+		@StateChip(Attention, Count(comp.LateToSend, "late request to send", "late requests to send"))
+	}
+	if toSend(comp) == 0 {
 		@StateChip(Done, "All sent")
 	}
 }
@@ -369,8 +385,8 @@ templ ClubAdmin(c ClubPage) {
 				<span class="is-block has-text-grey is-size-7">{ comp.Competition.Date }</span>
 				<span class="is-block is-size-7">
 					{ Count(len(comp.Rows), "entry", "entries") }
-					if comp.ToSend+comp.OffersToSend > 0 {
-						@StateChip(Attention, Count(comp.ToSend+comp.OffersToSend, "to send", "to send"))
+					if toSend(comp) > 0 {
+						@StateChip(Attention, Count(toSend(comp), "to send", "to send"))
 					}
 					if n := clubProblems(comp); n > 0 {
 						@StateChip(Attention, strconv.Itoa(n)+" with problems")
@@ -412,7 +428,10 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 	@clubFrame(c) {
 		@clubCompetitionHead(comp)
 		@timelineLinks("", comp.Timeline, comp.Notify, "", comp.Calendar)
-		if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) && !ClubAccessOf(ctx).Send {
+		if comp.ClubsSend != "" {
+			<p class="notification is-info is-light">{ comp.ClubsSend }</p>
+		}
+		if sendable(comp) && !ClubAccessOf(ctx).Send {
 			// A role that can't send sees where sending stands.
 			<div class="comp-send">
 				<div class="comp-send-state">
@@ -420,7 +439,7 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 					<span class="comp-send-note">The organiser sees only what the club sends.</span>
 				</div>
 			</div>
-		} else if comp.Competition.ChangesOpen && (len(comp.Rows) > 0 || len(comp.Offers) > 0) {
+		} else if sendable(comp) {
 			// Sending is what the page is for, so it's above the entries, with
 			// sending everything again (rarely needed) as a quiet button.
 			<form method="post" action={ templ.SafeURL(c.Base + "/competitions/" + comp.ID + "/send") } class="comp-send">
@@ -429,8 +448,8 @@ templ ClubCompetitionEntries(c ClubPage, comp ClubCompetition) {
 					<span class="comp-send-note">The organiser sees only what you send, with what members offer to judge and help with. Sending all again also takes back withdrawn entries.</span>
 				</div>
 				<div class="comp-send-actions">
-					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ comp.ToSend+comp.OffersToSend == 0 }>
-						{ fmt.Sprintf("Send new and changed (%d)", comp.ToSend+comp.OffersToSend) }
+					<button class="button is-small is-primary" type="submit" name="which" value="changed" disabled?={ toSend(comp) == 0 }>
+						{ fmt.Sprintf("Send new and changed (%d)", toSend(comp)) }
 					</button>
 					<button class="button is-small is-text" type="submit" name="which" value="all" title="Sends every entry again, and takes back withdrawn ones">Send all again</button>
 				</div>
@@ -975,6 +994,7 @@ templ ClubSettings(c ClubPage) {
 				</button>
 			</form>
 		}
+		@memberSendsLine(c.Base, c.MemberSends)
 		@clubHistoryBox(c.History, c.MoreHistory, c.AllHistory)
 		if ClubAccessOf(ctx).Admin {
 			@opens("Club admin link", "If it's been shared too widely, replace it: the old one stops working. Links with a role keep working.", "Replace", false) {

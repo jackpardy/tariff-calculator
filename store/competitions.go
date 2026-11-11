@@ -32,6 +32,10 @@ type Competition struct {
 	// Messages lets people at the competition send the organiser messages
 	// from their own pages (on unless the organiser turns it off).
 	Messages bool
+	// ClubsSend is the organiser taking club members' entries and requests
+	// only as their club sends them (migration 55): a member's own save or
+	// ask waits for the club, whatever the club lets its members send.
+	ClubsSend bool
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -99,7 +103,7 @@ func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error)
 	return out, rows.Err()
 }
 
-const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages`
+const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages, clubs_send`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
@@ -107,7 +111,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages, &c.ClubsSend); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {

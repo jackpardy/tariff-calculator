@@ -30,6 +30,7 @@ type SettingsPage struct {
 	NotifyOn       bool // people can ask to hear about changes (ADR 0008)
 	NoWait         bool // no wait on the competition's days
 	Messages       bool // people can send the organiser messages from their pages
+	ClubsSend      bool // club members' entries and requests come only as their club sends them
 	Limits         []LimitField
 	Video          VideoForm
 	CoachApproval  CoachApprovalForm
@@ -209,6 +210,18 @@ templ CompetitionSettings(p SettingsPage) {
 					<input type="hidden" name="on" value="1"/>
 					<button class="button is-small" type="submit">Let gymnasts enter on their own</button>
 				}
+			</form>
+		}
+		@changeLine("Club members", onOff(p.ClubsSend, "Clubs send their members' entries: members can't send their own", "Each club says whether its members send their own entries and requests"), false) {
+			<form method="post" action={ templ.SafeURL(p.Base + "/clubs-send") } class="mb-3">
+				if p.ClubsSend {
+					<input type="hidden" name="on" value="0"/>
+					<button class="button is-small" type="submit">Let each club say</button>
+				} else {
+					<input type="hidden" name="on" value="1"/>
+					<button class="button is-small" type="submit">Only take what clubs send</button>
+				}
+				<p class="help">A club can let its members send their own entries, changes, late changes and requests to enter late. Turned on here, whatever the club says, a member's entry or request waits for their club to send it. What members sent already stays. Gymnasts entering on their own aren't affected.</p>
 			</form>
 		}
 		@settingsGroup("messages", "Messages to you")

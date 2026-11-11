@@ -79,6 +79,7 @@ var clubRoutes = map[string]string{
 	"GET /settings":                                       store.ClubSettings,
 	"POST /coaches-see-all":                               store.ClubSettings,
 	"POST /skills-open":                                   store.ClubSettings,
+	"POST /member-sends":                                  store.ClubSettings,
 	"POST /roles":                                         adminOnly,
 	"POST /roles/{role}":                                  adminOnly,
 	"POST /roles/{role}/remove":                           adminOnly,
@@ -301,6 +302,8 @@ func (p *competitionPages) describeClub(r *http.Request, club store.Club, patter
 		return "Removed a qualification of " + coach(r.PathValue("coach"))
 	case "/coaches-see-all":
 		return "Changed who coaches see"
+	case "/member-sends":
+		return "Changed what members send themselves"
 	case "/skills-open":
 		return "Changed who sees members' skills"
 	case "/competitions/{id}/organiser":

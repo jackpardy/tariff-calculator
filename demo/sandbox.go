@@ -326,6 +326,10 @@ func (s *seeder) lateRequests(m made) {
 		return ""
 	}
 	run := func(i int) clubRun { return m.runs[i%len(m.runs)] }
+	// These two clubs let members ask to enter late themselves.
+	for _, i := range []int{5, 6} {
+		s.post(run(i).admin+"/member-sends", url.Values{"lateEntries": {"1"}})
+	}
 	if id := ask(run(5), "Sorry: she was injured when entries closed, and is fit again."); id != "" {
 		s.post(m.admin+"/late/"+id+"/reply", url.Values{"reply": {"Can be entered if her coach signs it off by Friday."}})
 	}

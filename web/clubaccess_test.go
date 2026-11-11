@@ -57,7 +57,7 @@ var clubAllows = map[string][]string{
 	store.ClubCertificates: {"GET /coaches/{coach}/qualifications/{q}/certificate", "GET /members/{member}/judging/{q}"},
 	store.ClubOrganiser: {"POST /competitions/{id}/organiser", "POST /competitions/{id}/organiser/{message}",
 		"GET /competitions/{id}/notify", "POST /competitions/{id}/notify"},
-	store.ClubSettings: {"GET /settings", "POST /coaches-see-all", "POST /skills-open"},
+	store.ClubSettings: {"GET /settings", "POST /coaches-see-all", "POST /skills-open", "POST /member-sends"},
 	adminOnly: {"POST /roles", "POST /roles/{role}", "POST /roles/{role}/remove", "POST /links", "POST /links/{link}/role",
 		"POST /links/{link}/remove", "POST /ties/remove", "POST /replace-link", "POST /delete"},
 }

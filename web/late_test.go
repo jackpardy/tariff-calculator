@@ -136,6 +136,7 @@ func TestLateChangeSignoff(t *testing.T) {
 
 	redirected(t, h, admin+"/deadline", url.Values{"close": {"1"}})
 	redirected(t, h, admin+"/late/settings", url.Values{"late-level": {"1"}, "signoffFirst": {"1"}})
+	redirected(t, h, club+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 
 	// X asks; it waits for a coach.
 	ask := regexp.MustCompile(regexp.QuoteMeta(x) + `/competitions/[^/"]+/late\?discipline=`).FindString(memberCompetitionPage(t, h, x))

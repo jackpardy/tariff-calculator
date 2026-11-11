@@ -55,7 +55,7 @@ templ LateRequest(p LateRequestPage) {
 		}
 		if p.Ask && p.Status.Text != "" {
 			// Asked already: changing what's asked is there, folded away.
-			@opens("", "", "Change what you asked for", len(p.Problems) > 0) {
+			@opens("", "", askAgainLabel(p.Status), len(p.Problems) > 0) {
 				@lateAskForm(p)
 			}
 		} else if p.Ask {
@@ -96,6 +96,15 @@ templ lateAskForm(p LateRequestPage) {
 	</p>
 	@problemList(p.Problems)
 	@entryForm(p.Form)
+}
+
+// askAgainLabel opens the form under a request asked already: to ask again
+// once it's been turned down (a new request), or to change it while it waits.
+func askAgainLabel(s LateStatus) string {
+	if s.Label == "Turned down" {
+		return "Ask again"
+	}
+	return "Change what you asked for"
 }
 
 // enterMemberLabel is the comp sec's button to enter a member: asked for
@@ -168,6 +177,7 @@ type LateRequestView struct {
 	Checks                                                        []string
 	NewCard                                                       *EntryCard // the card as it would be, while waiting
 	Thread                                                        []ThreadPost
+	Before                                                        []string // earlier requests for the entry turned down, e.g. "Asked before for BUCS L4, turned down 11 Nov: level is full"
 }
 
 // LateAdmin is the organiser's page of late requests.
@@ -229,6 +239,9 @@ templ LateAdmin(p LateAdminPage) {
 				</p>
 				if r.Note != "" {
 					<p class="is-size-7">Their note: { r.Note }</p>
+				}
+				for _, b := range r.Before {
+					<p class="is-size-7">{ b }</p>
 				}
 				if r.Waiting && r.Signoff != nil {
 					<p class="mt-1">

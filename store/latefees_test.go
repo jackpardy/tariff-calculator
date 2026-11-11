@@ -44,10 +44,10 @@ func TestLateChangesStore(t *testing.T) {
 	s, c, e := lateCompetition(t, &now)
 
 	ann := Sender{Role: RoleIndividual, Name: "Ann", ID: "individual:" + e.Key()}
-	if _, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann Changed"), "Ann", "", ann); !errors.Is(err, ErrNotAllowed) {
+	if _, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann Changed"), "Ann", "", ann, false); !errors.Is(err, ErrNotAllowed) {
 		t.Errorf("routine changes aren't allowed: %v", err)
 	}
-	r, err := s.RequestLateChange(ctx, c.ID, e.ID, l4("Ann"), "Ann", "Moved up", ann)
+	r, err := s.RequestLateChange(ctx, c.ID, e.ID, l4("Ann"), "Ann", "Moved up", ann, false)
 	must(t, err)
 	if r.Kind != competitions.LateLevel || r.Status != LateWaiting || !r.At.Equal(now) || r.Thread == "" {
 		t.Errorf("a level change for the organiser at once, asked now, with a thread: %+v", r)
@@ -104,12 +104,12 @@ func TestLateChangesStore(t *testing.T) {
 
 	// Asked again and rejected.
 	now = now.Add(time.Hour)
-	again, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "", ann)
+	again, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "", ann, false)
 	must(t, err)
 	if again.Thread == r.Thread {
 		t.Error("a request after one decided has a thread of its own")
 	}
-	replaced, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "Back down", ann)
+	replaced, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "Back down", ann, false)
 	must(t, err)
 	if replaced.Thread != again.Thread {
 		t.Error("a request replacing one still to be decided keeps its thread")
@@ -155,7 +155,7 @@ func TestLateEntriesStore(t *testing.T) {
 	must(t, s.SetLimits(ctx, c.ID, map[string]int{entry("Ann").Event(): 1}))
 
 	from := Sender{Role: RoleMember, Name: "Mo", Club: "UCD", ID: "member:" + mo.ID}
-	r, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "Sorry, forgot", from)
+	r, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "Sorry, forgot", from, false)
 	must(t, err)
 	if r.Kind != competitions.LateNew || !r.Open() || r.Thread == "" {
 		t.Errorf("a late entry, to decide, with a thread: %+v", r)
@@ -167,7 +167,7 @@ func TestLateEntriesStore(t *testing.T) {
 	if len(asked) != 1 || asked[0].ID != r.EntryID || asked[0].Removal != Asked {
 		t.Fatalf("Mo's copy, asked for: %+v", asked)
 	}
-	again, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from)
+	again, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from, false)
 	must(t, err)
 	if again.EntryID != r.EntryID || again.Thread != r.Thread {
 		t.Errorf("asked again, the same copy and thread: %+v", again)
@@ -181,7 +181,7 @@ func TestLateEntriesStore(t *testing.T) {
 	if len(in) != 2 || i < 0 || in[i].Waiting != 1 {
 		t.Errorf("Mo is in, first on the full level's waiting list: %+v", in)
 	}
-	if _, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from); !errors.Is(err, ErrEntered) {
+	if _, err := s.AskToEnterLate(ctx, c.ID, mo.ID, "", nil, "Mo", "", from, false); !errors.Is(err, ErrEntered) {
 		t.Errorf("in already: %v", err)
 	}
 

@@ -1,0 +1,40 @@
+package views
+
+import "strings"
+
+// MemberSendsView is what a club's members send competitions themselves
+// (2026-11-11), for the club's Settings: each off until turned on; and the
+// club's current competitions that take only what clubs send, whatever
+// these say.
+type MemberSendsView struct {
+	Now                                        string
+	Entries, Changes, LateChanges, LateEntries bool
+	Overriding                                 []string
+}
+
+// memberSendsLine is the club's setting of what members send themselves:
+// four ticks, saved together.
+templ memberSendsLine(base string, v MemberSendsView) {
+	if ClubAccessOf(ctx).Settings {
+		@changeLine("Who sends", v.Now, false) {
+			<form method="post" action={ templ.SafeURL(base + "/member-sends") }>
+				@memberSendsBox("entries", "Members can send their own entries", v.Entries)
+				@memberSendsBox("changes", "Members can send changes to their entries", v.Changes)
+				@memberSendsBox("lateChanges", "Members can ask for late changes", v.LateChanges)
+				@memberSendsBox("lateEntries", "Members can ask to enter late", v.LateEntries)
+				<p class="help mb-2">Ticked, what a member saves or asks for goes straight to the competition, and your history says they sent it. Not ticked, it waits for you (or someone with Send entries) to send it with the club's entries.</p>
+				if len(v.Overriding) > 0 {
+					<p class="help mb-2">{ strings.Join(v.Overriding, ", ") } only take entries sent by the club, so there members' entries and requests wait for you whatever these say.</p>
+				}
+				<button class="button is-small is-primary" type="submit">Save</button>
+			</form>
+		}
+	}
+}
+
+templ memberSendsBox(name, label string, on bool) {
+	<label class="checkbox is-size-7 is-block mb-1">
+		<input type="checkbox" name={ name } value="1" checked?={ on }/>
+		{ label }
+	</label>
+}

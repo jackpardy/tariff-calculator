@@ -157,7 +157,7 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 			if n.mail == nil {
 				continue
 			}
-			body := line + "\n\nYour message:\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
+			body := line + "\n\n" + yours(k) + ":\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
 				"\nTo stop these emails:\n" + n.offLink(told[0].Token) + "\n"
 			ds = append(ds, delivery{about: "Replies: emailing about " + c.ID, email: &email{told[0].Address, subject, body, map[string]string{
 				"List-Unsubscribe":      "<" + n.offLink(told[0].Token) + ">",
@@ -176,6 +176,15 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 		return "They see it on their page, and are told by push or email."
 	}
 	return fmt.Sprintf("They see it on their page, and are told at %d addresses.", len(ds))
+}
+
+// yours is what the sender sent, as an email quoting it names it: their
+// message, or their late request (a request's thread, latepages.go).
+func yours(k store.Concern) string {
+	if k.Late {
+		return "Your request"
+	}
+	return "Your message"
 }
 
 // senderNews is what the sender is told: an email's subject, and the line

@@ -346,6 +346,7 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 // settingWords say, for the history, what a settings form changes.
 var settingWords = map[string]string{
 	"/approve-coaches": "Changed whether coaches need approving",
+	"/clubs-send":      "Changed whether club members can send their own entries",
 	"/events":          "Changed the synchro, tumbling and DMT levels",
 	"/individuals":     "Changed whether gymnasts can enter on their own",
 	"/levels/move":     "Changed the order of the levels",

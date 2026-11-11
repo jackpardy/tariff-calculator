@@ -61,6 +61,7 @@ func TestLateEntries(t *testing.T) {
 	redirected(t, h, s.club+"/coaches-see-all", url.Values{"on": {"1"}})
 	enter := pathIn(t, do(t, h, http.MethodGet, s.admin+"/settings", nil).Body.String(), "/competitions/enter/")
 	redirected(t, h, s.admin+"/late/settings", url.Values{"late-new": {"1"}, "fee-new": {"7"}, "signoffFirst": {"1"}})
+	redirected(t, h, s.club+"/member-sends", url.Values{"lateChanges": {"1"}, "lateEntries": {"1"}}) // members ask themselves
 	cards := madeLink(t, h, s.admin, "Cara", "cards")
 	s.clock.set(afterDeadline)
 
@@ -177,8 +178,18 @@ func TestLateEntries(t *testing.T) {
 	if page := unescape(memberCompetitionPage(t, h, s.zoe)); !strings.Contains(page, "turned down. BUCS L3 is full") || !strings.Contains(page, "Turned down") {
 		t.Errorf("Zoe sees why: %s", page)
 	}
-	if loc := redirected(t, h, zoe, bucsEntry("")); !strings.Contains(loc, "nothing+was+sent") {
-		t.Errorf("not asked again once turned down: %s", loc)
+	// A turn-down ends that request only: asked again at another level, it's
+	// a new request, which says what was turned down before.
+	l4 := url.Values{"level": {"BUCS L4"}, "ex1Option": {"builtin:bucs-l4-option-1"}, "ex2Option": {"builtin:bucs-l4-second"}, "ex2Skills": {voluntary}}
+	if notice := noticeOf(t, redirected(t, h, zoe, l4)); !strings.HasPrefix(notice, "Your request to enter late has gone to the organiser.") {
+		t.Errorf("asked again, at BUCS L4: %q", notice)
+	}
+	late = unescape(do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String())
+	if !strings.Contains(late, "Asked before for BUCS L3, turned down 10 Mar: BUCS L3 is full") || !strings.Contains(late, "turned down. BUCS L3 is full") {
+		t.Errorf("the new request says what was turned down before, which stays turned down: %s", late)
+	}
+	if page := do(t, h, http.MethodGet, zoe, nil).Body.String(); said(page, "BUCS L3 is full") {
+		t.Errorf("the new request has a thread of its own, and Zoe sees it waiting: %s", page)
 	}
 
 	// Ivy, on her own, asks as she'd enter.
@@ -189,8 +200,8 @@ func TestLateEntries(t *testing.T) {
 	if page := unescape(do(t, h, http.MethodGet, ivy, nil).Body.String()); !strings.Contains(page, "You asked to enter late") || !strings.Contains(page, "Waiting for sign-off") {
 		t.Errorf("Ivy sees her request: %s", page)
 	}
-	if n := len(lateIDs(t, do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String())); n != 1 {
-		t.Errorf("Ivy's the one to decide now: %d", n)
+	if n := len(lateIDs(t, do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String())); n != 2 {
+		t.Errorf("Zoe's second and Ivy's to decide now: %d", n)
 	}
 
 	// The history: what was done, not what was refused.
