@@ -1,1 +1,0 @@
-* **Update**: The vulnerability check passes again: `golang.org/x/net` 0.62.0 (two issues reached through the feedback page copy) and Go 1.26.11 (one in `net/http`), found by the November audit; without it no code change could deploy ([deploy](operations/deploy.md#ci)).
