@@ -11,7 +11,7 @@ generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }
 
 | Part | Choice | Notes |
 |---|---|---|
-| Language | Go 1.26 (toolchain 1.26.9; the module allows 1.25) | Module `tariffCalculator`. |
+| Language | Go 1.26 (toolchain 1.26.11) | Module `tariffCalculator`. |
 | HTTP | `net/http` (stdlib `ServeMux` with method patterns) | Timeouts and a 64 KB body/header limit; see [HTTP routes](http-routes.md). |
 | Templates | [templ](https://templ.guide) `v0.3.x` | Typed components in `views/*.templ`; the generated `*_templ.go` files are committed. The CLI is pinned as a `tool` in `go.mod`: `go tool templ generate`. |
 | Interactivity | htmx 2.0.x | Vendored in `static/js/htmx.min.js`; no CDN scripts. |
