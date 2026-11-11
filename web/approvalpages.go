@@ -268,6 +268,7 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 	coach, note := sent[i], limitNote(r.FormValue("note"))
 	status, afresh, notice, ok := decision(r, coach.Name)
 	if !ok {
+		noteRefused(w)
 		http.Redirect(w, r, adminPath(r.PathValue("token"))+"/coaches", http.StatusSeeOther)
 		return
 	}
@@ -347,6 +348,7 @@ func (p *competitionPages) decideEntryCoach(w http.ResponseWriter, r *http.Reque
 	}
 	status, afresh, notice, ok := decision(r, named.Name)
 	if !ok {
+		noteRefused(w)
 		http.Redirect(w, r, adminPath(r.PathValue("token"))+"/coaches", http.StatusSeeOther)
 		return
 	}

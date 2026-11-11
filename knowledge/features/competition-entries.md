@@ -196,7 +196,12 @@ and say whose link it is.
 for the organiser and "everything" links only (it says what was paid and
 what feedback was sent, which the narrower links can't see), latest first: when, which link (its name, "Organiser" for the admin link)
 and what ("Marked a card checked: Ann Ryan · BUCS L3"); the latest 2,000
-are kept.
+are kept. A change that was turned down isn't in it, however the notice
+words it (a link with no name, a late change someone else decided first,
+something already removed): a handler that refuses says so with
+`noteRefused` (or `refuse`, which also redirects with the notice), and any
+answer of 400 or more, or a page that only asks first, is left out too. The
+club's history, under club links, is kept the same way.
 
 **Concerns:** anyone with an admin link can **flag a concern**, on an entry
 or generally (**Flag a concern**, a button opening the form). They share a

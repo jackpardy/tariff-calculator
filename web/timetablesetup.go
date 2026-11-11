@@ -256,6 +256,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		between, err2 := strconv.Atoi(r.FormValue("between-" + key))
 		most, err3 := strconv.Atoi(r.FormValue("max-" + key))
 		if err1 != nil || err2 != nil || err3 != nil {
+			noteRefused(w)
 			back(w, r, "Nothing was changed: timings should be numbers.")
 			return
 		}
@@ -265,6 +266,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 			t.WarmUp, err4 = strconv.ParseFloat(orZero(r.FormValue("warm-"+key)), 64)
 			t.LeastWarmUp, err5 = strconv.Atoi(orZero(r.FormValue("least-" + key)))
 			if err4 != nil || err5 != nil {
+				noteRefused(w)
 				back(w, r, "Nothing was changed: timings should be numbers.")
 				return
 			}
@@ -279,6 +281,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 		least, err2 := strconv.Atoi(field("least"))
 		per, err3 := strconv.ParseFloat(r.FormValue(fmt.Sprintf("event-%d-per", i)), 64)
 		if err1 != nil || err2 != nil || err3 != nil {
+			noteRefused(w)
 			back(w, r, "Nothing was changed: timings should be numbers.")
 			return
 		}
@@ -286,6 +289,7 @@ func (p *competitionPages) setupTimings(w http.ResponseWriter, r *http.Request) 
 	}
 	rest, err := strconv.Atoi(r.FormValue("rest"))
 	if err != nil {
+		noteRefused(w)
 		back(w, r, "Nothing was changed: rest should be a number of minutes.")
 		return
 	}
@@ -476,6 +480,7 @@ func (p *competitionPages) setupRules(w http.ResponseWriter, r *http.Request) {
 		}
 		rule, ok := personRule(r, people)
 		if !ok {
+			noteRefused(w)
 			back(w, r, "Choose someone who's offered to officiate.")
 			return
 		}

@@ -209,10 +209,12 @@ func (p *competitionPages) editRota(w http.ResponseWriter, r *http.Request) {
 		if !r.Form.Has("person") {
 			// The dropdown was left on "Choose a person", which sends
 			// nothing: not the same as choosing No one.
+			noteRefused(w)
 			back(w, r, "Choose who takes the seat; nothing was changed.")
 			return
 		}
 	default:
+		noteRefused(w)
 		back(w, r, "")
 		return
 	}

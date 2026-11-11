@@ -90,6 +90,23 @@ func noteAsked(w http.ResponseWriter) {
 	}
 }
 
+// noteRefused tells the history that the change was turned down (a notice
+// saying why, an error shown on the form): nothing changed, so nothing to
+// record. A handler says so itself, whatever the wording of what it tells
+// the person, and a response of 400 or more is never recorded anyway.
+func noteRefused(w http.ResponseWriter) {
+	if rec, ok := w.(*statusRecorder); ok {
+		rec.refused = true
+	}
+}
+
+// refuse turns a change down: it goes back to the page to with the notice
+// saying why, and the history records nothing.
+func refuse(w http.ResponseWriter, r *http.Request, to, notice string) {
+	noteRefused(w)
+	seeOther(w, r, to, notice)
+}
+
 // postedFields are the form as posted, but anyway: to post it again.
 func postedFields(r *http.Request) []views.FormValue {
 	var out []views.FormValue

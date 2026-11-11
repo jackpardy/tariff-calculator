@@ -262,11 +262,13 @@ func (p *competitionPages) tellOrganiser(w http.ResponseWriter, r *http.Request)
 	}
 	back := tellBack(p, r, a)
 	if !a.c.Messages {
+		noteRefused(w)
 		seeOther(w, r, back, "The organiser isn't taking messages here just now; nothing was sent.")
 		return
 	}
 	text := limitMessage(r.FormValue("text"))
 	if text == "" {
+		noteRefused(w)
 		seeOther(w, r, back, "Say what you want to tell the organiser; nothing was sent.")
 		return
 	}
@@ -277,6 +279,7 @@ func (p *competitionPages) tellOrganiser(w http.ResponseWriter, r *http.Request)
 	_, err := p.st.TellOrganiser(r.Context(), a.c.ID, about, t.from, text)
 	switch {
 	case errors.Is(err, store.ErrLimit):
+		noteRefused(w)
 		seeOther(w, r, back, "You've sent the organiser a lot today, so this wasn't sent. Try again tomorrow, or speak to them.")
 		return
 	case err != nil:
@@ -299,11 +302,13 @@ func (p *competitionPages) addToMessage(w http.ResponseWriter, r *http.Request) 
 	}
 	back := tellBackFrom(p, r, a, "/organiser/"+r.PathValue("message"))
 	if !a.c.Messages {
+		noteRefused(w)
 		seeOther(w, r, back, "The organiser isn't taking messages here just now; nothing was sent.")
 		return
 	}
 	text := limitMessage(r.FormValue("text"))
 	if text == "" {
+		noteRefused(w)
 		seeOther(w, r, back, "Write what to add first; nothing was sent.")
 		return
 	}
@@ -314,6 +319,7 @@ func (p *competitionPages) addToMessage(w http.ResponseWriter, r *http.Request) 
 	_, err := p.st.AddToMessage(r.Context(), a.c.ID, r.PathValue("message"), t.from.ID, who, text)
 	switch {
 	case errors.Is(err, store.ErrLimit):
+		noteRefused(w)
 		seeOther(w, r, back, "That message is as long as it can be; send a new one, or speak to the organiser.")
 		return
 	case err != nil:

@@ -227,8 +227,10 @@ func (p *competitionPages) markCheckin(w http.ResponseWriter, r *http.Request) {
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a gymnast in a flight", "That gymnast isn't in a flight of the published timetable. It may have been changed: go back and try again.")
 	case late != "":
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
 	case !applies:
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, why, anchor), http.StatusSeeOther)
 	default:
 		if err := p.st.SetCheckinAt(r.Context(), c.ID, entryID, status, linkOf(r).Name, at); err != nil {
@@ -308,8 +310,10 @@ func (p *competitionPages) clearScratch(w http.ResponseWriter, r *http.Request) 
 	case !found:
 		message(w, r, http.StatusBadRequest, "Not a scratched gymnast", "That person isn't scratched in the published timetable. It may have been changed: go back and try again.")
 	case late != "":
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, late, warningsID), http.StatusSeeOther)
 	case !applies:
+		noteRefused(w)
 		http.Redirect(w, r, backToDay(r, "Someone has already done that for "+name+".", warningsID), http.StatusSeeOther)
 	default:
 		if err := p.st.ClearScratchAt(r.Context(), c.ID, person, kind, linkOf(r).Name, at); err != nil {

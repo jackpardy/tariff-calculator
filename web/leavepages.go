@@ -22,6 +22,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 	}
 	if !s.Planned {
 		back(w, r, "Plan the timetable first.")
+		noteRefused(w)
 		return
 	}
 	f, err := p.liveRota(r.Context(), c)
@@ -84,6 +85,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	noteRefused(w) // a post that gets here kept nothing: it shows the problem
 	render(w, r, views.Leave(page))
 }
 

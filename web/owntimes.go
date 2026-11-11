@@ -42,11 +42,13 @@ func (p *competitionPages) flightTimes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !draft.Planned {
+		noteRefused(w)
 		back(w, r, "Plan the timetable first; nothing was changed.")
 		return
 	}
 	flight, err := strconv.Atoi(r.FormValue("flight"))
 	if err != nil || flight < 0 || flight >= len(draft.Flights) {
+		noteRefused(w)
 		back(w, r, "That flight has moved since; nothing was changed.")
 		return
 	}
@@ -75,6 +77,7 @@ func (p *competitionPages) flightTimes(w http.ResponseWriter, r *http.Request) {
 		}
 		warmUp, competing = own("warmUp", f.WarmUpMinutes, avgWarmUp), own("competing", f.CompetingMinutes, avgCompeting)
 		if bad {
+			noteRefused(w)
 			back(w, r, "Nothing was changed: a flight's warm-up and competing are whole minutes.")
 			return
 		}
@@ -85,6 +88,7 @@ func (p *competitionPages) flightTimes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if marks.underWay(competitions.FlightKey(f)) {
+		noteRefused(w)
 		back(w, r, f.Name()+" has started, so its times stay as they are; nothing was changed. Correct the times is on On the day.")
 		return
 	}

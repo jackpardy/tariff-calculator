@@ -67,10 +67,12 @@ func (p *competitionPages) addClubRole(w http.ResponseWriter, r *http.Request) {
 	}
 	name, problem := roleNamed(r, roles, "")
 	if problem != "" {
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", problem)
 		return
 	}
 	if _, err := p.st.AddClubRole(r.Context(), club.ID, name, r.Form["permission"]); errors.Is(err, store.ErrLimit) {
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", fmt.Sprintf("A club can have %d roles: remove one first; nothing was changed.", store.MaxClubRoles))
 		return
 	} else if err != nil {
@@ -94,10 +96,12 @@ func (p *competitionPages) saveClubRole(w http.ResponseWriter, r *http.Request) 
 	}
 	name, problem := roleNamed(r, roles, r.PathValue("role"))
 	if problem != "" {
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", problem)
 		return
 	}
 	if err := p.st.SaveClubRole(r.Context(), club.ID, r.PathValue("role"), name, r.Form["permission"]); errors.Is(err, store.ErrNotFound) {
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", "That role was removed already; nothing was changed.")
 		return
 	} else if err != nil {
@@ -120,15 +124,18 @@ func (p *competitionPages) removeClubRole(w http.ResponseWriter, r *http.Request
 	}
 	i := slices.IndexFunc(roles, func(role store.ClubRole) bool { return role.ID == r.PathValue("role") })
 	if i < 0 {
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", "That role was removed already; nothing was changed.")
 		return
 	}
 	switch err := p.st.RemoveClubRole(r.Context(), club.ID, roles[i].ID); {
 	case errors.Is(err, store.ErrInUse):
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", fmt.Sprintf("%s still has %s: give them another role or remove them first; nothing was changed.",
 			roles[i].Name, views.Count(roles[i].Links, "link", "links")))
 		return
 	case errors.Is(err, store.ErrNotFound):
+		noteRefused(w)
 		backToClubSettings(w, r, "roles", "That role was removed already; nothing was changed.")
 		return
 	case err != nil:
@@ -147,6 +154,7 @@ func (p *competitionPages) addClubLink(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.Join(strings.Fields(r.FormValue("name")), " ")
 	if name == "" || len([]rune(name)) > maxLinkName {
+		noteRefused(w)
 		backToClubSettings(w, r, "links", fmt.Sprintf("Say who the link is for, up to %d letters; nothing was changed.", maxLinkName))
 		return
 	}
@@ -158,15 +166,18 @@ func (p *competitionPages) addClubLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if slices.ContainsFunc(links, func(l store.ClubLink) bool { return strings.EqualFold(l.Name, name) }) {
+		noteRefused(w)
 		backToClubSettings(w, r, "links", "There's already a link for "+name+"; nothing was changed. To give them a new one, remove that one first.")
 		return
 	}
 	l, token, err := p.st.AddClubLink(r.Context(), club.ID, r.FormValue("role"), name)
 	switch {
 	case errors.Is(err, store.ErrLimit):
+		noteRefused(w)
 		backToClubSettings(w, r, "links", fmt.Sprintf("A club can have %d links: remove one first; nothing was changed.", store.MaxClubLinks))
 		return
 	case errors.Is(err, store.ErrNotFound):
+		noteRefused(w)
 		backToClubSettings(w, r, "links", "Choose a role for the link; nothing was changed.")
 		return
 	case err != nil:
@@ -185,6 +196,7 @@ func (p *competitionPages) moveClubLink(w http.ResponseWriter, r *http.Request) 
 	}
 	switch err := p.st.SetClubLinkRole(r.Context(), club.ID, r.PathValue("link"), r.FormValue("role")); {
 	case errors.Is(err, store.ErrNotFound):
+		noteRefused(w)
 		backToClubSettings(w, r, "links", "That link or role was removed; nothing was changed.")
 		return
 	case err != nil:
@@ -216,6 +228,7 @@ func (p *competitionPages) removeClubLink(w http.ResponseWriter, r *http.Request
 	}
 	i := slices.IndexFunc(links, func(l store.ClubLink) bool { return l.ID == r.PathValue("link") })
 	if i < 0 {
+		noteRefused(w)
 		backToClubSettings(w, r, "links", "That link was removed already; nothing was changed.")
 		return
 	}
@@ -227,7 +240,11 @@ func (p *competitionPages) removeClubLink(w http.ResponseWriter, r *http.Request
 	}) {
 		return
 	}
-	if err := p.st.RemoveClubLink(r.Context(), club.ID, links[i].ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+	switch err := p.st.RemoveClubLink(r.Context(), club.ID, links[i].ID); {
+	case errors.Is(err, store.ErrNotFound):
+		// Removed in the meantime, by someone else.
+		noteRefused(w)
+	case err != nil:
 		failed(w, r, err)
 		return
 	}

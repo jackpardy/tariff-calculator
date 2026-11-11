@@ -104,6 +104,7 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := competitions.CheckName("coach", name); err != nil {
+		noteRefused(w)
 		seeOther(w, r, clubCoachesPath(r.PathValue("token")), strings.Join(sentences(err), " "))
 		return
 	}
@@ -115,6 +116,7 @@ func (p *competitionPages) addCoach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if slices.ContainsFunc(coaches, func(c store.Coach) bool { return store.NameKey(c.Name) == store.NameKey(name) }) {
+		noteRefused(w)
 		seeOther(w, r, clubCoachesPath(r.PathValue("token")), name+" is already one of your coaches; nothing was changed. For a new link for them, use New link on their row; for another coach of that name, add something to tell them apart, e.g. a middle initial.")
 		return
 	}
@@ -589,20 +591,25 @@ func (p *competitionPages) addQualification(w http.ResponseWriter, r *http.Reque
 	back := func(notice string) {
 		seeOther(w, r, clubCoachesPath(r.PathValue("token")), notice)
 	}
+	// nothing turns the qualification down, with why.
+	nothing := func(why string) {
+		noteRefused(w)
+		back("Nothing was added: " + why)
+	}
 	q, data, certType, problem := postedCertificate(r)
 	if problem != "" {
-		back("Nothing was added: " + problem)
+		nothing(problem)
 		return
 	}
 	_, err = p.st.AddQualification(r.Context(), club.ID, coach.ID, q.Key, certType, data)
 	switch {
 	case errors.Is(err, store.ErrLimit):
-		back(fmt.Sprintf("Nothing was added: a coach can have %d qualifications at most. Remove one first.", store.MaxQualifications))
+		nothing(fmt.Sprintf("a coach can have %d qualifications at most. Remove one first.", store.MaxQualifications))
 	case errors.Is(err, store.ErrCertificatesFull):
-		back(fmt.Sprintf("Nothing was added: your coaches' certificates already take up the %d MB a club has for them. Remove one, or add a smaller photo or PDF.",
+		nothing(fmt.Sprintf("your coaches' certificates already take up the %d MB a club has for them. Remove one, or add a smaller photo or PDF.",
 			store.MaxClubCertificateBytes>>20))
 	case err != nil && certificateRefused(err) != "":
-		back("Nothing was added: " + certificateRefused(err))
+		nothing(certificateRefused(err))
 	case err != nil:
 		failed(w, r, err)
 	default:
