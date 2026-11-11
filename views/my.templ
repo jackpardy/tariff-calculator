@@ -18,6 +18,7 @@ type MyCompetitionPage struct {
 	BackLabel   string // says where Back goes, e.g. "← Your page"
 	MyLinks
 	Lateness    []string // how late the areas their flights are on are running today
+	Panels      []MyPanelNow // the flights whose panel they sit on that are running now
 	Notice      string     // what just happened, e.g. after "I'm here for the rest"
 	Here        *MyHere    // the box for someone scratched who may still be here; nil for none
 	Published   bool
@@ -28,6 +29,12 @@ type MyCompetitionPage struct {
 	Me          string          // their person key, for the seats they're in
 	Menu        []MenuSection   // the organiser's menu, on the organiser's page of a person; their own tabs on theirs
 	Admin       *PersonAdmin    // what the organiser's page of a person adds; nil on their own page
+}
+
+// MyPanelNow is a flight whose panel someone sits on, running now, and where
+// it is: "Warming up" or "Competing".
+type MyPanelNow struct {
+	Flight, Area, Stage string
 }
 
 // MyLinks are the links on a person's or club's page for a
@@ -226,6 +233,7 @@ type MyEvent struct {
 	Problems                  []string
 	Flight, Area, Day, WarmUp string
 	Competing                 string // when their flight's competing starts
+	Stage                     string // where their flight is while it runs: "Warming up" or "Competing"; "" otherwise
 	Position, Of              int
 	Turn, Turn2               string // about when each of their routines is
 }
@@ -309,6 +317,17 @@ templ MyCompetition(p MyCompetitionPage) {
 			@notice(p.Notice)
 		}
 		@latenessNotes(p.Lateness)
+		for _, n := range p.Panels {
+			<p class="mb-3 comp-my-panel-now">
+				if p.Admin != nil {
+					On their panel now:
+				} else {
+					On your panel now:
+				}
+				<strong>{ n.Flight }</strong> · { n.Area }
+				@StateChip(InProgress, n.Stage)
+			</p>
+		}
 		@deskMessages(p.Desk)
 		if p.Here != nil {
 			<div class="notification is-warning is-light">
@@ -368,7 +387,12 @@ templ MyCompetition(p MyCompetitionPage) {
 				}
 				if ev.Flight != "" {
 					<div class="comp-my-flight mt-2">
-						<p><strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }</p>
+						<p>
+							<strong>{ ev.Flight }</strong> · { ev.Area } · { ev.Day }
+							if ev.Stage != "" {
+								@StateChip(InProgress, ev.Stage)
+							}
+						</p>
 						if p.Admin != nil {
 							<p>Warm-up <strong>{ ev.WarmUp }</strong> · competing <strong>{ ev.Competing }</strong> · <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
 						} else {

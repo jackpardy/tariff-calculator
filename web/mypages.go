@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -174,6 +175,9 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		if page.Lateness, err = p.lateNotes(r.Context(), c, mine); err != nil {
 			return page, f, err
 		}
+		if err := p.stagesOf(r.Context(), c, key, &page); err != nil {
+			return page, f, err
+		}
 		page.Duties = dutiesOf(c, key)
 		if f.official, err = p.st.OfficialCheckins(r.Context(), c.ID); err != nil {
 			return page, f, err
@@ -191,6 +195,36 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 		}
 	}
 	return page, f, nil
+}
+
+// stagesOf says, on someone's competition, where each running flight of
+// theirs is (warming up or competing): on their events' cards, and for the
+// panels they sit on.
+func (p *competitionPages) stagesOf(ctx context.Context, c store.Competition, key string, page *views.MyCompetitionPage) error {
+	times, err := p.st.FlightTimes(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	ups, err := p.st.UpNow(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	stage := func(f competitions.ScheduledFlight) string {
+		_, upTapped := ups[competitions.FlightKey(f)]
+		return flightStage(times[competitions.FlightKey(f)], upTapped)
+	}
+	t := c.Published
+	for i, ev := range page.Events {
+		if j, ok := t.Find(ev.ID); ok {
+			page.Events[i].Stage = stage(t.Flights[j])
+		}
+	}
+	for _, f := range t.Flights {
+		if st := stage(f); st != "" && holdsSeat(f, key) {
+			page.Panels = append(page.Panels, views.MyPanelNow{Flight: f.Name(), Area: f.Area, Stage: st})
+		}
+	}
+	return nil
 }
 
 // theirItems is the timetable cut to the flights someone competes in or sits

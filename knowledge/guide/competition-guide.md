@@ -475,10 +475,12 @@ a **Change** button to open it.
    of judges' and timetable links get it too): pick the day. Each area is a
    card saying how it's running, the flight it's on, who's up, how many are
    checked in, what's next, and the one tap that comes next (**Started**,
-   **Next gymnast**, or **Finished** once the last routine is on). Tap the
-   area's name or **Open** for its own page, where its marshal works: the
-   flight on now, with **Started** at the top when it begins its warm-up,
-   then who's up, **Check-in** and **Panel**, and **Finished** at the bottom
+   **Warm-up over**, **Next gymnast**, or **Finished** once the last routine
+   is on). Tap the area's name or **Open** for its own page, where its
+   marshal works: the flight on now, with **Started** at the top when it
+   begins its warm-up, then **Warm-up over** there when the warm-up ends and
+   competing begins, then who's up, **Check-in** and **Panel**, and
+   **Finished** at the bottom
    when it's done (**Undo** takes back the latest tap), and **Correct the
    times** under that; then the area's later flights and those finished,
    each opening to the same. A marshal with one panel can keep its page open
@@ -486,7 +488,10 @@ a **Change** button to open it.
    area they're in. On poor wifi a tap may
    be sent twice; the second changes nothing. Planned and actual
    times sit side by side, and each area says whether it's "Running 15 min
-   late", "On time" or early. Where an area is late, **What if: see the rest
+   late", "On time" or early (and, once Warm-up over is tapped, how late
+   competing began). **Real times today**, at the bottom of the overview,
+   opens to each discipline's real warm-up and competing minutes a
+   competitor, beside the figures on Setup, to help set them next time. Where an area is late, **What if: see the rest
    of the day** opens the delay page filled in. Gymnasts and officials see "Panel 2 is
    running about 15 min late" on their page once an area is 5 minutes or more
    out. Under each flight, **Check-in** lists its gymnasts: tap **Here** as
@@ -510,9 +515,16 @@ a **Change** button to open it.
    same on every page: grey not yet (not started, not checked in), blue
    under way or waiting on someone, green done (finished, here), amber
    needs a look (running late, a seat no one is in) and red out
-   (scratched, missing). Each flight says Not started, Under way, Running late
-   or Finished; the Check-in and Panel headings count who's here and who's
+   (scratched, missing). Each flight says Not started, Warming up, Competing
+   or Finished (the area says if it's running late); the Check-in and Panel headings count who's here and who's
    out, and a Panel lists any seat that still needs someone.
+   **Marshals: warm-up over.** Once a flight is **Started** it says Warming
+   up, and the big button is **Warm-up over**: tap it when the warm-up ends
+   and the first gymnast is about to start. The flight then says Competing,
+   on the venue screen and the gymnasts' and officials' pages too. If you
+   forget it, nothing is lost: **Next gymnast** and **Finished** work
+   without it (the warm-up just isn't measured), and once you've tapped Next
+   gymnast it's no longer offered.
    **Marshals: who's up now.** Once a flight is **Started**, its box shows who's
    first up. Tap **Next gymnast** as each gymnast starts their routine: the
    box shows who's on, their club and which routine it is (such as Set or
@@ -524,15 +536,16 @@ a **Change** button to open it.
    **No signal?** Keep tapping. Each tap is kept on your phone with the time
    you tapped it and shows straight away, marked "waiting to send", with
    "Waiting to send: 3 taps" at the top; once Started is tapped you can go on
-   with Next gymnast and Finished. They're sent by themselves when the signal
+   with Warm-up over, Next gymnast and Finished. They're sent by themselves when the signal
    is back (keep the page open, or open it again), and recorded at the times
    you tapped them, even if your phone's clock is wrong. If two people tapped
-   the same thing, the earliest Started and Finished count, and for Here or
+   the same thing, the earliest Started, Warm-up over and Finished count, and for Here or
    Scratched the latest tap does; the page says when a tap wasn't used and
    why. Taps more than 12 hours old aren't used.
    **Correct the times** (under each flight): if the paper sheet was used, or
-   a tap was wrong, type when the flight really started and finished and tap
-   **Save times**. Leave Finished empty if it hasn't finished. How late the
+   a tap was wrong, type when the flight really started, its warm-up was
+   over and it finished, and tap **Save times**. Leave Warm-up over empty if
+   you don't know it, and Finished if it hasn't finished. How late the
    area is running, the venue screen and everyone's pages follow, and the
    history says who changed them.
    <a id="on-the-day-venue-screen"></a>**Venue screen** (in the menu, and a

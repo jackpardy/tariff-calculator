@@ -304,3 +304,24 @@ func TestJudgeBelowMigrates(t *testing.T) {
 		t.Errorf("qualified stays: %+v", got.Officials)
 	}
 }
+
+// Migration 53 adds Warm-up over to flight times: those already kept stay,
+// with no warm-up over.
+func TestWarmUpOverMigrates(t *testing.T) {
+	dir := t.TempDir()
+	was := migrations
+	migrations = migrations[:52]
+	t.Cleanup(func() { migrations = was })
+	s, err := Open(ctx, dir)
+	must(t, err)
+	c, _, _ := s.CreateCompetition(ctx, competition())
+	_, err = s.db.ExecContext(ctx, `INSERT INTO flight_times (competition_id, flight, started_at, finished_at, who) VALUES ($1, 'f1', '2027-03-13T09:00:00.000000Z', '2027-03-13T09:40:00.000000Z', 'Ann')`, c.ID)
+	must(t, err)
+	migrations = was
+	s = reopen(t, s, dir)
+	all, err := s.FlightTimes(ctx, c.ID)
+	must(t, err)
+	if got := all["f1"]; got.Started.IsZero() || got.Finished.IsZero() || !got.WarmUpOver.IsZero() || got.Who != "Ann" {
+		t.Errorf("kept, with no warm-up over: %+v", got)
+	}
+}

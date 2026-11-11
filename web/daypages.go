@@ -110,7 +110,7 @@ func warmUpStarted(c competitions.Competition, f competitions.ScheduledFlight, s
 func actualOf(times map[string]store.FlightTime) map[string]competitions.Actual {
 	out := make(map[string]competitions.Actual, len(times))
 	for k, t := range times {
-		out[k] = competitions.Actual{Started: t.Started, Finished: t.Finished}
+		out[k] = competitions.Actual{Started: t.Started, WarmUpOver: t.WarmUpOver, Finished: t.Finished}
 	}
 	return out
 }
@@ -127,6 +127,77 @@ func (p *competitionPages) latenessOf(ctx context.Context, c store.Competition, 
 		return nil, err
 	}
 	return competitions.Lateness(*c.Published, day, first, local, actualOf(times)), nil
+}
+
+// Where a flight is (roadmap 15), in the words every page uses for it.
+const (
+	stageWarmingUp = "Warming up"
+	stageCompeting = "Competing"
+)
+
+// flightStage says where a flight that has started and not finished is:
+// warming up until Warm-up over is tapped, then competing. If the marshal
+// skipped Warm-up over, it's competing once who's up has reached a gymnast
+// (upTapped). "" for a flight not started, or finished.
+func flightStage(t store.FlightTime, upTapped bool) string {
+	switch {
+	case t.Started.IsZero() || !t.Finished.IsZero():
+		return ""
+	case !t.WarmUpOver.IsZero() || upTapped:
+		return stageCompeting
+	}
+	return stageWarmingUp
+}
+
+// againstPlan says how a time ran against the plan, from minutes late
+// (negative for early): "12 min late", "on time", "3 min early".
+func againstPlan(minutes int) string {
+	switch {
+	case minutes > 0:
+		return minutesText(minutes) + " late"
+	case minutes < 0:
+		return minutesText(-minutes) + " early"
+	}
+	return "on time"
+}
+
+// realTimesOf are a day's real warm-up and competing a competitor, a line for
+// each discipline with any measured, beside the figures Setup plans with:
+// "Trampoline: warm-up 1.2 min a competitor (set 1), competing 4.6 (set 5),
+// from 6 flights".
+func realTimesOf(s competitions.Schedule, day int, actual map[string]competitions.Actual) []string {
+	figure := func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
+	var out []string
+	for _, m := range competitions.MeasuredTimes(s, day, actual) {
+		set := s.Setup.TimingsFor(m.Discipline)
+		flights := func(n int) string { return "from " + views.Count(n, "flight", "flights") }
+		same := m.WarmUpFlights == m.CompetingFlights
+		var parts []string
+		if m.WarmUpFlights > 0 {
+			part := fmt.Sprintf("warm-up %.1f min a competitor (set %s", m.WarmUp, figure(set.WarmUp))
+			if !same {
+				part += ", " + flights(m.WarmUpFlights)
+			}
+			parts = append(parts, part+")")
+		}
+		if m.CompetingFlights > 0 {
+			unit := ""
+			if m.WarmUpFlights == 0 {
+				unit = " min a competitor"
+			}
+			part := fmt.Sprintf("competing %.1f%s (set %s", m.Competing, unit, figure(set.PerCompetitor))
+			if !same {
+				part += ", " + flights(m.CompetingFlights)
+			}
+			parts = append(parts, part+")")
+		}
+		line := competitions.DisciplineName(m.Discipline) + ": " + strings.Join(parts, ", ")
+		if same {
+			line += ", " + flights(m.WarmUpFlights)
+		}
+		out = append(out, line)
+	}
+	return out
 }
 
 // lateText says how an area is running, e.g. "Running 15 min late",
@@ -208,6 +279,9 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 	base := adminPath(r.PathValue("token"))
 	page := views.DayPage{Base: base, Competition: summary(c, p.now()), Menu: p.menuFor(r, c, menuDay), Notice: r.URL.Query().Get("notice"), Day: day}
 	page.Correct = can(r, "POST", "/day/times")
+	if can(r, "GET", "/timetable") {
+		page.RealTimes = realTimesOf(*s, day, actualOf(times))
+	}
 	page.People = can(r, "GET", "/people/{key}")
 	if day < len(s.Setup.Days) {
 		page.DayName = s.Setup.Days[day].Name
@@ -297,12 +371,19 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			df := views.DayFlight{
 				Key: competitions.FlightKey(f), ID: flightID(competitions.FlightKey(f)), Name: f.Name(),
 				Planned: competitions.Clock(f.Start) + "–" + competitions.Clock(f.End), Times: views.FlightTimes(flightClocks(s.Setup, f)),
-				Started: clock(t.Started), Finished: clock(t.Finished), Who: t.Who,
+				Started: clock(t.Started), WarmUpOver: clock(t.WarmUpOver), Finished: clock(t.Finished), Who: t.Who,
 				CanStart: t.Started.IsZero(), CanFinish: !t.Started.IsZero() && t.Finished.IsZero(),
 			}
+			_, upTapped := ups[df.Key]
+			df.Stage = flightStage(t, upTapped)
+			// Warm-up over is offered until it's tapped, or who's up has
+			// reached a gymnast: skipped then, the warm-up is left unmeasured.
+			df.CanWarmUp = df.CanFinish && t.WarmUpOver.IsZero() && !upTapped
 			switch {
 			case !t.Finished.IsZero():
 				df.Undo = "undo-finish"
+			case !t.WarmUpOver.IsZero():
+				df.Undo = "undo-warm-up"
 			case !t.Started.IsZero():
 				df.Undo = "undo-start"
 			}
@@ -341,6 +422,9 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			area.Status = lateText(l)
 			area.Late, area.Early = l.Minutes > 0, l.Minutes < 0
 			area.Since = fmt.Sprintf("measured from %s %s at %s", l.Flight, l.As, clock(l.At))
+			if !l.CompetingAt.IsZero() {
+				area.Since += fmt.Sprintf(" · competing began %s, %s", clock(l.CompetingAt), againstPlan(l.Competing))
+			}
 			if l.Minutes > 0 && can(r, "GET", "/timetable/delay") {
 				// From when it was planned to happen, so a flight planned to
 				// start after it, still waiting, moves later rather than
@@ -378,11 +462,13 @@ type flightChange struct {
 }
 
 // flightAction finds a published flight by its key, and says whether marking
-// it start, finish, undo-finish or undo-start at the time at would change
-// anything. Two phones may both have kept a tap for the same flight while
-// without signal, so the earliest Started and the earliest Finished win, and
-// a Finished before its Started is refused. A tap sent as it's made is
-// always the latest, so it changes nothing once someone has marked it.
+// it start, warm-up, finish, undo-finish, undo-warm-up or undo-start at the
+// time at would change anything. Two phones may both have kept a tap for the
+// same flight while without signal, so the earliest Started, Warm-up over and
+// Finished win; a Warm-up over or Finished without a Started is refused, as
+// is one out of order (before the start, a Warm-up over after the finish, a
+// Finished before the warm-up was over). A tap sent as it's made is always
+// the latest, so it changes nothing once someone has marked it.
 func (p *competitionPages) flightAction(ctx context.Context, c store.Competition, key, what string, at time.Time) (ch flightChange, err error) {
 	if c.Published == nil {
 		return ch, nil
@@ -401,22 +487,38 @@ func (p *competitionPages) flightAction(ctx context.Context, c store.Competition
 	}
 	t := times[key]
 	name := ch.flight.Name()
+	hhmm := func(t time.Time) string { return t.In(local).Format("15:04") }
 	switch what {
 	case "start":
 		ch.applies = t.Started.IsZero() || at.Before(t.Started) && (t.Finished.IsZero() || !at.After(t.Finished))
+	case "warm-up":
+		switch {
+		case t.Started.IsZero():
+			ch.why = name + " hasn't started, so Warm-up over wasn't recorded."
+		case at.Before(t.Started):
+			ch.why = "Warm-up over for " + name + " wasn't recorded: it's earlier than the start (" + hhmm(t.Started) + ")."
+		case !t.Finished.IsZero() && at.After(t.Finished):
+			ch.why = "Warm-up over for " + name + " wasn't recorded: it's later than the finish (" + hhmm(t.Finished) + ")."
+		default:
+			ch.applies = t.WarmUpOver.IsZero() || at.Before(t.WarmUpOver)
+		}
 	case "finish":
 		switch {
 		case t.Started.IsZero():
 			ch.why = name + " hasn't started, so Finished wasn't recorded."
 		case at.Before(t.Started):
-			ch.why = "Finished for " + name + " wasn't recorded: it's earlier than the start (" + t.Started.In(local).Format("15:04") + ")."
+			ch.why = "Finished for " + name + " wasn't recorded: it's earlier than the start (" + hhmm(t.Started) + ")."
+		case !t.WarmUpOver.IsZero() && at.Before(t.WarmUpOver):
+			ch.why = "Finished for " + name + " wasn't recorded: it's earlier than the warm-up was over (" + hhmm(t.WarmUpOver) + ")."
 		default:
 			ch.applies = t.Finished.IsZero() || at.Before(t.Finished)
 		}
 	case "undo-finish":
 		ch.applies = !t.Finished.IsZero()
+	case "undo-warm-up":
+		ch.applies = !t.WarmUpOver.IsZero() && t.Finished.IsZero()
 	case "undo-start":
-		ch.applies = !t.Started.IsZero() && t.Finished.IsZero()
+		ch.applies = !t.Started.IsZero() && t.WarmUpOver.IsZero() && t.Finished.IsZero()
 	}
 	if !ch.applies && ch.why == "" {
 		ch.why = "Someone has already done that for " + name + "."
@@ -424,8 +526,9 @@ func (p *competitionPages) flightAction(ctx context.Context, c store.Competition
 	return ch, nil
 }
 
-// markFlight records that a flight started or finished, or takes one back
-// (flight: its key; what: start, finish, undo-finish or undo-start; day: the
+// markFlight records that a flight started, its warm-up was over or it
+// finished, or takes one back (flight: its key; what: start, warm-up,
+// finish, undo-finish, undo-warm-up or undo-start; day: the
 // page to go back to; tapped and sent: when a tap kept on the phone was made
 // and sent, see tapAt). An undo with nothing to take back is the same tap
 // sent again, so it quietly changes nothing.
@@ -441,7 +544,7 @@ func (p *competitionPages) markFlight(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err != nil:
 		failed(w, r, err)
-	case !ch.found || !slices.Contains([]string{"start", "finish", "undo-finish", "undo-start"}, what):
+	case !ch.found || !slices.Contains([]string{"start", "warm-up", "finish", "undo-finish", "undo-warm-up", "undo-start"}, what):
 		message(w, r, http.StatusBadRequest, "Not a flight", "That flight isn't in the published timetable. It may have been changed: go back and try again.")
 	case late != "":
 		http.Redirect(w, r, backToDay(r, late, anchor), http.StatusSeeOther)
@@ -481,6 +584,8 @@ func (p *competitionPages) describeFlightMark(r *http.Request, c store.Competiti
 	switch what {
 	case "start":
 		return "Marked a flight started: " + f.Name() + " (" + f.Area + ")" + p.tappedNote(at)
+	case "warm-up":
+		return "Marked a flight's warm-up over: " + f.Name() + " (" + f.Area + ")" + p.tappedNote(at)
 	case "finish":
 		return "Marked a flight finished: " + f.Name() + " (" + f.Area + ")" + p.tappedNote(at)
 	}

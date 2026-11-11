@@ -32,6 +32,7 @@ type ScreenArea struct {
 	Now          string // the flight on now, or the break's name; "" for nothing
 	NowTimes     string // the flight's times in the timetable, as FlightTimes says them
 	Planned      bool   // Now is on by the plan only: nobody has marked it started
+	Stage        string // where the flight on now is: "Warming up" or "Competing"; "" if not marked started
 	Gymnasts     []FlightGymnast
 	More         int    // gymnasts on now not named
 	Next         string // the next flight; "" for none
@@ -220,7 +221,12 @@ templ screenCard(a ScreenArea) {
 			}
 		</header>
 		<div class={ "screen-part", templ.KV("is-empty", a.Now == "") }>
-			<p class="screen-label">Now</p>
+			<p class="screen-label">
+				Now
+				if a.Stage != "" {
+					· { a.Stage }
+				}
+			</p>
 			if a.Now == "" {
 				<p class="screen-flight">—</p>
 			} else {

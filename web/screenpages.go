@@ -163,6 +163,11 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	ups, err := p.st.UpNow(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
 	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)
@@ -205,6 +210,8 @@ func (p *competitionPages) screen(w http.ResponseWriter, r *http.Request) {
 		case n.Flight != nil:
 			f := *n.Flight
 			v.Now, v.Planned = f.Name(), n.Planned
+			_, upTapped := ups[competitions.FlightKey(f)]
+			v.Stage = flightStage(times[competitions.FlightKey(f)], upTapped)
 			v.NowTimes = views.FlightTimes(flightClocks(s.Setup, f))
 			v.Gymnasts = gymnasts(f)
 		case n.Break != "":

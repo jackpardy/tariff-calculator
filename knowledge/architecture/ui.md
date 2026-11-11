@@ -296,6 +296,12 @@ who.
 **Coaches' approval**: Approved, Waiting for approval, Not approved,
 Approval withdrawn. No ✓ after the words: the chip's colour says it.
 
+**A flight on the day** is a chip: Not started, Warming up, Competing (both
+in progress: started, then after Warm-up over, or once who's up has reached
+a gymnast without it), Finished. Running late is the area's chip, not the
+flight's. The venue screen says "Now · Warming up"; My competition puts the
+chip beside the flight, and "On your panel now:" for a panel.
+
 **Check-in** is a chip wherever it shows: Here, Not checked in, Scratched,
 Missing (an official); "Not yet" only in the day's check-in rows, where
 everything is check-in.

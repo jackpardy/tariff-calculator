@@ -325,8 +325,9 @@ type dayArea struct {
 // dayFlight is a flight's box on On the day.
 type dayFlight struct {
 	Key, Name, Planned string // Key is what its forms post
-	State              string // its chip: "Not started", "Under way", "Running late" or "Finished"
+	State              string // its chip: "Not started", "Warming up", "Competing" or "Finished"
 	Started, Finished  string // "" for not yet
+	WarmUpOver         string // "" for not yet, or skipped
 	Who                string
 	Buttons            []string          // the start/finish/undo and tap buttons
 	UpLabel            string            // "First up…", "On now", or the note that nobody is left
@@ -483,16 +484,20 @@ func dayFlightOf(box *html.Node) dayFlight {
 		}
 	}
 	f.Planned = strings.TrimPrefix(textOf(ps[1]), "Planned: ")
-	// "Started <strong>09:02</strong> · finished — · Organiser"
+	// "Started <strong>09:02</strong> · warm-up over — · finished — · Organiser"
 	label := ""
 	for c := ps[2].FirstChild; c != nil; c = c.NextSibling {
 		switch {
 		case c.Type == html.TextNode && strings.Contains(c.Data, "Started"):
 			label = "started"
 		case c.Type == html.TextNode && strings.Contains(c.Data, "finished"):
-			label = "finished"
+			label = "finished" // after "warm-up over —", when it wasn't tapped
+		case c.Type == html.TextNode && strings.Contains(c.Data, "warm-up over"):
+			label = "warm-up"
 		case c.Type == html.ElementNode && c.Data == "strong" && label == "started":
 			f.Started = textOf(c)
+		case c.Type == html.ElementNode && c.Data == "strong" && label == "warm-up":
+			f.WarmUpOver = textOf(c)
 		case c.Type == html.ElementNode && c.Data == "strong" && label == "finished":
 			f.Finished = textOf(c)
 		case c.Type == html.ElementNode && c.Data == "span":

@@ -329,9 +329,13 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 		network.Enable(),
 		network.EmulateNetworkConditions(true, 0, -1, -1),
 	)
-	step(t, ctx, "tapping Started and Next gymnast without signal",
+	var warmUp bool
+	step(t, ctx, "tapping Started, Warm-up over and Next gymnast without signal",
 		chromedp.Click(`form[data-tap^="flight:"] button[value="start"]`, chromedp.ByQuery),
 		chromedp.WaitVisible(`#day-taps`, chromedp.ByQuery),
+		chromedp.WaitVisible(`form[data-tap^="flight:"] button[value="warm-up"]`, chromedp.ByQuery),
+		chromedp.Click(`form[data-tap^="flight:"] button[value="warm-up"]`, chromedp.ByQuery),
+		chromedp.Evaluate(`!!document.querySelector('form[data-tap^="flight:"] button[value="warm-up"]:not([hidden])')`, &warmUp),
 		chromedp.WaitVisible(`.comp-up button[value="next"]`, chromedp.ByQuery),
 		chromedp.Evaluate(`!!document.querySelector('form[data-tap^="flight:"] button[value="finish"]:not([hidden])')`, &finished),
 		chromedp.Text(`.comp-up p`, &next, chromedp.ByQuery),
@@ -340,13 +344,13 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 		chromedp.Text(`.comp-up`, &onNow, chromedp.ByQuery),
 		chromedp.Text(`#day-taps`, &waiting, chromedp.ByQuery),
 	)
-	if !finished {
-		t.Error("Finished is offered once Started is waiting")
+	if !finished || warmUp {
+		t.Errorf("Finished is offered once Started is waiting, and Warm-up over goes once tapped: %v, %v", finished, warmUp)
 	}
 	if !strings.HasPrefix(next, "First up") || !strings.Contains(onNow, "On now") || !strings.Contains(onNow, "Cal") {
 		t.Errorf("who's up goes on without signal: %q, then %q", next, onNow)
 	}
-	if !strings.Contains(waiting, "Waiting to send: 2 taps") {
+	if !strings.Contains(waiting, "Waiting to send: 3 taps") {
 		t.Errorf("the count of taps waiting: %q", waiting)
 	}
 	if f := panelOne(t, h, day).Flights[0]; f.Started != "" {
@@ -367,7 +371,7 @@ func TestTapsWithoutSignalInABrowser(t *testing.T) {
 		chromedp.WaitNotPresent(`[data-tap-note]`, chromedp.ByQuery),
 	)
 	f := panelOne(t, h, day).Flights[0]
-	if f.Started != "09:50" || f.Up != "Cal" || f.UpLabel != "On now" {
+	if f.Started != "09:50" || f.WarmUpOver != "09:50" || f.Up != "Cal" || f.UpLabel != "On now" {
 		t.Errorf("the taps landed at the time they were tapped, 09:50: %+v (before sending: %s)", f, kept)
 	}
 	if !historyHas(t, h, admin, "Organiser", "Marked a flight started: BUCS L3 (Panel 1) (tapped at 09:50)") {

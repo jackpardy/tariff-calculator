@@ -88,7 +88,7 @@ func TestOnTheDay(t *testing.T) {
 		t.Errorf("back to the day: %s", to)
 	}
 	area = panelOne(t, h, day)
-	if f := area.Flights[0]; f.Started != "10:00" || f.State != "Under way" || f.Who != "Organiser" || !slices.Contains(f.Buttons, "Finished") || !slices.Contains(f.Buttons, "Undo") || slices.Contains(f.Buttons, "Started") {
+	if f := area.Flights[0]; f.Started != "10:00" || f.State != "Warming up" || f.Who != "Organiser" || !slices.Contains(f.Buttons, "Finished") || !slices.Contains(f.Buttons, "Undo") || slices.Contains(f.Buttons, "Started") {
 		t.Errorf("started: Finished and Undo are offered, and who marked it: %+v", f)
 	}
 	if !strings.HasPrefix(area.Status, "Not measured: times marked on another date") || area.Late || area.WhatIf != "" {
@@ -107,7 +107,7 @@ func TestOnTheDay(t *testing.T) {
 	clock.set(onTheDay(9, 20))
 	mark("start")
 	area = panelOne(t, h, day)
-	if area.Status != "Running 20 min late" || !area.Late || area.Since != "measured from BUCS L3 started at 09:20" || area.Flights[0].State != "Running late" {
+	if area.Status != "Running 20 min late" || !area.Late || area.Since != "measured from BUCS L3 started at 09:20" || area.Flights[0].State != "Warming up" {
 		t.Errorf("started at 09:20: %+v", area)
 	}
 	if u, err := url.Parse(area.WhatIf); err != nil || u.Path != admin+"/timetable/delay" ||

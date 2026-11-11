@@ -45,6 +45,56 @@ func TestLateness(t *testing.T) {
 	if d2 := Lateness(s, 1, first, loc, actual); len(d2) != 1 || d2["P1"].Minutes != 60 || d2["P1"].Flight != "E" {
 		t.Errorf("the next day is measured on its own: %+v", d2)
 	}
+
+	// Warm-up over doesn't change what it's measured from, but says how late
+	// competing began: B planned to compete from 10:10 (its changeover), began
+	// 10:25.
+	if p1 := Lateness(s, 0, first, loc, actual)["P1"]; !p1.CompetingAt.IsZero() {
+		t.Errorf("no Warm-up over, nothing said of competing: %+v", p1)
+	}
+	actual[FlightKey(s.Flights[1])] = Actual{Started: at(9, 20), WarmUpOver: at(9, 25), Finished: at(10, 5)}
+	if p1 := Lateness(s, 0, first, loc, actual)["P1"]; p1.Minutes != 5 || p1.As != "finished" || !p1.CompetingAt.Equal(at(9, 25)) || p1.Competing != 15 {
+		t.Errorf("competing began 15 late: %+v", p1)
+	}
+}
+
+// The day's real warm-up and competing, a competitor, from what each flight's
+// taps measured: a flight with no Warm-up over measures neither, and one not
+// finished only its warm-up.
+func TestMeasuredTimes(t *testing.T) {
+	at := func(h, m int) time.Time { return time.Date(2030, 3, 16, h, m, 0, 0, time.UTC) }
+	flight := func(event, discipline string, day, n int) ScheduledFlight {
+		f := ScheduledFlight{Flight: Flight{Event: event, Number: 1, Of: 1}, Discipline: discipline, Area: "P1", Day: day}
+		for i := range n {
+			f.Entries = append(f.Entries, event+string(rune('a'+i)))
+		}
+		return f
+	}
+	s := Schedule{Flights: []ScheduledFlight{
+		flight("A", Trampoline, 0, 4),
+		flight("B", Trampoline, 0, 6),
+		flight("C", Trampoline, 0, 5),
+		flight("D", Tumbling, 0, 10),
+		flight("E", Tumbling, 0, 10),
+		flight("F", Trampoline, 1, 5),
+	}}
+	actual := map[string]Actual{
+		FlightKey(s.Flights[0]): {Started: at(9, 0), WarmUpOver: at(9, 4), Finished: at(9, 24)},   // 1 and 5 a competitor
+		FlightKey(s.Flights[1]): {Started: at(9, 30), WarmUpOver: at(9, 36), Finished: at(10, 0)}, // 1 and 4
+		FlightKey(s.Flights[2]): {Started: at(10, 0), Finished: at(10, 40)},                       // skipped: neither
+		FlightKey(s.Flights[3]): {Started: at(9, 0), WarmUpOver: at(9, 10)},                       // warm-up only
+		FlightKey(s.Flights[5]): {Started: at(9, 0), WarmUpOver: at(9, 50), Finished: at(10, 40)}, // another day
+	}
+	got := MeasuredTimes(s, 0, actual)
+	if len(got) != 2 {
+		t.Fatalf("trampoline and tumbling: %+v", got)
+	}
+	if tr := got[0]; tr.Discipline != Trampoline || tr.WarmUp != 1 || tr.Competing != 4.4 || tr.WarmUpFlights != 2 || tr.CompetingFlights != 2 {
+		t.Errorf("trampoline, from A and B: %+v", tr)
+	}
+	if tu := got[1]; tu.Discipline != Tumbling || tu.WarmUp != 1 || tu.CompetingFlights != 0 {
+		t.Errorf("tumbling, warm-up only: %+v", tu)
+	}
 }
 
 // A time recorded on another date than the flight's day doesn't count.
