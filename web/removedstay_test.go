@@ -31,7 +31,7 @@ func removedSetup(t *testing.T, h http.Handler) (admin, club, ann, annID string,
 	c := aClub(t, h, admin, "UCD", false, "X", "Y")
 	club, members = c.page, c.members
 	ann = pathIn(t, do(t, h, http.MethodPost, club+"/coaches", url.Values{"name": {"Ann Byrne"}}).Body.String(), "/clubs/coach/")
-	annID = regexp.MustCompile(regexp.QuoteMeta(club)+`/coaches/([^/"]+)/signs-off`).FindStringSubmatch(do(t, h, http.MethodGet, club+"/coaches", nil).Body.String())[1]
+	annID = regexp.MustCompile(regexp.QuoteMeta(club) + `/coaches/([^/"]+)/signs-off`).FindStringSubmatch(do(t, h, http.MethodGet, club+"/coaches", nil).Body.String())[1]
 	upload(t, h, club+"/coaches/"+annID+"/qualifications", map[string]string{"qualification": "bg-trampoline-3"}, "certificate", []byte("%PDF-1.4 Ann"))
 	for _, m := range []string{"X", "Y"} {
 		redirected(t, h, members[m]+"/coach", url.Values{"coach": {annID}})
