@@ -37,7 +37,7 @@ are `views/competitions.templ` (the layout and shared parts),
     - [Messages to the organiser (ready for the dry run)](#messages-to-the-organiser)
     - [Feedback about the app (ready for the dry run)](#feedback-about-the-app)
     - [When entries, changes and sign-offs close](#when-entries-changes-and-sign-offs-close)
-    - [Late changes](#late-changes)
+    - [Late changes](#late-changes) (late requests: late entries too)
     - [Limits and waiting lists](#limits-and-waiting-lists)
     - [Entry fees](#entry-fees)
     - [Going live](#going-live)
@@ -78,11 +78,11 @@ organiser's first need is an **overview of every entry with its problems**.
 
 Every page of the organiser's section has a **menu** under its title (the
 shared `pageMenu` in `views/menu.templ`, built by `orgMenu` in
-`web/menus.go`): **Entries** (Entries, People, Late changes, Coaches when coaches are
+`web/menus.go`): **Entries** (Entries, People, Late requests, Coaches when coaches are
 approved, Fees), **Timetable** (Timetable, Officials, Simulate, and once the
 timetable is planned the two "what if" pages), **On the day** (once the
 timetable is published: On the day, Desk messages, Venue screen) and
-**Settings** (Settings, History). Late changes and Coaches show a count of
+**Settings** (Settings, History). Late requests and Coaches show a count of
 what waits; the menu works that out on every page. It shows only what the
 admin link may open (ADR 0009): a cards link sees Entries (with People); a
 chair of judges adds the day's pages, and finds the printed sheets in the
@@ -465,8 +465,9 @@ entries closed. The competition has BUCS L3." (the comp sec and coach read
 "Gus changed this …"; "before changes closed" where changes close later). An entry
 never sent says "You saved this on 1 Feb, but it wasn't sent before entries
 closed, so it isn't in the competition." and its status is "Not sent, not in
-the competition" (stopped, `entryUnsent`). Where late changes are allowed the
-usual "Ask for a late change" link is there. The unsent version is kept, and
+the competition" (stopped, `entryUnsent`), with **Ask to enter late** under it
+where late entries are allowed ([late requests](#late-changes)). Where late
+changes are allowed the usual "Ask for a late change" link is there. The unsent version is kept, and
 is the entry again, to send, if entries reopen. Neither counts as "to send".
 
 With changes open later than the deadline, a brand-new entry is refused on
@@ -481,24 +482,52 @@ closed for new entries. 1 was removed by the organiser, so it wasn't sent."
 
 ## Late changes
 
-Once changes to entries close (the competition live), clubs and
-individuals can ask for the changes the organiser allows (roadmap
-2026-10-08). On **Late changes** (under Entries in the menu, which counts
-those to decide) the organiser ticks which kinds can be asked for, each
-with a fee charged only if accepted: a **level change** (a different
-level, with its routines) or a **routine change** (new routines at the
-same level). A member ("Ask for a late change" under each event), their
+Late requests (late changes, roadmap 2026-10-08; late entries, threads and
+sign-off as asked 2026-11-11). Once changes to entries close (the
+competition live), clubs and individuals can ask for the changes the
+organiser allows; once new entries close, they can ask to enter late. On
+**Late requests** (under Entries in the menu, which counts those to decide)
+the organiser ticks which kinds can be asked for, each with a fee charged
+only if accepted: a **late entry** (a new entry; allowed unless turned off,
+for competitions made before it too: `LateRule.Off`), a **level change** (a
+different level, with its routines) or a **routine change** (new routines
+at the same level; these two only once ticked).
+
+**Late entries.** A member's entry saved but never sent says so with **Ask
+to enter late** under it: one tap asks with the saved entry (`use=saved`).
+A member with nothing saved in a discipline has an "Ask to enter late" link
+to the entry form on the late request page; the comp sec's Enter a member
+becomes **Ask to enter a member late** and opens the same form for the
+member; a gymnast on their own enters through the entry link or their page
+as usual, the form saying it asks to enter late and its button **Ask to
+enter late**. Asking makes the competition's copy marked `asked`
+(`store.Asked`: left out of the entries, counts, fees and timetable, like a
+removed one) and the request with it (`AskToEnterLate`,
+`AskToEnterLateOnOwn`). The member's, comp sec's and gymnast's pages show
+it as "Asked to enter late" (chip "Asked late"). A club's member can ask
+again while it's still to decide (it replaces the request, keeping its
+thread); a gymnast's is their entry, not changed until decided. Accepted,
+it comes in entered now (`entered_at`), so over a full level's limit it's
+last on the waiting list, and joins the draft timetable as a level change
+does; the late entry fee goes on the invoice as a line "Late entry: …".
+Turned down, it stays out, with the reason. A member ("Ask for a late change" under each event), their
 comp sec (on the club page's row) or an individual (on their entry) fills
 in the entry form as it should be, with a note; the entry stays as it is
 until decided, and a new request replaces one still waiting.
 
-**Coach sign-off.** Where entries need a coach's sign-off, the organiser
-can tick **A coach must sign off a late change before it comes to you**:
-the request then waits for a coach (a member's coach, on their coach page
-under "Late changes to sign off"; an individual's, through the sign-off
-link), who sees the new card and signs it off, approved where the
-competition approves coaches; then it reaches the organiser. Without it, a
-coach can still sign off a request while it waits. Accepting carries the
+**Coach sign-off.** Every request reaches the organiser at once, signed off
+or not. Where entries need a coach's sign-off, each row shows it in the
+app's words (`signoffLine`: Waiting for sign-off; Signed off by Ann, read
+live, so it changes as soon as the coach signs; a coach not approved has
+the asterisk and counts as not signed off). The coach signs it off on
+their coach page under "Late requests to sign off" (an individual's coach
+through the sign-off link), seeing the card, approved where the
+competition approves coaches. The organiser can tick **A late request
+can't be accepted until a coach has signed it off** (the setting
+`signoff_first`, renamed 2026-11-11; before, it held requests back from
+the organiser): then Accept is greyed out with "It can't be accepted until
+a coach signs it off: you can reply, or turn it down.", and a posted
+accept is refused with that. Accepting carries the
 request's sign-off onto the entry (both copies); one not signed off leaves
 the entry needing sign-off. The checks say which.
 
@@ -513,8 +542,28 @@ the entry on the competition's copy and the club's, needing checking and
 signing off again; a level change joins the new level's waiting list if
 it's full, or moves into that flight in the draft timetable, to publish;
 and the fee goes on the club's or individual's invoice. **Not accepted**
-needs a reason, which whoever asked sees. Both show on their pages, and
-notifications (cards) tell them.
+(now **Turn down**) needs a reason, which whoever asked sees. Both show on
+their pages, and notifications (cards) tell them.
+
+**Replies.** Each request carries a thread (migration 54): a message to the
+organiser of its own (a `concerns` row marked `late`, kept out of the
+messages and concerns and the asker's sent messages), from whoever asked
+(the member, the comp sec as the club, or the gymnast). Before deciding,
+the organiser can **Reply** ("Can be entered if signed off by Friday"); the
+asker sees it on the request's page (the late request page, linked as "Open
+the request" from the status line on their pages) and answers with **Reply
+to the organiser**. A club member's request is seen and answered by both
+the member and the comp sec, each named on the other's. Whoever's thread it
+is hears of a reply, and of the decision, by push or email as with message
+replies (`tellSender`). Accepting or turning down closes the thread with
+the note or reason; after that nothing can be added. Who sees and replies
+follows who decides requests: the organiser's and everything links; the
+narrower helper links can't open the page or post to it.
+
+The asker's status line is a chip then a sentence: **Asked** (no sign-off
+needed), **Waiting for sign-off**, **Signed off**, **Accepted** or **Turned
+down**, e.g. "Late entry in BUCS L3, asked 10 Mar, 12:00: waiting for the
+organiser, who can't accept it until a coach signs it off."
 
 ## Limits and waiting lists
 
@@ -664,7 +713,7 @@ and no Bulma colour for a state (buttons keep theirs):
 | My competition (and the organiser's page of a person) | each event Checked, N problems, or Sent; Scratched; check-in (Here, Not checked in) | |
 | Tell me about changes | an email On, or waiting for you to confirm it | |
 | Every entry card (step 3: the organiser's, the comp sec's, a member's, an individual's, a coach's sign-off page) | the sign-off, as on the rows (signed off, waiting, needs changes, coach not approved); No problems found | the coach who signed off |
-| Late changes (an entry's row, the comp sec's rows, asking for one) | asked and waiting, accepted, or not accepted, as a "Late change" chip before what it is | |
+| Late requests (an entry's row, the comp sec's rows, asking for one) | Asked, Waiting for sign-off or Signed off (in progress), Accepted (done) or Turned down (stopped), as the chip before what it is | |
 | An individual's competition page | checked by the organiser; fees paid | |
 
 A chip opens what it's about where the link has a page for it

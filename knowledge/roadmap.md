@@ -425,7 +425,12 @@ features that show that, in this order:
    accepted, optionally signed off by a coach first; the organiser sees
    whether it fits (limits, the draft timetable) and accepts it or says
    why not. Changes to entries and coaches' sign-offs can close later than
-   new entries (built 2026-10-09). Late new entries could follow.
+   new entries (built 2026-10-09). Late new entries built 2026-11-11, as
+   asked: "competition organisers should be able to allow new entries after
+   the deadline and they go to a request pile", allowed by default; sent
+   before a coach signs, the pile showing when they have; the organiser can
+   reply ("can be entered if signed off before x"); and the same send, see
+   status and reply for late changes.
 5. **The day itself,** as far as it goes: flights started and finished by
    the marshal (built 2026-10-09,
    [on the day](features/competition-entries.md#on-the-day-flights-started-and-finished):

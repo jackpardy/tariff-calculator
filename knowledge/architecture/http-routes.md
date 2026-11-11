@@ -152,11 +152,14 @@ transaction, and marks their club used (once a day) only when it's due.
 | `POST /competitions/admin/{token}/entries/{id}/video` | `review` (`ok`, `more`, `""`), `note` | The organiser's review of an entry's videos |
 | `POST /competitions/admin/{token}/individuals` | `on` (`1`/`0`) | Turns individual entry on or off |
 | `POST /competitions/admin/{token}/replace-link` | `anyway=1` | Without `anyway`, Settings asking first (200): the old link stops working at once for everyone who has it. With it, 303 to the new admin link's Settings page, `?new=replaced` |
-| `GET`, `POST /clubs/member/{token}/competitions/{id}/late`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late`, `/competitions/entry/{token}/late` | `discipline` (query), the entry form, `note` | Asking for a late change, once entries close |
-| `GET /competitions/admin/{token}/late` | — | Late changes: what's allowed and each request, with whether it fits |
-| `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`level`, `routines`) | Which late changes can be asked for, and their fees |
-| `POST /competitions/admin/{token}/late/{id}/accept` | `note` | Applies a late change: the entry, the draft timetable, the fee |
-| `POST /competitions/admin/{token}/late/{id}/reject` | `reason` | Turns a late change down |
+| `GET`, `POST /clubs/member/{token}/competitions/{id}/late`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late`, `/competitions/entry/{token}/late` | `discipline` (query), the entry form, `note`; `use=saved` to ask to enter late with the member's saved entry (one tap) | Asking for a late change once changes close, or to enter late once new entries close (a club's member; an individual's late entry is asked through the entry link or their page's Enter); and where the request stands, with its thread |
+| `POST /clubs/member/{token}/competitions/{id}/late/reply`, `/clubs/admin/{token}/members/{member}/competitions/{id}/late/reply`, `/competitions/entry/{token}/late/reply` | `discipline`, `text` | Adds the asker's words (or the comp sec's, or the member's) to their latest request's thread, while it's still to decide |
+| `POST /competitions/enter/{token}`, `/competitions/gymnast/{token}/competitions/{id}/enter` | as before, `note` | Once new entries close, where late entries are allowed: asks to enter late instead of entering |
+| `GET /competitions/admin/{token}/late` | — | Late requests: what's allowed and each request, with its sign-off, whether it fits, and its thread |
+| `POST /competitions/admin/{token}/late/settings` | `late-<kind>=1`, `fee-<kind>` (`new`, `level`, `routines`), `signoffFirst=1` | Which late requests can be made, and their fees; whether a coach must sign one off before it can be accepted |
+| `POST /competitions/admin/{token}/late/{id}/accept` | `note` | Applies a late request: the entry (a late entry comes in), the draft timetable, the fee; refused while it needs signing off first |
+| `POST /competitions/admin/{token}/late/{id}/reject` | `reason` | Turns a late request down |
+| `POST /competitions/admin/{token}/late/{id}/reply` | `reply` | The organiser's reply to a request still to decide; the asker is told |
 | `POST /competitions/admin/{token}/later-deadlines` | `changesDate`, `changesTime`, `signoffsDate`, `signoffsTime` (empty: with the deadline) | When changes to entries, and coaches' sign-offs, close |
 | `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none), `anyway=1` | Sets each event's limit (waiting lists). Limits that would let entries in from a waiting list, or move entries in onto one, show **Before you change it** (200), naming them, unless `anyway=1` |
 | `POST /competitions/admin/{token}/entries/{id}/let-in` | `on` (`1`/`0`) | Lets a waiting entry in over the limit, or back |
