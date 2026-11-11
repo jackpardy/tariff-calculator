@@ -541,7 +541,10 @@ a **Change** button to open it.
    you tapped them, even if your phone's clock is wrong. If two people tapped
    the same thing, the earliest Started, Warm-up over and Finished count, and for Here or
    Scratched the latest tap does; the page says when a tap wasn't used and
-   why. Taps more than 12 hours old aren't used.
+   why. Taps more than 12 hours old aren't used. If the site itself keeps
+   failing for several minutes, the page says which tap wasn't recorded (for
+   example "Here for Katie Collins wasn't recorded: tap it again.") and puts
+   its buttons back, so you can tap it again.
    **Correct the times** (under each flight): if the paper sheet was used, or
    a tap was wrong, type when the flight really started, its warm-up was
    over and it finished, and tap **Save times**. Leave Warm-up over empty if

@@ -10,8 +10,14 @@
 const DayTaps = (function () {
     const KEY = 'trampolineTaps';
     // A tap the server keeps failing on (an error page, not a lost signal)
-    // is given up after this many tries, so it can't hold up the rest.
-    const MAX_TRIES = 5;
+    // is given up after this many tries, so it can't hold up the rest. A try
+    // counts at most once every TRY_GAP however often taps are sent, so it's
+    // given up only after failing for about five minutes.
+    const MAX_TRIES = 10;
+    const TRY_GAP = 30000;
+    // The app restarting behind its proxy (every deploy) or the proxy unable
+    // to reach it: as good as no signal, so no try is spent.
+    const AWAY = [502, 503, 504];
 
     // queue keeps taps in storage (localStorage on the phone) and sends them
     // with post(url, body), which gives fetch's Response or throws without a
@@ -49,8 +55,10 @@ const DayTaps = (function () {
         // flush sends the taps kept, oldest first, one at a time, each with
         // when it's sent. A tap the server answered is dropped, whatever the
         // answer: done, done already, or refused (it says why). Without a
-        // signal it stops, keeping the rest for next time. answers are the
-        // server's answers, in order; stopped says whether any are left.
+        // signal, or with the app away (502, 503, 504), it stops, keeping the
+        // rest for next time; on another server error too, until the tap is
+        // given up (its answer then says gaveUp). answers are the server's
+        // answers, in order; stopped says whether any are left.
         const flush = async () => {
             const answers = [];
             for (;;) {
@@ -68,15 +76,27 @@ const DayTaps = (function () {
                 } catch (e) {
                     return { answers, stopped: true };
                 }
+                if (AWAY.includes(response.status)) {
+                    return { answers, stopped: true };
+                }
                 // Read again, as another tab may have sent some meanwhile.
                 const list = load();
                 const kept = list.find((t) => t.id === tap.id);
-                if (response.status >= 500 && kept && ++kept.tries < MAX_TRIES) {
-                    save(list);
-                    return { answers, stopped: true };
+                let gaveUp = false;
+                if (response.status >= 500 && kept) {
+                    const at = now();
+                    if (!(at - (kept.tried || 0) < TRY_GAP)) {
+                        kept.tries = (kept.tries || 0) + 1;
+                        kept.tried = at;
+                    }
+                    if (kept.tries < MAX_TRIES) {
+                        save(list);
+                        return { answers, stopped: true };
+                    }
+                    gaveUp = true;
                 }
                 save(list.filter((t) => t.id !== tap.id));
-                answers.push({ tap, status: response.status, url: response.url, text });
+                answers.push({ tap, status: response.status, url: response.url, text, gaveUp });
             }
         };
         return { load, add, flush };
@@ -170,8 +190,16 @@ const DayTaps = (function () {
     // markWaiting shows the taps waiting to send on the day page as done:
     // each form's buttons as they'll be once it's sent, who's up moved on,
     // and a note with when it was tapped.
-    function markWaiting(taps) {
+    // The forms of taps given up (dropped) with none other waiting go back
+    // to how they were before the tap.
+    function markWaiting(taps, dropped = []) {
         document.querySelectorAll('[data-tap-note]').forEach((n) => n.remove());
+        for (const key of new Set(dropped.map((t) => t.form))) {
+            if (taps.some((t) => t.form === key)) { continue; }
+            const form = document.querySelector(`form[data-tap="${CSS.escape(key)}"]`);
+            if (!form) { continue; }
+            try { putBack(key, form); } catch (e) { console.error('Putting back a tap given up:', e); }
+        }
         const byForm = new Map();
         for (const tap of taps) {
             if (!byForm.has(tap.form)) { byForm.set(tap.form, []); }
@@ -193,8 +221,14 @@ const DayTaps = (function () {
             markFlight(form, list, taps.some((t) => t.form === 'up:' + flight && t.value === 'next'));
         } else if (key.startsWith('up:')) {
             const g = list.map((t) => t.up).filter(Boolean).pop();
-            if (g) { showUp(form.closest('.comp-up'), g); }
+            const up = form.closest('.comp-up');
+            if (g && up) {
+                // As the server showed it, for putBack.
+                up.tapShown ||= up.cloneNode(true);
+                showUp(up, g);
+            }
         } else {
+            form.tapShown ||= form.cloneNode(true);
             for (const b of form.querySelectorAll('button[type="submit"]')) { b.hidden = b.value === last.value; }
         }
         const note = Object.assign(document.createElement('p'), {
@@ -203,6 +237,19 @@ const DayTaps = (function () {
         });
         note.dataset.tapNote = '';
         form.after(note);
+    }
+
+    // putBack shows a form as the server last showed it, before taps were
+    // marked on it: a flight's buttons as it was, or the form (or who's up)
+    // as it was kept when first marked. A form the page has redrawn since
+    // has nothing to put back.
+    function putBack(key, form) {
+        if (key.startsWith('flight:')) {
+            if (form.dataset.shown) { markFlight(form, [], false); }
+            return;
+        }
+        const el = key.startsWith('up:') ? form.closest('.comp-up') : form;
+        if (el?.tapShown) { el.replaceWith(el.tapShown); }
     }
 
     // flightState is where a flight is once its waiting taps (list) are
@@ -261,6 +308,9 @@ const DayTaps = (function () {
         const tap = {
             action: form.action, form: form.dataset.tap, body: new URLSearchParams(new FormData(form, submitter)).toString(),
             value: submitter?.value || '', label: submitter?.textContent.trim() || 'Tap',
+            // Who it's for (a gymnast's or official's row), or its flight, to
+            // name it if it's given up.
+            who: form.closest('[data-name]')?.dataset.name || form.closest('.comp-flight')?.querySelector('strong')?.textContent.trim() || '',
         };
         const up = form.closest('.comp-up');
         if (up && (tap.value === 'next' || tap.value === 'back')) {
@@ -280,5 +330,11 @@ const DayTaps = (function () {
         return tap;
     }
 
-    return { queue, markWaiting, count, tapOf, upOrder, upStep, clock, flightState, markFlight };
+    // givenUp is the notice for a tap given up: what was tapped, and for
+    // whom or which flight.
+    function givenUp(tap) {
+        return `${tap.label}${tap.who ? ' for ' + tap.who : ''} wasn't recorded: tap it again.`;
+    }
+
+    return { queue, markWaiting, count, tapOf, upOrder, upStep, clock, flightState, markFlight, givenUp };
 })();

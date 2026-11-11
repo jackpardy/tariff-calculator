@@ -43,15 +43,52 @@ answer = (body) => new Response(body.get('flight') === 'gone' ? '<h1>Not a fligh
 r = await q.flush();
 check('a refused tap is dropped and the next goes on', q.load().length === 0 && r.answers.map((a) => a.status).join() === '400,200');
 
-// The server failing: kept and tried again, but given up after five tries.
-q.add({ action: '/a/day/up', body: 'flight=f&what=next', form: 'up:f', value: 'next', label: 'Next gymnast' });
-answer = () => new Response('oops', { status: 500 });
-for (let i = 1; i <= 4; i++) {
+// The app away (restarting behind its proxy: 502, 503, 504): as without a
+// signal, every tap kept, however many are tapped meanwhile, and no try spent.
+posted.length = 0;
+answer = () => new Response('', { status: 502 });
+for (let i = 0; i < 9; i++) {
+    clock += 2000;
+    q.add({ action: '/a/day/checkin', body: `entry=e${i}&status=here`, form: `checkin:e${i}`, value: 'here', label: 'Here' });
     r = await q.flush();
-    check(`a server error keeps it (try ${i})`, r.stopped && q.load().length === 1);
 }
+answer = () => new Response('', { status: 503 });
+await q.flush();
+answer = () => new Response('', { status: 504 });
+await q.flush();
+check('the app away keeps every tap', r.stopped && r.answers.length === 0 && q.load().length === 9 && q.load().every((t) => !t.tries));
+posted.length = 0;
+answer = () => new Response('ok', { status: 200 });
 r = await q.flush();
-check('given up on the fifth', !r.stopped && q.load().length === 0 && r.answers[0].status === 500);
+check('and sends them all in order once back', !r.stopped && q.load().length === 0 &&
+    posted.map((p) => p.body.get('entry')).join() === 'e0,e1,e2,e3,e4,e5,e6,e7,e8');
+
+// Another server error: kept, stopping there, with a try counted at most
+// once every half minute however often it's sent, and given up only after
+// it has failed for minutes.
+q.add({ action: '/a/day/up', body: 'flight=f&what=next', form: 'up:f', value: 'next', label: 'Next gymnast', who: 'BUCS L3' });
+q.add({ action: '/a/day/checkin', body: 'entry=k&status=here', form: 'checkin:k', value: 'here', label: 'Here', who: 'Katie Collins' });
+answer = (body) => new Response('oops', { status: body.get('entry') === 'k' ? 200 : 500 });
+const start = clock;
+for (let i = 0; i < 10; i++) {
+    clock += 2000;
+    r = await q.flush();
+}
+check('flushed ten times in 20 seconds: one try, kept in order', r.stopped && q.load().length === 2 && q.load()[0].tries === 1 && q.load()[1].label === 'Here');
+while (clock - start < 4 * 60000) {
+    clock += 30000;
+    r = await q.flush();
+    if (!r.stopped) { break; }
+}
+check('kept for four minutes', r.stopped && q.load().length === 2);
+for (let i = 0; i < 4 && r.stopped; i++) {
+    clock += 30000;
+    r = await q.flush();
+}
+check('given up after about five minutes, and the next goes on', !r.stopped && q.load().length === 0 && clock - start >= 270000 && clock - start <= 330000 &&
+    r.answers.map((a) => `${a.status}${a.gaveUp ? ' given up' : ''}`).join() === '500 given up,200');
+check('its notice names it', DayTaps.givenUp(r.answers[0].tap) === "Next gymnast for BUCS L3 wasn't recorded: tap it again." &&
+    DayTaps.givenUp({ label: 'Here', who: 'Katie Collins' }) === "Here for Katie Collins wasn't recorded: tap it again.");
 
 // No storage on the phone: not kept, so the page sends it at once.
 const full = DayTaps.queue({ getItem: () => null, setItem: () => { throw new Error('full'); } }, async () => {}, () => 1);
@@ -105,6 +142,21 @@ DayTaps.markFlight(form, [{ value: 'start' }, { value: 'warm-up' }], false);
 check('competing: Finished, marked', shownBy() === 'finish' && buttons[2].classList.contains('is-primary') && next.classList.contains('is-primary'));
 DayTaps.markFlight(form, [{ value: 'start' }], true);
 check('Next gymnast waiting: competing', shownBy() === 'finish');
+
+// A tap given up: its form back as it was before the tap, unless another
+// tap on it is still waiting.
+let replaced = null;
+const checkinForm = { tapShown: 'as it was', replaceWith: (el) => { replaced = el; } };
+ctx.CSS = { escape: (s) => s };
+ctx.document = {
+    querySelectorAll: () => [],
+    querySelector: (sel) => sel.includes('checkin:k') ? checkinForm : sel.includes('flight:f') ? form : null,
+};
+DayTaps.markWaiting([{ form: 'checkin:k' }], [{ form: 'checkin:k' }]);
+check('not while another tap on it waits', replaced === null);
+DayTaps.markWaiting([], [{ form: 'checkin:k' }, { form: 'flight:f' }]);
+check('a given-up tap\'s form is put back', replaced === 'as it was');
+check('and a flight\'s buttons as it was', shownBy() === 'start' && up.hidden);
 
 // A kept Warm-up over goes with when it was tapped.
 posted.length = 0;
