@@ -383,15 +383,24 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 				return ErrClosed
 			}
 		}
-		// A synchro entry gets a partner link; naming a different partner
-		// makes a new one, unconfirmed.
-		token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
-			WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`, e, memberID, competitionID, e.Discipline)
-		if err != nil {
+		now := s.stamp()
+		if err := upsertMemberEntry(ctx, tx, memberID, competitionID, e, data, now); err != nil {
 			return err
 		}
-		now := s.stamp()
-		if _, err := tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
+		return touch(ctx, tx, clubID, now)
+	})
+}
+
+// upsertMemberEntry keeps a member's entry (e, as data), replacing any they
+// had: a synchro entry gets a partner link, and naming a different partner
+// makes a new one, unconfirmed.
+func upsertMemberEntry(ctx context.Context, tx *sql.Tx, memberID, competitionID string, e competitions.Entry, data []byte, now string) error {
+	token, err := partnerToken(ctx, tx, `SELECT entry, partner_token FROM member_entries
+			WHERE member_id = $1 AND competition_id = $2 AND discipline = $3`, e, memberID, competitionID, e.Discipline)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO member_entries (member_id, competition_id, discipline, entry, updated_at, partner_token, partner_hash)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (member_id, competition_id, discipline) DO UPDATE SET entry = excluded.entry,
 				updated_at = CASE WHEN member_entries.entry = excluded.entry AND member_entries.partner_token = excluded.partner_token
@@ -403,11 +412,8 @@ func (s *Store) SaveMemberEntry(ctx context.Context, memberID, competitionID str
 				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
 				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,
 				partner_token = excluded.partner_token, partner_hash = excluded.partner_hash`,
-			memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token)); err != nil {
-			return err
-		}
-		return touch(ctx, tx, clubID, now)
-	})
+		memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token))
+	return err
 }
 
 // WithdrawMemberEntry removes a member's entry for a competition's

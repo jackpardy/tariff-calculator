@@ -265,7 +265,7 @@ func (s *Store) FlagConcern(ctx context.Context, competitionID, entryID, who, te
 func (s *Store) TellOrganiser(ctx context.Context, competitionID string, about About, from Sender, text string) (Concern, error) {
 	var n int
 	since := formatTime(s.now().Add(-24 * time.Hour))
-	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1 AND sender = $2 AND at > $3`,
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM concerns WHERE competition_id = $1 AND sender = $2 AND at > $3 AND NOT late`,
 		competitionID, from.ID, since).Scan(&n); err != nil {
 		return Concern{}, err
 	}
@@ -318,7 +318,7 @@ func (s *Store) SetMessages(ctx context.Context, competitionID string, on bool) 
 // Concerns are a competition's concerns and messages, open ones first, each
 // latest first, with their threads.
 func (s *Store) Concerns(ctx context.Context, competitionID string) ([]Concern, error) {
-	return s.concerns(ctx, `competition_id = $1`, competitionID)
+	return s.concerns(ctx, `competition_id = $1 AND NOT late`, competitionID)
 }
 
 // SentBy are the messages one sender (Sender.ID) has sent a competition's
@@ -327,7 +327,7 @@ func (s *Store) SentBy(ctx context.Context, competitionID, sender string) ([]Con
 	if sender == "" {
 		return nil, nil
 	}
-	all, err := s.concerns(ctx, `competition_id = $1 AND sender = $2`, competitionID, sender)
+	all, err := s.concerns(ctx, `competition_id = $1 AND sender = $2 AND NOT late`, competitionID, sender)
 	slices.SortStableFunc(all, func(a, b Concern) int { return b.At.Compare(a.At) })
 	return all, err
 }

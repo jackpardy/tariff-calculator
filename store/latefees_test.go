@@ -42,16 +42,32 @@ func TestLateChangesStore(t *testing.T) {
 	now := time.Date(2027, 3, 8, 10, 0, 0, 0, time.UTC)
 	s, c, e := lateCompetition(t, &now)
 
-	if _, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann Changed"), "Ann", "", false); !errors.Is(err, ErrNotAllowed) {
+	ann := Sender{Role: RoleIndividual, Name: "Ann", ID: "individual:" + e.Key()}
+	if _, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann Changed"), "Ann", "", ann); !errors.Is(err, ErrNotAllowed) {
 		t.Errorf("routine changes aren't allowed: %v", err)
 	}
-	r, err := s.RequestLateChange(ctx, c.ID, e.ID, l4("Ann"), "Ann", "Moved up", true)
+	r, err := s.RequestLateChange(ctx, c.ID, e.ID, l4("Ann"), "Ann", "Moved up", ann)
 	must(t, err)
-	if r.Kind != competitions.LateLevel || r.Status != LateCoach || !r.At.Equal(now) {
-		t.Errorf("a level change waiting for a coach, asked now: %+v", r)
+	if r.Kind != competitions.LateLevel || r.Status != LateWaiting || !r.At.Equal(now) || r.Thread == "" {
+		t.Errorf("a level change for the organiser at once, asked now, with a thread: %+v", r)
 	}
-	if _, err := s.AcceptLateChange(ctx, c.ID, r.ID, "", "Organiser", 500); !errors.Is(err, ErrNotFound) {
-		t.Errorf("not the organiser's to accept until signed off: %v", err)
+	if k, err := s.Concern(ctx, c.ID, r.Thread); err != nil || k.Sender != ann.ID || k.Who != "Ann" {
+		t.Errorf("the thread is Ann's: %+v, %v", k, err)
+	}
+	if all, _ := s.Concerns(ctx, c.ID); len(all) != 0 {
+		t.Errorf("a request's thread isn't among the messages and concerns: %+v", all)
+	}
+	if mine, _ := s.SentBy(ctx, c.ID, ann.ID); len(mine) != 0 {
+		t.Errorf("nor among the messages Ann sent: %+v", mine)
+	}
+	if _, err := s.ReplyTo(ctx, c.ID, r.Thread, "Organiser", "Can be accepted if signed off by Friday"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddToMessage(ctx, c.ID, r.Thread, ann.ID, "", "Will do"); err != nil {
+		t.Fatal(err)
+	}
+	if k, _ := s.Concern(ctx, c.ID, r.Thread); len(k.Thread) != 2 || k.Thread[0].BySender || !k.Thread[1].BySender {
+		t.Errorf("a reply and an answer: %+v", k.Thread)
 	}
 
 	now = now.Add(time.Hour)
@@ -70,6 +86,9 @@ func TestLateChangesStore(t *testing.T) {
 	if accepted.Status != LateAccepted || accepted.Fee != 500 || accepted.DecidedBy != "Organiser" || !accepted.DecidedAt.Equal(now) || accepted.Reason != "Fine" {
 		t.Errorf("accepted now, with the fee: %+v", accepted)
 	}
+	if k, _ := s.Concern(ctx, c.ID, r.Thread); k.Open() || k.Resolution != "Fine" {
+		t.Errorf("deciding closes the thread, with the note: %+v", k)
+	}
 	changed, err := s.CompetitionEntry(ctx, c.ID, e.ID)
 	must(t, err)
 	if changed.Entry.Level != "BUCS L4" || changed.SignedBy != "Coach C" {
@@ -84,8 +103,17 @@ func TestLateChangesStore(t *testing.T) {
 
 	// Asked again and rejected.
 	now = now.Add(time.Hour)
-	again, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "", false)
+	again, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "", ann)
 	must(t, err)
+	if again.Thread == r.Thread {
+		t.Error("a request after one decided has a thread of its own")
+	}
+	replaced, err := s.RequestLateChange(ctx, c.ID, e.ID, entry("Ann"), "Ann", "Back down", ann)
+	must(t, err)
+	if replaced.Thread != again.Thread {
+		t.Error("a request replacing one still to be decided keeps its thread")
+	}
+	again = replaced
 	now = now.Add(time.Hour)
 	must(t, s.RejectLateChange(ctx, c.ID, again.ID, "Full", "Organiser"))
 	got, _, _ = s.LatestLateRequest(ctx, c.ID, e.ID)

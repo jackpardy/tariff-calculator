@@ -626,13 +626,28 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if cc.Competition.ChangesOpen && enter && !lost.Never {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
+			lateURL := base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
 			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" && !home {
 				if lr, ok := late[id]; ok {
-					row.Late = views.LateStatus{Text: lateStatusText(c, lr), State: lateState(lr)}
+					row.Late = p.lateStatus(ctx, c, lr)
 				}
 				if lateOpen(c, p.now()) && enter {
-					row.LateAsk = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "/late?discipline=" + url.QueryEscape(e.Discipline)
+					row.LateAsk = lateURL
 				}
+			}
+			// Asked to enter late: where it stands, and the way to its replies.
+			if state == entryAsked && !home {
+				if lr, ok := late[rem.ID]; ok {
+					row.Late = p.lateStatus(ctx, c, lr)
+				}
+				row.Status = "Asked to enter late"
+				if enter {
+					row.LateAsk = lateURL
+				}
+			}
+			if lost.Never && enter && !home && lateNewOpen(c, p.now()) {
+				row.AskLate = strings.TrimSuffix(lateURL, "?discipline="+url.QueryEscape(e.Discipline))
+				row.Discipline = e.Discipline
 			}
 			// Its flight, while it's still at the level sent: changed to another,
 			// the old flight isn't theirs to go to.
@@ -1380,6 +1395,14 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 				ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
 			}
 			state := lost.state(memberState(e, rem, removed, place))
+			lateURL := path + "/competitions/" + c.ID + "/late"
+			switch {
+			case state == entryAsked:
+				ev.Late = p.lateStatusOf(ctx, c, rem.ID)
+				ev.LateAsk = lateURL + "?discipline=" + url.QueryEscape(d)
+			case lost.Never && lateNewOpen(c, now):
+				ev.AskLate = lateURL
+			}
 			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
 			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place)
 			mc.Problems += len(shown.Problems)
@@ -1390,6 +1413,9 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 		}
 		ev.Form = entryForm(c.Competition, start, path+"/competitions/"+c.ID, "Save")
 		ev.Form.Member, ev.Form.Key = true, "-"+c.ID+"-"+d
+		if ev.Card == nil && lateNewOpen(c, now) {
+			ev.AskLate = path + "/competitions/" + c.ID + "/late" // nothing saved: the form there
+		}
 		ev.Form.Kept, ev.Form.KeptOn = kept, "your page"
 		if key == failedID {
 			ev.Form.Problems = problems

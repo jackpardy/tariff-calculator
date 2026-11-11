@@ -104,6 +104,9 @@ const (
 	senderReceived = "received"
 	senderReplied  = "replied"
 	senderResolved = "resolved"
+	// A late request's (latepages.go): accepted, or turned down.
+	senderAccepted   = "accepted"
+	senderTurnedDown = "turned down"
 )
 
 // tellSender tells a message's sender, at every address they've asked to
@@ -179,6 +182,14 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 // that's the push's body and starts the email.
 func senderNews(c store.Competition, what, reply string) (subject, line string) {
 	switch {
+	case what == senderAccepted:
+		line = "The organiser of " + c.Name + " accepted your late request."
+		if reply != "" {
+			line += "\n\n" + reply
+		}
+		return "Your late request to " + c.Name + " is accepted", line
+	case what == senderTurnedDown:
+		return "Your late request to " + c.Name + " wasn't accepted", "The organiser of " + c.Name + " didn't accept your late request:\n\n" + reply
 	case reply != "" && what == senderResolved:
 		return "Reply from the organiser of " + c.Name, "The organiser of " + c.Name + " replied, and marked your message resolved:\n\n" + reply
 	case reply != "":
