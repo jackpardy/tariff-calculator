@@ -1086,12 +1086,12 @@ func (p *competitionPages) join(w http.ResponseWriter, r *http.Request) {
 			failed(w, r, err)
 			return
 		}
-		if slices.ContainsFunc(members, func(m store.Member) bool { return competitions.SameName(m.Name, name) }) {
+		if i := slices.IndexFunc(members, func(m store.Member) bool { return competitions.SameName(m.Name, name) }); i >= 0 {
 			noteAsked(w)
 			page := views.JoinPage{Club: club.Name, ClubTag: clubTag(club.ID), Name: name}
 			page.Ask = inPlace(r, views.Ask{
-				Title:  "The club already has a " + name,
-				Text:   "It may be you: open your own page, or ask the competition secretary for a new link. Or it may be a different " + name + ": join anyway.",
+				Title:  "The club already has someone called " + members[i].Name,
+				Text:   "It may be you: open your own page, or ask the competition secretary for a new link. Or it may be a different person with the same name: join anyway.",
 				Button: "Join anyway", Back: r.URL.Path,
 			})
 			render(w, r, views.ClubJoin(page))

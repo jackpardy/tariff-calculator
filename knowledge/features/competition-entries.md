@@ -2103,9 +2103,10 @@ of its own:
   on the competition's page.
 - **Joining** (`/clubs/join/<token>`): a name the club already has (the
   same letters, ignoring case, accents and spacing) isn't joined at once: the
-  page asks first, in place ("The club already has an Aoife Byrne. It may be
-  you: open your own page, or ask the competition secretary for a new link. Or
-  it may be a different Aoife Byrne: join anyway."), saying nothing more about
+  page asks first, in place ("The club already has someone called Aoife
+  Byrne", the name as the club has it; "It may be you: open your own page, or
+  ask the competition secretary for a new link. Or it may be a different
+  person with the same name: join anyway."), saying nothing more about
   the member and never their link; **Join anyway** makes the second member. A
   different name joins at once, whatever the phone already has. One phone is
   often used for several people at a club (a parent joins each child, a coach

@@ -32,7 +32,7 @@ func TestJoiningUnderATakenNameAsksFirst(t *testing.T) {
 	for _, name := range []string{"Aoife Byrne", "  aoife   BYRNE ", "Aoífe Byrné"} {
 		rec := do(t, h, http.MethodPost, join, url.Values{"name": {name}})
 		body := rec.Body.String()
-		if rec.Code != http.StatusOK || !strings.Contains(body, "already has a") {
+		if rec.Code != http.StatusOK || !strings.Contains(body, "already has someone called Aoife Byrne") || !strings.Contains(body, "a different person with the same name") {
 			t.Errorf("%q: should ask, got %d", name, rec.Code)
 		}
 		if !strings.Contains(body, `name="anyway" value="1"`) || !strings.Contains(body, "Join anyway") || !strings.Contains(body, "ask the competition secretary for a new link") {
