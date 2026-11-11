@@ -1,0 +1,1 @@
+* **Update**: A synchro pair now does one routine on the day: who's up steps through each pair once and ends after the last (it ran a second round that doesn't happen), the venue screen no longer shows pairs on for it, and a pair's own page gives one time; trampoline, tumbling and DMT keep two rounds ([competition entries](features/competition-entries.md)).

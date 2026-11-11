@@ -160,12 +160,15 @@ func (p *competitionPages) dayOf(r *http.Request, c store.Competition, key, name
 				ev.WarmUp, ev.Competing, _ = flightClocks(t.Setup, fl)
 				ev.Position, ev.Of = pos+1, len(fl.Entries)
 				// Their turns, if every turn takes its share of the flight's
-				// competing (half of it each round): a guide only.
+				// competing (an equal share of every round): a guide only.
 				_, _, competing := t.Setup.FlightTimes(fl)
-				half := float64(competing) / float64(2*max(len(fl.Entries), 1))
+				rounds := competitions.Rounds(fl.Discipline)
+				share := float64(competing) / float64(rounds*max(len(fl.Entries), 1))
 				first := fl.CompetingStarts(t.Setup)
-				ev.Turn = competitions.Clock(first + int(math.Floor(float64(pos)*half)))
-				ev.Turn2 = competitions.Clock(first + int(math.Floor(float64(len(fl.Entries)+pos)*half)))
+				ev.Turn = competitions.Clock(first + int(math.Floor(float64(pos)*share)))
+				if rounds > 1 {
+					ev.Turn2 = competitions.Clock(first + int(math.Floor(float64(len(fl.Entries)+pos)*share)))
+				}
 			}
 		}
 		page.Events = append(page.Events, ev)
