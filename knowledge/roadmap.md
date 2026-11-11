@@ -964,15 +964,28 @@ Notifications (7) are built; numbers 1–7 below are built.
     trampoline); the dry run's taps may give better ones (14). A least
     warm-up is wanted.
 
-    **A second part, to decide: a "Warm-up over" tap.** Today the marshal
-    taps **Started** when a flight's warm-up begins and **Finished** at its
-    end, so the day measures a flight's whole length and can't say how
-    much of it was warm-up. One more tap between them, when the warm-up
-    ends and competing begins (one moment, one tap), would measure the two
-    apart: the page could say "warming up" or "competing" for each area,
-    and the day's real figures could be set against both averages. It
-    touches the taps kept without signal, so it would follow the first
-    part on its own branch (about a day).
+    **A second part: a "Warm-up over" tap** (decided 2026-11-11: wanted).
+    Today the marshal taps **Started** when a flight's warm-up begins and
+    **Finished** at its end, so the day measures a flight's whole length
+    and can't say how much of it was warm-up. One more tap between them,
+    when the warm-up ends and competing begins (one moment, one tap),
+    measures the two apart:
+    - On the day and the venue screen say "warming up" or "competing" for
+      each area, and a gymnast's page says which their flight is at.
+    - Planned against actual is kept for warm-up and for competing, so
+      lateness can say where the time went, and Correct the times takes
+      the third time too.
+    - The day's real minutes per competitor, for each, can be set beside
+      the two averages (14).
+    - The tap can be skipped: Finished, or the first Next gymnast, without
+      it leaves the warm-up unmeasured and nothing else changes, so a
+      marshal who forgets it loses nothing.
+    - It's kept without signal like the other taps, with the same rules
+      for two phones (the earliest counts).
+
+    It touches the taps kept without signal, so it follows the first part
+    on its own branch (about a day), after the audit's fix for taps
+    dropped on server errors.
 
     **Size and when.** About 4 to 5 days on one branch: the timings, an
     event's own and the planner (1½), the Setup and timetable pages with
