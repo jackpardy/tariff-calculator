@@ -235,7 +235,7 @@ type MyEvent struct {
 	Competing                 string // when their flight's competing starts
 	Stage                     string // where their flight is while it runs: "Warming up" or "Competing"; "" otherwise
 	Position, Of              int
-	Turn, Turn2               string // about when each of their routines is
+	Turn, Turn2               string // about when each of their routines is; Turn2 is "" for one routine (synchro)
 }
 
 // PersonAdmin is what the organiser's page of a person adds to their
@@ -398,7 +398,11 @@ templ MyCompetition(p MyCompetitionPage) {
 						} else {
 							<p>Warm-up <strong>{ ev.WarmUp }</strong> · competing <strong>{ ev.Competing }</strong> · you're <strong>{ ordinal(ev.Position) }</strong> of { strconv.Itoa(ev.Of) }</p>
 						}
-						<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
+						if ev.Turn2 == "" {
+							<p class="is-size-7 has-text-grey">Routine at about { ev.Turn }, if the flight runs to time: a guide only.</p>
+						} else {
+							<p class="is-size-7 has-text-grey">Routines at about { ev.Turn } and { ev.Turn2 }, if the flight runs to time: a guide only.</p>
+						}
 						if ev.Checkin != "" {
 							<p class="is-size-7">
 								Check-in:{ " " }

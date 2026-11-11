@@ -150,7 +150,7 @@ type DayGymnast struct {
 	CanScratch bool
 	CanClear   bool
 	Notify     DayNotify
-	Routines   string // what their two routines are called, e.g. "Set|Voluntary", for who's up without signal
+	Routines   string // what their routines are called, one a round, e.g. "Set|Voluntary", for who's up without signal
 }
 
 // Day is the on-the-day page.

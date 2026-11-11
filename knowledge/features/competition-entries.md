@@ -1244,7 +1244,9 @@ its **warm-up**, then its **competing**, each rounded up to a whole minute
   who isn't at their area. A flight saved before competing had a time of its
   own starts competing after its changeover (`CompetingStarts`), so every
   timetable shows a competing time. A gymnast's turns ("Routines at about …")
-  are worked out from when competing starts and the flight's competing time.
+  are worked out from when competing starts and the flight's competing time,
+  shared over the discipline's rounds (`competitions.Rounds`): two times, but
+  a synchro pair does one routine and sees "Routine at about …".
 - **Change the times,** in a flight's box on the timetable beside Move or
   redraw: **Warm-up** and **Competing** in minutes all told, each with "the
   averages give N" beside it, **Save times**, and **Back to the averages**
@@ -1517,8 +1519,9 @@ and Started shows who's up, which is on the page hidden for every
 flight not yet started so the marshal can go on tapping **Next gymnast**;
 the phone works out who's next from the flight's check-in rows (which carry
 each gymnast's entry, running number, club, routine names and state),
-everyone's 1st routine then everyone's 2nd, skipping the scratched, as the
-server does. While any wait, "Waiting to send: 2 taps" shows at the top. They
+everyone's 1st routine then everyone's 2nd (a synchro flight has one round:
+the rows carry one routine name, which is how the phone knows), skipping the
+scratched, as the server does. While any wait, "Waiting to send: 2 taps" shows at the top. They
 are sent one at a time, oldest first: straight away, on the browser's
 `online` event, when the page loads and every half minute; one phone's tabs
 take turns (`navigator.locks`). Each goes as the form it came from, plus
@@ -1619,7 +1622,10 @@ club for a club's gymnast, and the routine), with a big **Next gymnast** and a
 small **Back**. Before the first tap it shows who's first up; the marshal taps
 Next gymnast as each gymnast starts. The order is the published running
 order's: everyone's 1st routine in order, then everyone's 2nd in the same
-order, synchro pairs and tumbling and DMT passes alike. The rules (the order,
+order, for trampoline and for tumbling and DMT passes; a synchro pair does
+one routine, so a synchro flight has one round and ends after its last pair
+(`competitions.Rounds` says how many rounds a discipline has; a position
+kept over two rounds before this is read as the pair's one). The rules (the order,
 who's skipped, what's next and what's before) are `competitions.UpOrder`
 (`competitions/upnow.go`); where the marshal has got is a
 `competitions.Routine`, the gymnast on (by entry) and which routine (round 1
@@ -1640,8 +1646,8 @@ being reached is shown struck through until the next tap. The routine is named
 from the level (`competitions.RoutineNames`): "Set" for an exercise whose options are all set routines and
 "Voluntary" for one whose options are all requirements, when the two
 exercises differ; otherwise "1st routine" and "2nd routine" (two voluntaries,
-mixed options, synchro, or a level that can't be read), and "1st pass" and
-"2nd pass" for tumbling and DMT. With the flight's last routine on, the
+mixed options, or a level that can't be read), "1st pass" and "2nd pass" for
+tumbling and DMT, and just "Routine" for a synchro pair. With the flight's last routine on, the
 area page shows **Finished** (as big) where Next gymnast was, with Back
 beside it, and the bottom Finished goes. Next gymnast at the last routine
 (a tap kept on a phone) changes nothing and says "That was the last routine in … Tap Finished once it's
@@ -1823,7 +1829,7 @@ Each card has:
 - **On now** and **Up next**, only for a flight marked started and only
   once the marshal has tapped **Next gymnast** for it: who's on (name, club,
   routine) in large type and the next two to go, skipping the scratched and
-  running on from the 1st routines into the 2nd (`screenUp` in
+  running on from the 1st routines into the 2nd (synchro has no 2nd) (`screenUp` in
   `web/screenup.go`, `views/screenup.templ`). They take the place of the
   flight's list of names. Before the first tap, or if the gymnast reached
   has since been scratched, the card shows the list instead: the screen

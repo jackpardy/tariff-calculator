@@ -396,8 +396,7 @@ func (p *competitionPages) day(w http.ResponseWriter, r *http.Request) {
 			warming := notify && warmUpStarted(c.Competition, f, !t.Started.IsZero(), p.now())
 			df.Gymnasts = checkinOf(f, byID, checkins, keys, warming)
 			for i, g := range df.Gymnasts {
-				names := competitions.RoutineNames(c.Competition, byID[g.Entry].Entry)
-				df.Gymnasts[i].Routines = names[0] + "|" + names[1]
+				df.Gymnasts[i].Routines = strings.Join(competitions.RoutineNames(c.Competition, byID[g.Entry].Entry), "|")
 			}
 			switch {
 			case df.CanFinish:
