@@ -1090,8 +1090,8 @@ func (p *competitionPages) join(w http.ResponseWriter, r *http.Request) {
 			noteAsked(w)
 			page := views.JoinPage{Club: club.Name, ClubTag: clubTag(club.ID), Name: name}
 			page.Ask = inPlace(r, views.Ask{
-				Title:  "There's already a " + name + " at " + club.Name,
-				Text:   "If that's you, open your own link, or ask your competition secretary for a new one. If you're a different " + name + ", join anyway.",
+				Title:  "The club already has a " + name,
+				Text:   "It may be you: open your own page, or ask the competition secretary for a new link. Or it may be a different " + name + ": join anyway.",
 				Button: "Join anyway", Back: r.URL.Path,
 			})
 			render(w, r, views.ClubJoin(page))

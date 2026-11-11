@@ -2103,17 +2103,20 @@ of its own:
   on the competition's page.
 - **Joining** (`/clubs/join/<token>`): a name the club already has (the
   same letters, ignoring case, accents and spacing) isn't joined at once: the
-  page asks first, in place ("There's already an Aoife Byrne at UCD. If that's
-  you, open your own link, or ask your competition secretary for a new one. If
-  you're a different Aoife Byrne, join anyway."), saying nothing more about
-  the member and never their link; **Join anyway** makes the second member.
-  Above the form, a browser that has a page at this club saved (a member link
-  saved with the club's one-way tag, `competitions.js`) says "You already have
-  a page at UCD" with **Open my page** for each, and "Joining as someone
-  else?"; links saved before the tag was kept aren't matched. A saved member
-  link replaces another saved one only when it is the same member's (a new
-  link from the comp sec); two members of one name are both kept, the newer
-  shown as "(2)".
+  page asks first, in place ("The club already has an Aoife Byrne. It may be
+  you: open your own page, or ask the competition secretary for a new link. Or
+  it may be a different Aoife Byrne: join anyway."), saying nothing more about
+  the member and never their link; **Join anyway** makes the second member. A
+  different name joins at once, whatever the phone already has. One phone is
+  often used for several people at a club (a parent joins each child, a coach
+  handles several members), so this stays easy: a browser with pages saved at
+  this club (member links saved with the club's one-way tag, `competitions.js`)
+  shows, above the form, "On this phone at UCD: Aoife Byrne, Brian Byrne" with
+  an **Open** for each, and the form under "Join as someone else"; with none
+  saved the page is as it was. Links saved before the tag was kept aren't
+  listed. A saved member link replaces another saved one only when it is the
+  same member's (a new link from the comp sec); every other page stays, and
+  two of one name are told apart by "(2)".
 - **Members** (`/members`): the join link, the members (a coach to choose,
   and under each one's **More**: **Make a coach too**, **New link** for one
   who lost theirs, which ends the old one, and **Remove**) and the synchro

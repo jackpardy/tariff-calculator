@@ -118,12 +118,14 @@
         if (mine.length === 0) { return; }
         const list = box.querySelector('[data-joined-list]');
         for (const l of mine) {
-            const a = Object.assign(document.createElement('a'), { href: l.url, className: 'button is-small is-info ml-2', textContent: 'Open my page' });
+            const a = Object.assign(document.createElement('a'), { href: l.url, className: 'button is-small ml-2', textContent: 'Open' });
             const item = document.createElement('li');
             item.append(`${l.person || l.name}`, a);
             list.append(item);
         }
         box.hidden = false;
+        const else_ = document.querySelector('[data-joined-else]');
+        if (else_) { else_.hidden = false; }
     }
 
     // linkItem is a list item linking to a saved link.

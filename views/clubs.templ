@@ -1016,13 +1016,13 @@ templ ClubJoin(p JoinPage) {
 		<h1 class="title is-4">Join { p.Club }</h1>
 		<p class="mb-4">Join to keep your competition entries with the club. Your club's competition secretary sends them to each competition.</p>
 		// Filled in from the pages this browser has saved at this club (static/js/competitions.js).
-		<div class="notification is-info is-light" data-joined-here={ p.ClubTag } data-club-name={ p.Club } hidden>
-			<p class="mb-2"><strong>You already have a page at { p.Club }.</strong></p>
-			<ul class="mb-2" data-joined-list></ul>
-			<p>Joining as someone else?</p>
+		<div class="notification is-light mb-4" data-joined-here={ p.ClubTag } data-club-name={ p.Club } hidden>
+			<p class="mb-2"><strong>On this phone at { p.Club }:</strong></p>
+			<ul data-joined-list></ul>
 		</div>
 		@askBox(p.Ask)
 		@problemList(p.Problems)
+		<p class="mb-2" data-joined-else hidden><strong>Join as someone else</strong></p>
 		<form method="post">
 			<div class="field">
 				<label class="label" for="member-name">Your name</label>

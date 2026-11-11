@@ -77,6 +77,12 @@ const old = [{ name: 'Aoife Byrne · UCD', url: 'http://x/clubs/member/old', coa
 phone = open(memberPage('http://x/clubs/member/c', 'w3', 'club1', 'Cara'), { [key]: old });
 check('an older link is kept', phone.saved(key).length === 2);
 
+// Several different people on one phone (a parent's children, a coach's members) are all kept.
+phone = open(memberPage('http://x/clubs/member/p1', 'k1', 'club1', 'Aoife Byrne'), {});
+phone = open(memberPage('http://x/clubs/member/p2', 'k2', 'club1', 'Brian Byrne'), { [key]: phone.saved(key) });
+phone = open(memberPage('http://x/clubs/member/p3', 'k3', 'club1', 'Cara Byrne'), { [key]: phone.saved(key) });
+check('different people at one club are all kept, by their names', phone.saved(key).map((l) => l.person).sort().join() === 'Aoife Byrne,Brian Byrne,Cara Byrne');
+
 // The join page lists the pages saved at its club, and only those.
 const join = (club, stored) => {
     const box = elem({ joinedHere: club });
@@ -94,7 +100,7 @@ const saved = [
 let j = join('club1', saved);
 check('the join page shows one page at this club, hidden otherwise', !j.box.hidden && j.list.children.length === 1);
 const item = j.list.children[0];
-check('with its name and a link to open it', item.children[0] === 'Aoife Byrne' && item.children[1].href === '/clubs/member/a' && item.children[1].textContent === 'Open my page');
+check('with its name and a link to open it', item.children[0] === 'Aoife Byrne' && item.children[1].href === '/clubs/member/a' && item.children[1].textContent === 'Open');
 j = join('club3', saved);
 check('another club shows nothing', j.box.hidden && j.list.children.length === 0);
 j = join('club1', []);
