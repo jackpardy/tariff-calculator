@@ -200,8 +200,25 @@ func TestLateEntries(t *testing.T) {
 	if page := unescape(do(t, h, http.MethodGet, ivy, nil).Body.String()); !strings.Contains(page, "You asked to enter late") || !strings.Contains(page, "Waiting for sign-off") {
 		t.Errorf("Ivy sees her request: %s", page)
 	}
-	if n := len(lateIDs(t, do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String())); n != 2 {
-		t.Errorf("Zoe's second and Ivy's to decide now: %d", n)
+	ids = lateIDs(t, do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String())
+	if len(ids) != 2 {
+		t.Fatalf("Zoe's second and Ivy's to decide now: %d", len(ids))
+	}
+	// Ivy turned down, asks again at another level from her request's page.
+	redirected(t, h, s.admin+"/late/"+ids[1]+"/reject", url.Values{"reason": {"No room"}})
+	ivyLate := withoutQuery(ivy) + "/late"
+	if page := do(t, h, http.MethodGet, ivyLate, nil).Body.String(); !strings.Contains(page, "Ask again") {
+		t.Fatalf("Ivy can ask again: %s", page)
+	}
+	ivyL4 := url.Values{"gymnast": {"Ivy"}}
+	for k, v := range l4 {
+		ivyL4[k] = v
+	}
+	if notice := noticeOf(t, redirected(t, h, ivyLate, ivyL4)); !strings.HasPrefix(notice, "Your request to enter late has gone to the organiser.") {
+		t.Errorf("Ivy asked again: %q", notice)
+	}
+	if late := unescape(do(t, h, http.MethodGet, s.admin+"/late", nil).Body.String()); !strings.Contains(late, "Asked before for BUCS L3, turned down 10 Mar: No room") {
+		t.Errorf("Ivy's new request says what was turned down: %s", late)
 	}
 
 	// The history: what was done, not what was refused.

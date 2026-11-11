@@ -311,7 +311,7 @@ func (t lateTarget) heldFor(kind string) bool {
 // person a role's link is for, or the club's competition secretary for the
 // club admin's link (who is the link's holder, club the club's name).
 func clubPoster(club, who string) string {
-	if who == "" || who == club {
+	if who == "" || who == club || who == "Club admin" {
 		return club + " competition secretary"
 	}
 	return who
