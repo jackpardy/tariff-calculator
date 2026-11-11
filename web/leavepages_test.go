@@ -7,7 +7,35 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tariffCalculator/competitions"
 )
+
+// What a leave would break lists people in two places, which the other "what
+// ifs" leave to themselves, ahead of the rest.
+func TestLeaveListsWhatItWouldBreak(t *testing.T) {
+	judge := func(key string) competitions.RotaPerson {
+		return competitions.RotaPerson{Key: key, Name: strings.ToUpper(key), Judge: map[string]bool{"L": true}, Execution: map[string]bool{"L": true}}
+	}
+	seat := func(who string) []competitions.Duty {
+		return []competitions.Duty{{Role: competitions.RoleExecution, Person: who}}
+	}
+	flight := func(area string, officials []competitions.Duty) competitions.ScheduledFlight {
+		return competitions.ScheduledFlight{Flight: competitions.Flight{Event: "L"}, Area: area, Start: 600, End: 660, Officials: officials}
+	}
+	f := rotaFacts{oneNames: map[string]string{}, officials: []competitions.RotaPerson{judge("ann"), judge("bob")}}
+	s := competitions.Schedule{Setup: competitions.Setup{Days: []competitions.Day{{Name: "Sat"}}}, Flights: []competitions.ScheduledFlight{flight("P1", seat("ann")), flight("P2", seat("bob"))}}
+	if got := f.leaveBreaking(s, s); len(got) != 0 {
+		t.Errorf("nothing newly broken: %v", got)
+	}
+	// Bob ends up on both panels at once.
+	after := s.Copy()
+	after.Flights[0].Officials = seat("bob")
+	got := f.leaveBreaking(s, after)
+	if len(got) == 0 || !strings.Contains(got[0], "BOB officiates") || !strings.Contains(got[0], "at once") {
+		t.Errorf("someone in two places is listed: %v", got)
+	}
+}
 
 func TestLeavePage(t *testing.T) {
 	h := competitionServer(t)

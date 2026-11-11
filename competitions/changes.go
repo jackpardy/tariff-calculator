@@ -126,26 +126,53 @@ func (s Schedule) ChangesFrom(published Schedule, gymnasts, people func(string) 
 	slices.SortStableFunc(moved, func(a, b Change) int { return strings.Compare(a.Line, b.Line) })
 	out = append(out, moved...)
 
-	// Panels: a seat is its event's, so a change shows once for the event
-	// (its group), whichever of its flights it's on.
-	seen := map[string]bool{}
-	seats := func(name string, now, was []Duty) {
-		for i, d := range now {
-			if i >= len(was) || was[i].Role != d.Role {
-				continue // the panel itself changed: its flight's line says so
+	// Panels: a seat is its event's, so a change shows once for the event (its
+	// group), whichever of its flights it's on; on only some of them, which.
+	var groups []string
+	byGroup := map[string][]ScheduledFlight{}
+	for _, f := range s.Flights {
+		if _, ok := was[key(f)]; ok {
+			if _, seen := byGroup[f.Group()]; !seen {
+				groups = append(groups, f.Group())
 			}
-			if d.Person != was[i].Person {
-				line := fmt.Sprintf("%s · %s: %s (was %s)", name, RoleName(d.Role), who(d.Person), who(was[i].Person))
-				if !seen[line] {
-					seen[line] = true
-					add(ChangePanels, "%s", line)
+			byGroup[f.Group()] = append(byGroup[f.Group()], f)
+		}
+	}
+	for _, group := range groups {
+		fs := byGroup[group]
+		slices.SortStableFunc(fs, func(a, b ScheduledFlight) int { return (a.Day*1440 + a.Start) - (b.Day*1440 + b.Start) })
+		type change struct {
+			line    string
+			flights []int // their numbers
+		}
+		var changes []change
+		for _, f := range fs {
+			b := was[key(f)]
+			for i, d := range f.Officials {
+				if i >= len(b.Officials) || b.Officials[i].Role != d.Role || d.Person == b.Officials[i].Person {
+					continue // the panel itself changing: its flight's line says so
+				}
+				line := fmt.Sprintf("%s · %s: %s (was %s)", group, RoleName(d.Role), who(d.Person), who(b.Officials[i].Person))
+				if at := slices.IndexFunc(changes, func(c change) bool { return c.line == line }); at >= 0 {
+					changes[at].flights = append(changes[at].flights, f.Number)
+				} else {
+					changes = append(changes, change{line, []int{f.Number}})
 				}
 			}
 		}
+		for _, c := range changes {
+			line := c.line
+			if len(c.flights) < len(fs) {
+				line += ", " + flightsWord(c.flights, fs[len(fs)-1].Number)
+			}
+			add(ChangePanels, "%s", line)
+		}
 	}
-	for _, f := range s.Flights {
-		if b, ok := was[key(f)]; ok {
-			seats(f.Group(), f.Officials, b.Officials)
+	seats := func(name string, now, was []Duty) {
+		for i, d := range now {
+			if i < len(was) && was[i].Role == d.Role && d.Person != was[i].Person {
+				add(ChangePanels, "%s · %s: %s (was %s)", name, RoleName(d.Role), who(d.Person), who(was[i].Person))
+			}
 		}
 	}
 	blocks := map[string]ScheduledBlock{}
@@ -210,6 +237,24 @@ func (s Schedule) when(day, minute int) string {
 		return s.Setup.Days[day].Name + " " + Clock(minute)
 	}
 	return Clock(minute)
+}
+
+// flightsWord says which of an event's flights (by number) a seat changed on:
+// "from flight 2" if it's the rest of the run (last is its last flight's
+// number), else "on flight 1" or "on flights 1 and 3".
+func flightsWord(changed []int, last int) string {
+	n := len(changed)
+	if n > 1 && changed[n-1] == last && changed[n-1]-changed[0] == n-1 {
+		return fmt.Sprintf("from flight %d", changed[0])
+	}
+	var nums []string
+	for _, c := range changed {
+		nums = append(nums, fmt.Sprint(c))
+	}
+	if n == 1 {
+		return "on flight " + nums[0]
+	}
+	return "on flights " + JoinList(nums)
 }
 
 // sameSet says whether two lists hold the same items, in any order.

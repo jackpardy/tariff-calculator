@@ -80,6 +80,12 @@ type OfficialSettings struct {
 	MarshalsChange  bool `json:"marshals_change,omitempty"`
 }
 
+// Stays says whether a seat in the role stays with an event's whole run:
+// every one does but a recorder's or marshal's the organiser lets change.
+func (s OfficialSettings) Stays(role string) bool {
+	return !(role == RoleRecorder && s.RecordersChange || role == RoleMarshal && s.MarshalsChange)
+}
+
 // Panel is a discipline's panel.
 func (s OfficialSettings) Panel(discipline string) Panel {
 	if p, ok := s.Panels[discipline]; ok {

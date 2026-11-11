@@ -68,7 +68,7 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 		if err1 != nil || err2 != nil {
 			page.Problems = []string{"Give the day and the time they leave (e.g. 13:00)."}
 		} else {
-			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood}
+			l := competitions.Leave{Person: page.Person, Day: day, From: from, ForGood: page.ForGood, Settings: c.Officials}
 			out, fills, err := s.Left(l, people, f.officials)
 			if err != nil {
 				page.Problems = sentences(err)
@@ -81,12 +81,20 @@ func (p *competitionPages) leave(w http.ResponseWriter, r *http.Request) {
 			} else {
 				page.Keep, page.Version = r.URL.RequestURI(), s.Version()
 				page.Result = leaveView(s, fills, name, page.Person)
-				page.Result.Breaking = competitions.BreakLines(competitions.NewBreaks(f.whatIfBreaks(s), f.whatIfBreaks(out)))
+				page.Result.Breaking = f.leaveBreaking(s, out)
 			}
 		}
 	}
 	noteRefused(w) // a post that gets here kept nothing: it shows the problem
 	render(w, r, views.Leave(page))
+}
+
+// leaveBreaking says what the result breaks that the timetable didn't,
+// people in two places first. It's all of it, not just what the "what ifs"
+// leave to themselves: a leave is meant to break nothing, so a result that
+// puts someone in two places must not go unseen.
+func (f rotaFacts) leaveBreaking(before, after competitions.Schedule) []string {
+	return competitions.BreakLines(competitions.NewBreaks(f.manualBreaks(before), f.manualBreaks(after)))
 }
 
 // leaveView is how each seat is filled, as the page shows it.

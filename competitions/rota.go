@@ -233,7 +233,7 @@ func (s Schedule) rotaJobs(settings OfficialSettings) ([]ScheduledFlight, []rota
 		}
 		var judges, helpers []string
 		for _, role := range settings.Panel(first.Discipline).Seats() {
-			if role == RoleRecorder && settings.RecordersChange || role == RoleMarshal && settings.MarshalsChange {
+			if !settings.Stays(role) {
 				helpers = append(helpers, role)
 			} else {
 				judges = append(judges, role)
