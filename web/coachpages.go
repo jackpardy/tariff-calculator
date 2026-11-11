@@ -372,7 +372,9 @@ func (p *competitionPages) coachHome(w http.ResponseWriter, r *http.Request) {
 			if e.CompetitionID != c.ID {
 				continue
 			}
-			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e),
+			// What can't be sent any more isn't the entry: what the competition holds is.
+			e, lost := heldAs(c, e, sent, p.now(), e.MemberName)
+			row := views.CoachRow{Member: e.MemberName, Level: e.Entry.Event(), Signoff: memberSignoff(c.Competition, e), Unsent: lost.Line,
 				Open: path + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline}
 			row.Problems = len(memberProblems(c.Competition, e, sent, all))
 			if !e.SignedOff() {

@@ -148,6 +148,7 @@ type CoachRow struct {
 	Problems      int
 	Signoff       SignoffView
 	Open          string // the entry's page
+	Unsent        string // what became of a change or entry that wasn't sent before it closed
 	List          ListRow // what the list's search and filters see
 }
 
@@ -199,7 +200,13 @@ templ CoachHome(p CoachPage) {
 								for _, r := range c.Rows {
 									<tr { r.List.Attrs()... }>
 										<td><a href={ templ.SafeURL(r.Open) }>{ r.Member }</a></td>
-										<td data-label="Level">{ r.Level }</td>
+										<td data-label="Level">
+											{ r.Level }
+											if r.Unsent != "" {
+												<br/>
+												<span class="is-size-7">{ r.Unsent }</span>
+											}
+										</td>
 										<td data-label="Problems">
 											// Empty when there are none, so a phone's card leaves the line out.
 											if r.Problems > 0 {

@@ -561,6 +561,10 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		for _, e := range mine {
 			has[e.MemberID+"/"+e.Discipline] = true
 			toSend := cc.ToSend // counted on, if this one is to send
+			// What can't go any more (changes or new entries have closed) isn't
+			// the entry: the competition's copy is.
+			e, lost := heldAs(c, e, sent, p.now(), e.MemberName)
+			goes := cc.Competition.ChangesOpen // what sending can take
 			row := views.ClubEntryRow{Member: e.MemberName, Level: e.Entry.Event(), Status: "Sent", Note: e.Note, Signoff: memberSignoff(c.Competition, e)}
 			// Who signs it off, only where no one can: it's the same on every row otherwise.
 			if !cc.NoSigner {
@@ -578,8 +582,9 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			}
 			rem, removed := removals[e.MemberID+"/"+e.Discipline]
 			place := waitingPlace[e.MemberID+"/"+e.Discipline]
-			state := memberState(e, rem, removed, place)
+			state := lost.state(memberState(e, rem, removed, place))
 			row.State = stateOfStanding(state)
+			row.Unsent = lost.Line
 			switch state {
 			case entryRemoved, entryHeld:
 				row.Status = removalStatus(rem, e.ChangedSinceSent())
@@ -589,17 +594,23 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 				if rem.ForClub() && rem.RemovalNote != "" {
 					row.Note = strings.TrimSpace(row.Note + " " + rem.RemovalNote)
 				}
-				if rem.Removal == store.Held && e.ChangedSinceSent() && !rem.Resent {
+				if rem.Removal == store.Held && e.ChangedSinceSent() && !rem.Resent && goes {
 					cc.ToSend++
 				}
 			case entryNotSent:
 				row.Status = "Not sent"
-				cc.ToSend++
+				if goes {
+					cc.ToSend++
+				}
+			case entryUnsent:
+				row.Status = "Not sent, not in the competition"
 			case entryWaiting:
 				row.Status = "Waiting list, " + waitingWord(place)
 			case entryChanged:
 				row.Status = "Changed since sent"
-				cc.ToSend++
+				if goes {
+					cc.ToSend++
+				}
 			case entryChecked:
 				row.Status = "Checked"
 			}
@@ -612,7 +623,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			if row.Video == "" && e.VideoReview == store.VideoMore && !e.ChangedSinceSent() {
 				row.Video, row.Note = "need more", strings.TrimSpace(row.Note+" "+e.VideoNote)
 			}
-			if cc.Competition.ChangesOpen && enter {
+			if cc.Competition.ChangesOpen && enter && !lost.Never {
 				row.Edit = base + "/members/" + e.MemberID + "/competitions/" + c.ID + "?discipline=" + e.Discipline
 			}
 			if id := copyOf[e.MemberID+"/"+e.Discipline]; id != "" && !home {
@@ -676,17 +687,17 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 	}
 	compID := r.PathValue("id")
 	var members []string
-	changed := -1 // the entries new or changed, as the button counted them
+	var changed map[store.SentEntry]bool // the entries new or changed, as the button counted them; nil for all
 	if r.FormValue("which") != "all" {
 		mine, err := p.st.ClubEntries(r.Context(), club.ID, compID)
 		if err != nil {
 			failed(w, r, err)
 			return
 		}
-		members, changed = []string{}, 0
+		members, changed = []string{}, map[store.SentEntry]bool{}
 		for _, e := range mine {
 			if !e.Sent() || e.ChangedSinceSent() {
-				changed++
+				changed[store.SentEntry{MemberID: e.MemberID, Discipline: e.Discipline}] = true
 				if !slices.Contains(members, e.MemberID) {
 					members = append(members, e.MemberID)
 				}
@@ -699,7 +710,7 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	n, err := p.st.Send(r.Context(), club.ID, compID, members)
+	result, err := p.st.Send(r.Context(), club.ID, compID, members)
 	if err != nil {
 		failed(w, r, err)
 		return
@@ -710,10 +721,14 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Their other entries go again with them, as they are: the notice counts
-	// the new and changed, as the button did.
-	if changed >= 0 {
-		n = changed
+	// the new and changed, as the button did, of what Send did.
+	counted := func(of []store.SentEntry) int {
+		if changed == nil {
+			return len(of)
+		}
+		return len(slices.DeleteFunc(slices.Clone(of), func(e store.SentEntry) bool { return !changed[e] }))
 	}
+	n := counted(result.Sent)
 	var sentWhat []string
 	if n > 0 || offers == 0 {
 		sentWhat = append(sentWhat, views.Count(n, "entry", "entries"))
@@ -722,6 +737,13 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		sentWhat = append(sentWhat, views.Count(offers, "offer to judge or help", "offers to judge or help"))
 	}
 	notice := fmt.Sprintf("Sent %s to %s.", strings.Join(sentWhat, " and "), c.Name)
+	// What it left out, and why.
+	if left := counted(result.Closed); left > 0 {
+		notice += fmt.Sprintf(" %d %s sent: entries have closed for new entries.", left, map[bool]string{true: "wasn't", false: "weren't"}[left == 1])
+	}
+	if left := counted(result.Removed); left > 0 {
+		notice += fmt.Sprintf(" %d %s removed by the organiser, so %s sent.", left, map[bool]string{true: "was", false: "were"}[left == 1], map[bool]string{true: "it wasn't", false: "they weren't"}[left == 1])
+	}
 	seeOther(w, r, clubCompetitionPath(r.PathValue("token"), compID), notice)
 }
 
@@ -789,6 +811,10 @@ func (p *competitionPages) editMemberEntry(w http.ResponseWriter, r *http.Reques
 	existing, err := p.memberEntry(r, m.ID, c.ID)
 	if err != nil {
 		failed(w, r, err)
+		return
+	}
+	if newClosed(c, existing, p.now()) {
+		failed(w, r, store.ErrClosed)
 		return
 	}
 	start := competitions.Entry{Gymnast: m.Name, Discipline: r.FormValue("discipline")}
@@ -886,13 +912,17 @@ func (p *competitionPages) saveMemberEntryForMember(w http.ResponseWriter, r *ht
 	if !ok {
 		return
 	}
+	existing, err := p.memberEntry(r, m.ID, c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if newClosed(c, existing, p.now()) {
+		failed(w, r, store.ErrClosed)
+		return
+	}
 	e, problems := postedEntry(r, c.Competition, m.Name)
 	if len(problems) > 0 {
-		existing, err := p.memberEntry(r, m.ID, c.ID)
-		if err != nil {
-			failed(w, r, err)
-			return
-		}
 		p.renderMemberEdit(w, r, club, m, c, existing, e, problems)
 		return
 	}
@@ -1295,12 +1325,16 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			}
 			entered++
 			start = e.Entry
-			ev.Level = e.Entry.Event()
-			if e.Sent() {
+			// What can't be sent any more (changes or new entries have closed)
+			// isn't the entry: what the competition holds is.
+			if e.Sent() || unsentClosed(c, e, now) {
 				if sent == nil {
 					sent, _ = p.entriesOf(ctx, c.ID)
 				}
 			}
+			e, lost := heldAs(c, e, sent, now, "You")
+			ev.Level = e.Entry.Event()
+			ev.Unsent, ev.NoChange = lost.Line, lost.Never
 			copyID, place := "", 0
 			for _, s := range sent {
 				if s.MemberID == m.ID && s.Entry.Discipline == d {
@@ -1341,7 +1375,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			if removed && rem.ForMember() && rem.RemovalNote != "" {
 				ev.Note = strings.TrimSpace(ev.Note + " " + rem.RemovalNote)
 			}
-			state := memberState(e, rem, removed, place)
+			state := lost.state(memberState(e, rem, removed, place))
 			ev.Status = memberStatus(state, rem, e.ChangedSinceSent())
 			ev.Brief, ev.BriefState = brief(state, len(shown.Problems), place)
 			mc.Problems += len(shown.Problems)
@@ -1397,6 +1431,15 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 	}
 	c, ok := p.memberCompetition(w, r, m)
 	if !ok {
+		return
+	}
+	existing, err := p.memberEntry(r, m.ID, c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if newClosed(c, existing, p.now()) {
+		failed(w, r, store.ErrClosed)
 		return
 	}
 	e, problems := postedEntry(r, c.Competition, m.Name)

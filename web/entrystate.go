@@ -18,6 +18,7 @@ const (
 	entryWaiting                   // on its event's waiting list
 	entryChanged                   // changed since the club sent it
 	entryChecked                   // checked by the organiser
+	entryUnsent                    // never sent, and now can't be: it isn't in the competition
 )
 
 // stateOf is where an entry stands, the first of these that holds: removed
@@ -66,6 +67,8 @@ func memberStatus(s standing, removal store.Entry, changed bool) string {
 		return removalStatus(removal, changed)
 	case entryNotSent:
 		return "Saved, not sent yet"
+	case entryUnsent:
+		return "Not sent, so not in the competition"
 	case entryChanged:
 		return "Changed since your club sent it"
 	case entryChecked:
@@ -80,7 +83,7 @@ func memberStatus(s standing, removal store.Entry, changed bool) string {
 // done.
 func stateOfStanding(s standing) views.State {
 	switch s {
-	case entryRemoved, entryWithdrawn:
+	case entryRemoved, entryWithdrawn, entryUnsent:
 		return views.Stopped
 	case entryHeld, entryChanged:
 		return views.Attention
@@ -104,6 +107,8 @@ func brief(s standing, problems, place int) (string, views.State) {
 		return "Withdrawn", views.Stopped
 	case s == entryHeld:
 		return "On hold", views.Attention
+	case s == entryUnsent:
+		return "Not sent", views.Stopped
 	case problems > 0:
 		return views.Count(problems, "problem", "problems"), views.Attention
 	}

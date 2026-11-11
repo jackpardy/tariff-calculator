@@ -449,6 +449,31 @@ it doesn't need sending again. The pages say "New entries closed …
 Changes to entries until … Coaches' sign-off until …". Late changes open
 once changes close.
 
+What the club saved but never got to send is not the entry. Once the
+competition no longer takes it from the club (`unsentClosed` in
+`web/unsent.go`: a change after sending, once changes have closed; an entry
+never sent, once new entries have closed), the member's page, the comp sec's
+Entries row and the coach's list show what the competition holds (level,
+routine, checks, sign-off, as the organiser has them: `heldAs`), with a line
+under it: "You changed this to BUCS L4 on 6 Feb, but it wasn't sent before
+entries closed. The competition has BUCS L3." (the comp sec and coach read
+"Gus changed this …"; "before changes closed" where changes close later). An entry
+never sent says "You saved this on 1 Feb, but it wasn't sent before entries
+closed, so it isn't in the competition." and its status is "Not sent, not in
+the competition" (stopped, `entryUnsent`). Where late changes are allowed the
+usual "Ask for a late change" link is there. The unsent version is kept, and
+is the entry again, to send, if entries reopen. Neither counts as "to send".
+
+With changes open later than the deadline, a brand-new entry is refused on
+the member's page and the comp sec's form for them (409 "Entries have
+closed", as for an individual's link; `SaveMemberEntry` refuses it unless
+the competition holds a copy), and the forms aren't offered; so is a change
+to an entry never sent. A change to an entry the competition holds still goes.
+`Store.Send` returns what it sent and what it left out (`SendResult`: `Closed`
+for new entries closed, `Removed` for those the organiser removed), and the
+notice is built from that: "Sent 1 entry to X. 1 wasn't sent: entries have
+closed for new entries. 1 was removed by the organiser, so it wasn't sent."
+
 ## Late changes
 
 Once changes to entries close (the competition live), clubs and
@@ -511,7 +536,9 @@ waiting lists.").
 
 Every page says where an entry stands in the same order (`stateOf` in
 `web/entrystate.go`), the comp sec's: removed, on hold, not sent, on a
-waiting list (unless changed since), changed since sent, checked, sent.
+waiting list (unless changed since), changed since sent, checked, sent;
+and "not sent, not in the competition" for an entry never sent once new
+entries have closed.
 Each page words it for its reader. So a checked entry on a waiting list
 reads as waiting everywhere: a member's status line says "Sent by your
 club", not "checked by the organiser". The demo limits
