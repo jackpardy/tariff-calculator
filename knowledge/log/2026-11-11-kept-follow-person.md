@@ -1,0 +1,1 @@
+* **Update**: Requirements a person keeps on their page now follow them when they add another of their links to it and when the comp sec gives them a new link; before, both left them with nobody and the six-hourly tidy-up deleted them ([competition entries](features/competition-entries.md), [ADR 0013](../docs/adr/0013-requirements-with-the-person.md)).
