@@ -255,6 +255,7 @@ allow it (`clubRoutes` in `web/clubaccess.go`, ADR 0015); others get 403,
 | `POST /clubs/admin/{token}/coaches` | `name` | Adds a coach: the club page with their coach link, shown once |
 | `POST /clubs/admin/{token}/coaches/from-member` | `member` | Makes a member a coach too; their member link opens the coach's page. Back to Coaches |
 | `POST /clubs/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening the comp sec's pages. Back to Settings |
+| `POST /clubs/admin/{token}/competitions/{id}/take-out` | `member`, `what` (`entries`, `offer` or `both`), `anyway=1` | Takes a member out of one competition, staying in the club: sent entries become removed by the club, unsent ones go; the offer to judge or help is taken back. Without `anyway`, the competition's Entries page asking first (200), with any charge after entries close. Refused once changes close, or for nothing to take out (Enter and change entries) |
 | `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | `anyway=1` | A coach's new link (shown once), or removing them; without `anyway`, Coaches asking first (200) |
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |

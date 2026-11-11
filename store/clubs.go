@@ -453,7 +453,8 @@ func upsertMemberEntry(ctx context.Context, tx *sql.Tx, memberID, competitionID 
 				partner_confirmed = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_confirmed ELSE FALSE END,
 				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
 				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,
-				partner_gone = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_gone ELSE '' END,
+				partner_gone = CASE WHEN member_entries.partner_token = excluded.partner_token
+					AND json_extract(member_entries.entry, '$.partner.name') IS json_extract(excluded.entry, '$.partner.name') THEN member_entries.partner_gone ELSE '' END,
 				partner_token = excluded.partner_token, partner_hash = excluded.partner_hash`,
 		memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token))
 	return err

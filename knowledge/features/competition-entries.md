@@ -831,8 +831,48 @@ closed"). One removed after entries closed is listed on the dashboard as
 needing attention. Sending everyone's again leaves it (only withdrawn copies
 go), and before the deadline the club can enter and send a replacement as
 usual. The same name joining again is a new member; the removed copy stays.
-A synchro pair's entry whose partner is removed stays in, as when a partner
-withdraws, and the history says why. Entries already removed or held by the
+A synchro pair's entry whose partner is removed (or taken out of the
+competition, below) stays in, but is flagged (`entries.partner_gone`, and the
+entrant's own `member_entries.partner_gone`): the organiser sees "Adam Brown
+was removed by UCD on 11 Nov: this pair may need a new partner" as a problem
+on its row (so the problems filter finds it) and its page, and the dashboard
+lists it as needing attention ("1 pair may need a new partner"), whenever it
+happened; the entrant and their club see "Your partner Adam Brown is no
+longer a member of UCD: tell the organiser, or change your partner" (taken
+out: "… was taken out of this competition by UCD: …"). It clears when the
+entrant names another partner (on the competition's copy once the club sends
+it), or the entry goes. The history says so too. A partner has no way to
+withdraw their side of a pair (they only confirm it), so there's nothing
+else to flag.
+
+A club's member's offer to judge or help goes with them too: removing a
+member (or deleting the club) takes back their offers (`keepOffers`,
+`officials.taken_back_at`), so the official stays, out of every rota and
+seat (`Officials` leaves them out, so a seat they held shows in the
+timetable's seat problems as a withdrawn offer's does), but listed under
+**Offers taken back by their club** on Officials, on **People** (on their
+removed row: "BUCS L3 · removed by the club · offer taken back by the club")
+and their page ("Their offer to judge or help (marshal) was taken back by
+the club on 11 Nov, 14:02, by Club admin: they're in no rota or seat."), and
+in the history ("X: offer to judge or help taken back by the club"). A
+member who offers again and is sent is an official again.
+
+**Taking a member out of one competition.** On the club's Entries page for
+a competition (links with Enter and change entries), **Take out of this
+competition** chooses a member with entries or an offer there and **Their
+entries**, **Their offer to judge or help** or **Both** (`POST
+…/competitions/{id}/take-out`); the member stays in the club. It asks first
+("Take Y out of Student Open?": what comes out, that sent entries stay with
+the organiser marked removed by the club, that they're taken off any seats,
+and, after entries close, what the organiser charges, as for removing a
+member). Entries taken out are **Removed by the club** (no longer the
+member's, so they can be entered again while entries are open), charged
+after entries close as removed ones are; the offer is taken back as above.
+As withdrawing, it works only while changes to entries are open: after
+that the page says "Changes to entries have closed, so the club can't take
+anyone out of this competition now: tell the organiser, or remove the member
+from the club.", and a post is turned down. A member withdrawing their own
+entry or offer is unchanged (their entry reads Withdrawn). Entries already removed or held by the
 organiser stay as they are. Copies removed before migration 56 (a member
 removed earlier, `member_id` empty) still read as withdrawn, and live
 entries of a club deleted earlier stay live.

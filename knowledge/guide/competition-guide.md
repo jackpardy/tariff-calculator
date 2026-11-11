@@ -741,8 +741,12 @@ open them, so **tariff.pardy.ie/competitions** lists the club.
   then shows the new one, once, to send them (it opens only their pages at
   your club: they add their other links again), or **Remove** them (asked
   first, as their entries go with them). Entries you've already sent stay
-  with each competition's organiser, marked removed by the club; after
-  entries close the organiser may charge for that, and the ask says so. A member who also coaches needs no coach link:
+  with each competition's organiser, marked removed by the club, and their
+  offers to judge or help are taken back; after entries close the organiser
+  may charge for that, and the ask says so. To take someone out of just one
+  competition, use **Take out of this competition** on its Entries page:
+  choose the member and **Their entries**, **Their offer to judge or help**
+  or **Both** (asked first, with any charge), while changes are open. A member who also coaches needs no coach link:
   tap **More**, **Make a coach too**,
   and their member link opens their coach's page as well. Making that coach a
   link of their own (**New link**) parts it from the member. Synchro entries that gymnasts from
