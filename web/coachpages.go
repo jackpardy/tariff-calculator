@@ -644,6 +644,9 @@ func parseUpload(r *http.Request) string {
 		if errors.As(err, &tooBig) {
 			return "the certificate is over 3 MB. A photo or a smaller PDF will do."
 		}
+		if bodyCutShort(r) {
+			return slowBody
+		}
 		return "choose a qualification and its certificate."
 	}
 	return ""

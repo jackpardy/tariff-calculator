@@ -361,6 +361,10 @@ func (p *competitionPages) sendFeedback(w http.ResponseWriter, r *http.Request) 
 		message(w, r, status, "Feedback not sent", why)
 	}
 	if err := r.ParseMultipartForm(1 << 20); err != nil && !errors.Is(err, http.ErrNotMultipart) {
+		if bodyCutShort(r) {
+			refuse(http.StatusRequestTimeout, strings.ToUpper(slowBody[:1])+slowBody[1:])
+			return
+		}
 		refuse(http.StatusRequestEntityTooLarge, "That's too much to send: try again without the picture.")
 		return
 	}
