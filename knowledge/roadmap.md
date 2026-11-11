@@ -588,6 +588,13 @@ Full Back…), and search finds skills by the names people type ("½ twist
 jump", "piked back", "back drop to feet", "swivel hips", "cradle"). See
 [skill catalog](domain/skill-catalog.md).
 
+**What a club removes stays with the organiser (audit 2026-11-10, F2; built
+2026-11-11).** A member, coach or club removed after sending stays with each
+competition, marked removed by the club: entries out of it but listed, a
+coach's sign-offs counting until the organiser asks for them to be given
+again, and an optional charge for an entry removed after entries close. See
+[removed by the club](features/competition-entries.md#removed-by-the-club).
+
 **One palette for states and roles (planned 2026-10-15).** Fixed colours for
 states (grey not yet, blue in progress, green done, amber needs attention,
 red stopped) and for who did something (gymnast, coach, club, organiser),

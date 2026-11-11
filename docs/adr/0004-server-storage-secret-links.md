@@ -75,6 +75,10 @@ Constraints:
      page as "changed since sent", and the comp sec re-sends (all, or just the
      changed ones) until the competition's deadline. So the organiser only sees
      what the club has sent.
+     *Noted 2026-11-11:* a member the club removes (or a club deleted)
+     doesn't take back what it sent: the competition keeps each copy,
+     marked removed by the club, out of the competition but listed, and
+     may charge for one removed after entries closed (migration 56).
    - **Individuals** can enter a competition directly through its individual
      link, which the organiser can switch off. Their entries are marked
      "individual" and listed apart from clubs.

@@ -416,7 +416,9 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 		if k := j.Entry.SignerKey(); k != "" {
 			row.Signoff.Link = personPath(d.Base, k)
 		}
-		if ks := people[j.ID]; len(ks) > 0 {
+		if j.ClubRemoved() {
+			row.Person = personPath(d.Base, j.Entry.Key()) // their page says what the club removed
+		} else if ks := people[j.ID]; len(ks) > 0 {
 			row.Person = personPath(d.Base, ks[0])
 			if len(ks) > 1 {
 				row.Partner = personPath(d.Base, ks[1])
