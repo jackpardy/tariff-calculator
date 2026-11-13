@@ -842,6 +842,12 @@
         // A copy the service worker served because the network was too slow
         // is marked, so the banner shows though the phone counts as online.
         const fromCopy = banner.hasAttribute('data-from-copy');
+        // A timeout (not a real failure) says the page is slow instead.
+        const slow = banner.hasAttribute('data-from-slow');
+        const down = banner.querySelector('[data-offline-down]');
+        const slowNote = banner.querySelector('[data-offline-slow]');
+        if (down) { down.hidden = slow; }
+        if (slowNote) { slowNote.hidden = !slow; }
         const show = () => { banner.hidden = navigator.onLine && !fromCopy; };
         window.addEventListener('offline', show);
         window.addEventListener('online', show);
