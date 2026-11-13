@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -60,6 +61,12 @@ func sendFeedbackFrom(t *testing.T, h http.Handler, path, text string) (int, str
 // with files (name to content) if any.
 func postFeedback(t *testing.T, h http.Handler, action string, fields url.Values, files map[string][]byte) *httptest.ResponseRecorder {
 	t.Helper()
+	return postFeedbackFrom(t, h, "192.0.2.1:1234", action, fields, files)
+}
+
+// postFeedbackFrom is postFeedback from an address.
+func postFeedbackFrom(t *testing.T, h http.Handler, addr, action string, fields url.Values, files map[string][]byte) *httptest.ResponseRecorder {
+	t.Helper()
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
 	for k, vs := range fields {
@@ -78,7 +85,7 @@ func postFeedback(t *testing.T, h http.Handler, action string, fields url.Values
 	req := httptest.NewRequest(http.MethodPost, action, &body)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("X-Feedback", "fetch")
-	req.RemoteAddr = "192.0.2.1:1234"
+	req.RemoteAddr = addr
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec
@@ -354,18 +361,86 @@ func TestFeedbackLimits(t *testing.T) {
 		t.Errorf("an overlong reply-to: %d", rec.Code)
 	}
 
-	// A day's worth, then no more until a day has passed.
-	fields.Del("reply")
-	fields.Set("text", "Again")
-	for range store.MaxSiteFeedbackPerDay - 1 {
-		postFeedback(t, h, action, fields, nil)
+	// A day's worth for the whole app (from ten addresses, each within its
+	// hour's limit), then no more until a day has passed.
+	public := url.Values{"text": {"Again"}, "page": {"/"}}
+	sent := 1
+	for i := 0; sent < store.MaxSiteFeedbackPerDay; i++ {
+		addr := fmt.Sprintf("192.0.2.%d:1234", 10+i%10)
+		if rec := postFeedbackFrom(t, h, addr, "/feedback", public, nil); rec.Code != http.StatusOK {
+			t.Fatalf("%d sent: %d %s", sent, rec.Code, rec.Body)
+		}
+		sent++
 	}
-	if rec := postFeedback(t, h, action, fields, nil); rec.Code != http.StatusTooManyRequests {
+	if rec := postFeedbackFrom(t, h, "192.0.2.50:1234", "/feedback", public, nil); rec.Code != http.StatusTooManyRequests {
 		t.Errorf("one too many: %d", rec.Code)
 	}
 	s.clock.set(inDublin(2030, 1, 11, 12, 1))
-	if rec := postFeedback(t, h, action, fields, nil); rec.Code != http.StatusOK {
+	if rec := postFeedbackFrom(t, h, "192.0.2.50:1234", "/feedback", public, nil); rec.Code != http.StatusOK {
 		t.Errorf("the next day: %d", rec.Code)
+	}
+}
+
+// One address can send 30 pieces an hour from any page, a link's or not, and
+// one link 20 a day from anywhere; a refusal says so and isn't counted in
+// the app's day.
+func TestFeedbackPerSender(t *testing.T) {
+	s := newTestServer(t, atTime(inDublin(2030, 1, 10, 12, 0)))
+	h := s.h
+	admin := created(t, h, newCompetition())
+	own := anIndividual(t, h, admin, "Bea Byrne")
+	action, fields, _ := feedbackFormOf(t, do(t, h, http.MethodGet, own, nil).Body.String())
+	fields.Set("text", "Hi")
+	stored := func() int {
+		all, _ := s.st.AllSiteFeedback(t.Context())
+		return len(all)
+	}
+
+	// Under one link, from different addresses: 20, then the link's limit.
+	for i := range maxFeedbackPerLinkPerDay {
+		if rec := postFeedbackFrom(t, h, fmt.Sprintf("192.0.2.%d:1", 100+i), action, fields, nil); rec.Code != http.StatusOK {
+			t.Fatalf("%d under the link: %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	rec := postFeedbackFrom(t, h, "192.0.2.200:1", action, fields, nil)
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "this link today") {
+		t.Errorf("the link's limit: %d %q", rec.Code, rec.Body)
+	}
+	if n := stored(); n != maxFeedbackPerLinkPerDay {
+		t.Errorf("a refusal isn't kept: %d", n)
+	}
+	// Another link isn't affected, and the next day this one is let through.
+	other := anIndividual(t, h, admin, "Cal Cox")
+	otherAction, otherFields, _ := feedbackFormOf(t, do(t, h, http.MethodGet, other, nil).Body.String())
+	otherFields.Set("text", "Hi")
+	if rec := postFeedbackFrom(t, h, "192.0.2.200:1", otherAction, otherFields, nil); rec.Code != http.StatusOK {
+		t.Errorf("another link: %d", rec.Code)
+	}
+	s.clock.set(inDublin(2030, 1, 11, 12, 1))
+	if rec := postFeedbackFrom(t, h, "192.0.2.201:1", action, fields, nil); rec.Code != http.StatusOK {
+		t.Errorf("the next day: %d", rec.Code)
+	}
+
+	// One address: 30 an hour across links and without, then no more.
+	base := stored()
+	for i := range maxFeedbackPerHour {
+		a, f := "/feedback", url.Values{"text": {"Hi"}, "page": {"/"}}
+		if i%2 == 1 {
+			a, f = otherAction, otherFields
+		}
+		if rec := postFeedbackFrom(t, h, "192.0.2.77:1", a, f, nil); rec.Code != http.StatusOK {
+			t.Fatalf("%d from one address: %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	rec = postFeedbackFrom(t, h, "192.0.2.77:1", otherAction, otherFields, nil)
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "from here") {
+		t.Errorf("the address's limit under a link: %d %q", rec.Code, rec.Body)
+	}
+	if n := stored(); n != base+maxFeedbackPerHour {
+		t.Errorf("refusals aren't kept: %d", n)
+	}
+	if rec := postFeedbackFrom(t, h, "192.0.2.78:1", "/feedback", url.Values{"text": {"Hi"}, "page": {"/"}}, nil); rec.Code != http.StatusOK {
+		t.Errorf("another address: %d", rec.Code)
 	}
 }
 

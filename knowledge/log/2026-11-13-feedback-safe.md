@@ -1,0 +1,1 @@
+* **Update**: [Feedback made safe](features/competition-entries.md#feedback-about-the-app): pictures and copies hide links and emails marked private (and any secret link, checked on the server), a copy can't load from elsewhere, feedback is deleted after 90 days with a Delete on each piece, and feedback is limited per address and per link.

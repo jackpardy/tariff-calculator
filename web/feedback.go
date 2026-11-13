@@ -136,11 +136,16 @@ const (
 	// maxFeedbackBytes bounds a request sending feedback: the picture, the
 	// copy of the page and the form around them.
 	maxFeedbackBytes = maxFeedbackPicture + maxFeedbackSnapshot + 64<<10
-	// maxFeedbackPerHour is how much feedback one address can send from the
-	// pages without a link in an hour; a whole gym on one wifi shares one.
+	// maxFeedbackPerHour is how much feedback one address can send in an
+	// hour, from any page; a whole gym on one wifi shares one.
 	maxFeedbackPerHour = 30
-	// keepCaptures is how long pictures and copies of pages are kept.
+	// maxFeedbackPerLinkPerDay is how much can be sent under one link in a
+	// day, whoever from, so one link can't use up the app's day.
+	maxFeedbackPerLinkPerDay = 20
+	// keepCaptures is how long pictures and copies of pages are kept, and
+	// keepFeedback how long feedback itself is, with its reply-to.
 	keepCaptures = 90 * 24 * time.Hour
+	keepFeedback = 90 * 24 * time.Hour
 )
 
 // sendsFeedback says whether a request posts feedback, for its size limit.
@@ -373,13 +378,18 @@ func (p *competitionPages) sendFeedback(w http.ResponseWriter, r *http.Request) 
 		refuse(http.StatusForbidden, "Feedback is turned off just now.")
 		return
 	}
-	public := r.URL.Path == "/feedback"
-	if public && !p.feedbackLimiter.allow(clientIP(r), p.now()) {
+	// The limits come before anything is kept, so a refusal isn't counted
+	// against the app's day.
+	if !p.feedbackLimiter.allow(clientIP(r), p.now()) {
 		refuse(http.StatusTooManyRequests, "That's a lot of feedback from here: please try again in an hour.")
 		return
 	}
 	role, c, token, ok := p.feedbackFrom(w, r)
 	if !ok {
+		return
+	}
+	if token != "" && !p.feedbackLinkLimiter.allow(token, p.now()) {
+		refuse(http.StatusTooManyRequests, "That's a lot of feedback from this link today: please try again tomorrow.")
 		return
 	}
 	text := strings.TrimSpace(r.FormValue("text"))

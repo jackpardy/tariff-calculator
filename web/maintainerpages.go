@@ -28,6 +28,7 @@ func (p *competitionPages) registerMaintainer(mux *http.ServeMux) {
 	handle("GET /site/{token}", p.maintainerPage)
 	handle("POST /site/{token}/settings", p.feedbackChoices)
 	handle("POST /site/{token}/feedback/{id}/done", p.markSiteFeedback)
+	handle("POST /site/{token}/feedback/{id}/delete", p.deleteSiteFeedback)
 	handle("POST /site/{token}/captures/delete", p.deleteCaptures)
 	handle("GET /site/{token}/feedback/{id}/picture", p.feedbackPicture)
 	handle("GET /site/{token}/feedback/{id}/page", p.feedbackSnapshot)
@@ -40,6 +41,7 @@ func (p *competitionPages) maintainer(h http.HandlerFunc) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Robots-Tag", "noindex")
+		w.Header().Set("Content-Security-Policy", maintainerPolicy)
 		if p.st == nil {
 			notFound(w, r)
 			return
@@ -56,6 +58,13 @@ func (p *competitionPages) maintainer(h http.HandlerFunc) http.Handler {
 		h(w, r)
 	})
 }
+
+// maintainerPolicy is how the maintainer's page is shown: nothing loads
+// from anywhere but the app itself, and pictures may be data: too. A frame
+// made from a copy of a page (srcdoc) inherits it, so a copy can't make the
+// maintainer's browser ask another site for anything, whatever it holds.
+// The app's own scripts need what they use, as on every page.
+const maintainerPolicy = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 
 // maintainerPath is the maintainer's page.
 func maintainerPath(token string) string { return "/site/" + token }
@@ -211,6 +220,19 @@ func (p *competitionPages) markSiteFeedback(w http.ResponseWriter, r *http.Reque
 	seeOther(w, r, to, "")
 }
 
+// deleteSiteFeedback deletes a piece of feedback with what came with it.
+func (p *competitionPages) deleteSiteFeedback(w http.ResponseWriter, r *http.Request) {
+	if err := p.st.DeleteSiteFeedback(r.Context(), r.PathValue("id")); err != nil {
+		failed(w, r, err)
+		return
+	}
+	to := maintainerPath(r.PathValue("token"))
+	if r.FormValue("all") == "1" {
+		to += "?all=1"
+	}
+	seeOther(w, r, to, "Feedback deleted.")
+}
+
 // deleteCaptures deletes every picture and copy of a page kept.
 func (p *competitionPages) deleteCaptures(w http.ResponseWriter, r *http.Request) {
 	n, err := p.st.DeleteCaptures(r.Context(), time.Time{})
@@ -267,7 +289,8 @@ func (p *competitionPages) feedbackSnapshot(w http.ResponseWriter, r *http.Reque
 }
 
 // deleteOldCaptures deletes the pictures and copies of pages kept longer
-// than keepCaptures, with the rest of what expires (deleteExpired).
+// than keepCaptures, and feedback itself, with its reply-to, once it's
+// keepFeedback old, with the rest of what expires (deleteExpired).
 func deleteOldCaptures(st *store.Store, now time.Time) {
 	n, err := st.DeleteCaptures(context.Background(), now.Add(-keepCaptures))
 	switch {
@@ -275,5 +298,12 @@ func deleteOldCaptures(st *store.Store, now time.Time) {
 		log.Printf("Deleting old pictures and copies of pages sent with feedback: %v", err)
 	case n > 0:
 		log.Printf("Deleted the pictures and copies of pages sent with %d pieces of feedback", n)
+	}
+	n, err = st.DeleteOldSiteFeedback(context.Background(), now.Add(-keepFeedback))
+	switch {
+	case err != nil:
+		log.Printf("Deleting old feedback: %v", err)
+	case n > 0:
+		log.Printf("Deleted %d old pieces of feedback", n)
 	}
 }

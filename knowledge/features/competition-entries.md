@@ -357,9 +357,22 @@ your feedback is sent."; without JavaScript the page comes back at
 - **Light** (before real entries open): the details, without the dropdowns'
   names, and a picture only when they tick **Include a picture of the
   screen**, which shows it before it's sent, with anything marked
-  `data-private` blurred (every link box, `linkBox`; the email on Hearing
-  about changes; the "your other link" box when entering). No copy of the
-  page.
+  `data-private` blurred. No copy of the page: Light never stores one, whatever
+  the browser sends (`feedbackCapture`).
+
+**What's private** (2026-11-13). Anything marked `data-private` (every link
+box, `linkBox`; the email on Hearing about changes; the "your other link" box
+when entering) is blurred in the picture in Full as in Light, and the copy of
+the page has its input value or its text taken out (`copyPage` in
+`feedback.js`, and again in `cleanSnapshot`, which doesn't trust the browser).
+As a second net `cleanSnapshot` puts `{token}` for the token of any secret
+link path (`/competitions/admin/…`, `/clubs/member/…`, `/site/…` and the
+rest of the route table) in any attribute or text, which catches the Copy
+button's `data-copy`, the hidden `data-…-link` spans and a link in a hidden
+input. A bare token with no path in front of it, in an unmarked input, isn't
+known and stays: mark such a field `data-private`. Pictures marked private
+(a QR code would encode its link) lose their source in the copy; the app
+shows no QR of a secret link today.
 
 The **details** are what the browser says about itself, each bounded: its
 window and screen size, user agent and language, whether it thought it had
@@ -381,10 +394,16 @@ from and its name, the details as JSON and the time. The sender's link token
 is taken out of the details and the copy wherever it appears. The picture
 and copy are in `site_feedback_captures`, apart, so they can be deleted on
 their own: they go by themselves after 90 days (with the rest of what
-expires), or all at once from the maintainer's page, and they're left off
+expires), or all at once from the maintainer's page. The feedback itself,
+with its reply-to, role and details, goes after 90 days too (2026-11-13,
+`DeleteOldSiteFeedback`, in the same job as the pictures), and each piece has
+a **Delete** on the maintainer's page, asking first. The form says "What you
+send is kept for 90 days, then deleted." Pictures and copies are left off
 (the words still kept) past 500 MB of them or with the disk nearly full. The
-app takes 300 pieces a day; an address sends 30 an hour from the pages
-without a link (a whole gym on one wifi shares an address); a picture is up
+app takes 300 pieces a day; an address sends 30 an hour from any page, a
+link's or not (a whole gym on one wifi shares an address), and one link takes
+20 a day from anyone (2026-11-13). Those two refusals say so and aren't
+counted in the app's 300. A picture is up
 to 2 MB, a copy 3 MB as sent and 12 MB unzipped. A picture that isn't a
 JPEG, PNG or WebP is left off.
 
@@ -396,7 +415,11 @@ deploy still looks right) and pictures, and a mark where they'd scrolled to.
 As it's shown, the app's style sheets go into it (`inlineStyles`), so it
 asks for nothing; it's served with a policy that runs nothing, sends no form
 and loads nothing from elsewhere (`snapshotPolicy`: `sandbox`, `default-src
-'none'`). On the maintainer's page, `static/js/maintainer.js` fetches it as
+'none'`). The maintainer's page itself is sent with a policy that allows
+only this site and `data:` pictures (`maintainerPolicy`), which the frame
+inherits, and `cleanSnapshot` takes `@import`, `url()` of anything but a
+`data:` address and `image-set()` out of a copy's `<style>`. On the
+maintainer's page, `static/js/maintainer.js` fetches it as
 its section opens into a sandboxed frame (`srcdoc`: the desktop app's
 browser refuses a sandboxed frame's own requests), the frame the page's
 whole height in a box the size of their window, scrolled to where they were.
@@ -417,7 +440,10 @@ from working, and only its hash is kept. It lists what's not dealt with, or
 **All**, newest first: the words, when, role, page, competition, reply-to,
 the picture, **The page as they had it** and **Details**, with a **Dealt
 with** tick. Above, as settings lines: the button on every page or not shown
-anywhere, Full or Light, and the pictures and copies kept, with **Delete**.
+anywhere, Full or Light (a setting on this page, kept in the database; Full
+until changed, and the owner changes it to Light before real entries open:
+[deploy](../operations/deploy.md#notifications)), and the pictures and
+copies kept, with **Delete**.
 Any other address under `/site/` is a page that isn't there.
 
 With `FEEDBACK_EMAIL` set and email set up, each is emailed there too: the
