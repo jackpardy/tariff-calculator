@@ -118,7 +118,10 @@ templ NotifyCompetition(p NotifyPage) {
 						<button class="button is-small is-text" type="submit" name="action" value="remove">Stop emailing me</button>
 					</form>
 				}
-				<p class="help mt-3">The email is kept only to tell you about this competition, and deleted with it. Every email has a link to stop them.</p>
+				<p class="help mt-3">
+					The email is kept only to tell you about this competition. Only you see it, here. It's deleted when you stop the emails, or 120 days after the competition begins. Every email has a link to stop them.
+					@keptLink()
+				</p>
 			</div>
 		}
 	}
@@ -152,7 +155,10 @@ templ pushBox(p NotifyPage) {
 				}
 			</ul>
 		}
-		<p class="help mt-2">Nothing personal is kept: only the address your phone's browser gives for its notifications, deleted with the competition.</p>
+		<p class="help mt-2">
+			Nothing personal is kept: only the address your phone's browser gives for its notifications, deleted when you stop them or 120 days after the competition begins.
+			@keptLink()
+		</p>
 		<script defer src={ static.URL("js/push.js") }></script>
 	</div>
 }

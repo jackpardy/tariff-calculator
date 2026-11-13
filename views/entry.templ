@@ -196,7 +196,8 @@ templ withdrawForm(action, discipline string) {
 
 templ privacyNote(c CompetitionSummary) {
 	<p class="help mt-4">
-		We keep the gymnast's name, level and routines, which the organiser and the difficulty judges see. Nothing else, and no account. They're deleted { c.DeleteAfter }, or sooner if the organiser deletes the competition.
+		We keep the gymnast's name, level and routines, and anything else added here (video links, a coach's name and certificate, offers to judge). The organiser and the helpers they give links to see it, and the name is on the timetable and venue screen, which anyone at the venue can read. No account. It's deleted on { c.DeleteAfter }, 120 days after the competition begins, or sooner if the organiser deletes the competition.
+		@keptLink()
 	</p>
 }
 

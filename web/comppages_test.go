@@ -190,7 +190,7 @@ func TestIndividualEntry(t *testing.T) {
 	enter := pathIn(t, do(t, h, http.MethodGet, admin+"/settings", nil).Body.String(), "/competitions/enter/")
 
 	form := do(t, h, http.MethodGet, enter, nil).Body.String()
-	for _, want := range []string{"Enter Student Open", `value="builtin:bucs-l3-option-1"`, `data-set-routine="true"`, "deleted 14 July 2030"} {
+	for _, want := range []string{"Enter Student Open", `value="builtin:bucs-l3-option-1"`, `data-set-routine="true"`, "deleted on 14 July 2030"} {
 		if !strings.Contains(form, want) {
 			t.Errorf("the entry form should have %q", want)
 		}

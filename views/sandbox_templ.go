@@ -54,7 +54,7 @@ func sandboxBanner() templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if SandboxOf(ctx) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"sandbox-banner screen-only\" role=\"note\" style=\"background:#fff1d1;color:#7a4a00;padding:0.4rem 1rem;font-size:0.875rem;text-align:center;\">Sandbox: made-up people. It's reset from time to time; nothing here is kept. <a href=\"/sandbox\">Start page</a></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"sandbox-banner screen-only\" role=\"note\" style=\"background:#fff1d1;color:#7a4a00;padding:0.4rem 1rem;font-size:0.875rem;text-align:center;\">Sandbox: made-up people. Use made-up names here. Its practice copy is reset from time to time; anything else you add, and any feedback, is kept as on the live site. <a href=\"/privacy\">What's kept</a> · <a href=\"/sandbox\">Start page</a></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -135,7 +135,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(NotificationsOff)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 67, Col: 33}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 68, Col: 33}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -153,7 +153,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Role)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 74, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 75, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -171,7 +171,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 						var templ_7745c5c3_Var6 string
 						templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Who)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 76, Col: 55}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 77, Col: 55}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 						if templ_7745c5c3_Err != nil {
@@ -189,7 +189,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.Try)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 78, Col: 30}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 79, Col: 30}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -225,7 +225,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 						var templ_7745c5c3_Var10 templ.SafeURL
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(l.Href))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 81, Col: 103}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 82, Col: 103}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -238,7 +238,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(l.Label)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 81, Col: 115}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 82, Col: 115}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
@@ -266,7 +266,7 @@ func SandboxStart(p SandboxPage) templ.Component {
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(p.Reset)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 89, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 90, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -383,7 +383,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(p.Reset)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 125, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 126, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -396,7 +396,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(p.Took)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 125, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 126, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -419,7 +419,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 		var templ_7745c5c3_Var18 templ.SafeURL
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.StartPage))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 129, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 130, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -459,7 +459,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(p.Failed)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 140, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 141, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -477,7 +477,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 		var templ_7745c5c3_Var20 templ.SafeURL
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/sandbox/reset"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 143, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 144, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -500,7 +500,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 		var templ_7745c5c3_Var21 templ.SafeURL
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/sandbox/restart"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 147, Col: 73}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 148, Col: 73}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -518,7 +518,7 @@ func sandboxPanel(p SandboxPanel) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(p.Day)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 151, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/sandbox.templ`, Line: 152, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {

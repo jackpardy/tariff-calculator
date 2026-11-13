@@ -199,7 +199,10 @@ templ entryCoachBox(c EntryCoachView, open bool) {
 			// A setting row: open at first until they've named one, as naming
 			// them is what's left to do.
 			@opens("Your coach", entryCoachNow(c), entryCoachLabel(c), c.Name == "") {
-				<p class="is-size-7 mb-2">This competition approves coaches: name yours, with their coaching qualification (at least { c.Asked }) and a photo or PDF of its certificate. Once the organiser approves them, they can sign off your entry with your coach's sign-off link. Only the organiser sees the certificate, and it's deleted with the competition.</p>
+				<p class="is-size-7 mb-2">
+					This competition approves coaches: name yours, with their coaching qualification (at least { c.Asked }) and a photo or PDF of its certificate. Once the organiser approves them, they can sign off your entry with your coach's sign-off link. Only the organiser, and helpers they allow, see the certificate, and it's deleted with the competition.
+					@keptLink()
+				</p>
 				if c.Name != "" {
 					<p class="is-size-7 mb-2">Changing your coach sends them to the organiser to approve again.</p>
 				}

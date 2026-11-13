@@ -52,6 +52,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 	mux.HandleFunc("POST /routine", handleRoutineView)
 	mux.HandleFunc("POST /set-routine", handleSetRoutine)
 	mux.HandleFunc("POST /qr", handleQR)
+	mux.HandleFunc("GET /privacy", pages.public(handlePrivacy))
 	mux.HandleFunc("GET /compare", pages.public(handleComparePage))
 	mux.HandleFunc("POST /compare", handleCompare)
 	mux.HandleFunc("GET /requirements", pages.public(handleRequirementsPage))
@@ -136,6 +137,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	render(w, r, views.Page(requirements.BuiltinGroups(), back))
+}
+
+// handlePrivacy is the page saying what's kept about people and for how long
+// (ADR 0004 Decision 6): public, with no link, for every note to point to.
+func handlePrivacy(w http.ResponseWriter, r *http.Request) {
+	render(w, r, views.PrivacyPage())
 }
 
 // builderBack is the entry form the Routine Builder was opened from, to go

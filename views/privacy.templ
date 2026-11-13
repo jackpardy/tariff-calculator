@@ -1,0 +1,96 @@
+package views
+
+// What's kept and for how long: the one page the short notes on the pages
+// that take names point to (ADR 0004 Decision 6). Its words are checked
+// against what the code does (store.DeleteExpired and the jobs beside it).
+
+// keptLink is the link every short note ends with.
+templ keptLink() {
+	<a href="/privacy">What's kept and for how long</a>
+}
+
+// keptFoot is the line at the foot of the home page and /competitions.
+templ keptFoot() {
+	<p class="has-text-centered is-size-7 has-text-grey mt-5">
+		@keptLink()
+	</p>
+}
+
+// PrivacyPage says what the app keeps about people, who can see it and when
+// it's deleted.
+templ PrivacyPage() {
+	@competitionLayout("What's kept and for how long") {
+		<h1 class="title is-4">What's kept and for how long</h1>
+		<p class="mb-3">There are no accounts. Each person has a secret link, and the app keeps only what's below. Everything goes by itself on the dates given: nobody has to ask. The person who runs the app can see everything stored.</p>
+		<p class="mb-5">Not kept anywhere: birthdays, postal addresses, phone numbers, passwords or videos (a video is only a link to one).</p>
+		<div class="table-container">
+			<table class="table is-fullwidth is-striped is-narrow-mobile">
+				<thead>
+					<tr>
+						<th>What</th>
+						<th>Who can see it</th>
+						<th>When it's deleted</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><strong>A gymnast's entries.</strong> Name, club, level, events, routines and video links; a synchro partner's name; the name of the coach who signs off; the organiser's and coaches' notes on an entry.</td>
+						<td>The competition's organiser, and the helpers they give links to (difficulty judges see the routines). The comp sec and coaches of their club see their own club's entries. Names on the timetable and the venue screen can be read by anyone at the venue.</td>
+						<td>120 days after the competition's first day, or sooner if the organiser deletes the competition.</td>
+					</tr>
+					<tr>
+						<td><strong>A gymnast entering on their own.</strong> Their entries, with the routines and requirements they keep on their page, a coach's name and qualifications, offers to judge and certificates.</td>
+						<td>The organiser and their helpers, as above. Certificates only the organiser, and helpers they allow to open certificates.</td>
+						<td>With the competition, as above. A page with no entries left goes 120 days after it was made.</td>
+					</tr>
+					<tr>
+						<td><strong>A club.</strong> Its name; its members' names, routines, skill marks (with who marked them and when) and levels they keep; its coaches, their qualifications and certificates; its own skills and levels; the names on its links with a role; and its history of changes, which says which link did what.</td>
+						<td>The club's comp sec, and the roles the comp sec gives links to, as each allows. Coaches see their own members and those with no coach, or every member if the club chooses. Members see their own page, and each other's skill marks if the club turns that on. Only the comp sec and roles with Club settings read the history. Only the comp sec, and roles with Certificates, open certificates.</td>
+						<td>13 months after anyone last used the club; each time someone does, that moves on. The comp sec can delete the club, or remove a member and their page, at any time. Entries already sent stay with each competition (see below).</td>
+					</tr>
+					<tr>
+						<td><strong>Entries and coaches a club has removed.</strong> If a club takes back a sent entry or coach, removes a member, or is deleted, the competition keeps what it was sent, marked as removed.</td>
+						<td>The organiser, who may charge for an entry removed after entries closed.</td>
+						<td>With the competition, as above.</td>
+					</tr>
+					<tr>
+						<td><strong>A competition.</strong> Its people and what they did: officials, offers to judge and their qualifications and certificates; the timetable and rota with names; check-ins and times on the day; fees and payments; and its history, which says which link did what.</td>
+						<td>The organiser, and each helper's link as the organiser set it up. Names on the timetable and the venue screen can be read by anyone at the venue.</td>
+						<td>120 days after the competition's first day, or sooner if the organiser deletes it. Its set-up (levels, events, settings and fees: no names) is then kept for 3 years so the organiser can copy it, unless they delete it first.</td>
+					</tr>
+					<tr>
+						<td><strong>A rehearsal copy.</strong> A copy of a competition, with its entries, made to practise on.</td>
+						<td>Whoever has its own links.</td>
+						<td>30 days after it's made, once more 30 if the organiser asks, or sooner if they delete it.</td>
+					</tr>
+					<tr>
+						<td><strong>Messages to the organiser and late requests.</strong> The words, who sent them (name, role and club), the replies, and whether they're resolved, accepted or signed off.</td>
+						<td>The organiser and co-organisers, and the sender, or their club for a club's. Helper links don't see messages.</td>
+						<td>With the competition, as above.</td>
+					</tr>
+					<tr>
+						<td><strong>Email addresses and phone notifications.</strong> The address you give for emails, only if you ask to hear about changes (and tick that you're 18 or over, or it's a parent's). For a phone, the address its browser gives for notifications.</td>
+						<td>Only you, on your own page. Nobody else sees an address, and it's used only to send you what you asked for.</td>
+						<td>When you stop them, or 120 days after the competition's first day. An email address you don't confirm is never emailed, but stays until then. An email waiting to be sent is deleted when it goes; one that couldn't be sent is kept without its words for 7 days, so the organiser can see who wasn't told.</td>
+					</tr>
+					<tr>
+						<td><strong>Feedback about the app.</strong> The words, any name or email left for a reply, the kind of link it was sent from, the page it was sent from, which competition, details of your browser and, if you send them, a picture of the screen and a copy of the page (links and emails left out).</td>
+						<td>The people who make the app, and not the organiser. A copy may also be emailed to them, which the app can't delete.</td>
+						<td>90 days after it's sent, or sooner if they delete it.</td>
+					</tr>
+					<tr>
+						<td><strong>Backups and logs.</strong> A nightly backup of the whole database, and the server's log of pages opened and the address they were opened from.</td>
+						<td>The person who runs the server.</td>
+						<td>Backups are kept for a short time, so something deleted here can sit in one for a while longer. The server's log is kept up to 90 days.</td>
+					</tr>
+					<tr>
+						<td><strong>The sandbox.</strong> A separate copy of the app for trying things out, full of made-up people.</td>
+						<td>Anyone who opens it.</td>
+						<td>Its practice copy is replaced each time it's reset. Anything else made there, and feedback sent from it, is kept for the same times as above.</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="help mt-4">Deleted means gone from the app's database (a backup may hold it a little longer, as above). Questions: use <strong>Feedback</strong> at the right edge of any page.</p>
+	}
+}
