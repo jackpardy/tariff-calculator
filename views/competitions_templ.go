@@ -239,7 +239,7 @@ func competitionLayout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section class=\"section comp-page\"><div class=\"container\"><div class=\"notification is-warning is-light comp-offline\" hidden>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section class=\"section comp-page\"><div class=\"container\"><div class=\"notification is-warning is-light comp-offline\" hidden><span data-offline-down>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</span><span data-offline-slow hidden>This is taking a while to load, so here's the page as it was at <span data-offline-when></span>. If you just sent something, it may still be on its way: <a href=\"\">Try again</a> to see.</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

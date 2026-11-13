@@ -40,6 +40,12 @@ The CSS and JS files are gzipped once, on first request, and kept. The gzipped
 copy has its own `ETag` (`"<hash>-gz"`), so a revalidation never mixes the two.
 The service worker and push code only see decoded bytes, so they are unaffected.
 
+The service worker keeps each static file as first fetched and drops the older
+`?v=` versions when it keeps a newer one. A page kept before a deploy still asks
+for its old version, so when the network fails `asset()` falls back to any kept
+copy of the same path (ignoring `?v=`), so an offline older page still gets
+styles and scripts.
+
 # Update notice
 
 `static.Version` is the first 12 hex digits of the SHA-256 of the running

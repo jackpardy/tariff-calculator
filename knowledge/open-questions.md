@@ -46,7 +46,7 @@ settings (ADR 0005 Decisions 6 and 13). Still to learn:
 
 # Notifications
 
-Decided 2026-10-07 ([roadmap](roadmap.md#next-steps-2026-10-08)):
+Decided 2026-10-07 ([ADR 0008](../docs/adr/0008-notifications.md)):
 opt-in notifications by phone push and email. Push stores nothing
 personal. An email is given with a tick box, "I'm 18 or over, or this is a
 parent's email"; anyone younger can still use push (decided 2026-10-07).
@@ -59,7 +59,7 @@ with DKIM, SPF and DMARC for `tariff.pardy.ie` (steps in
 
 # Removing entries
 
-Decided 2026-10-08 ([roadmap](roadmap.md#next-steps-2026-10-08)): remove
+Decided 2026-10-08 ([removing entries](features/competition-entries.md#removing-and-holding-entries)): remove
 (blocked) or put on hold asking for changes, ticked one by one or a club at
 once, with an optional reason for the club, the member or both, and
 restorable; a held entry sent again waits for the organiser to accept it.
@@ -68,7 +68,7 @@ Nothing left to decide.
 # Approved coaches
 
 Decided 2026-10-07 and 2026-10-08
-([roadmap](roadmap.md#next-steps-2026-10-08)): clubs and individuals send
+([ADR 0007](../docs/adr/0007-approved-coaches.md)): clubs and individuals send
 coaches with a certificate, and the organiser approves each for their
 competition against a qualification picked from a list (a higher level
 counting for a lower one). No expiry date is asked for. A club's

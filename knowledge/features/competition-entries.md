@@ -3124,9 +3124,14 @@ competition pages under `/clubs/`, `/competitions/` (admin pages included) and
 page when the server starts answering within about four seconds (from
 then the page comes through however slowly, as it would without the worker),
 else the copy last opened, else a short page saying this one hasn't been
-opened on this phone before. A page is kept only once all of it has
+opened on this phone before. A page with no copy to fall back to gets about
+15 seconds before that short page, which has a **Try again** button that
+reloads. A page is kept only once all of it has
 arrived, so a page cut off partway leaves the older copy. Static files are kept as first fetched (their addresses change
-with each version), and keeping a file's new version drops its older ones. Only successful pages are kept, never what a form
+with each version), and keeping a file's new version drops its older ones. A
+page kept before an update still asks for the older version, so when the
+network fails the newest kept copy of that file is used instead: an older page
+opened offline gets the newer styles and scripts rather than none. Only successful pages are kept, never what a form
 posted, and at most 60 pages per phone, the oldest dropped first.
 A copy is dropped after 30 days (by the date the server sent it), and when
 the server answers 404 or 410 for its page (a link replaced or deleted), so
@@ -3137,7 +3142,10 @@ While the phone is offline, a banner at the top of each page says "You're
 offline: this is the page as it was when last opened", with the day and time
 the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
 connection comes back; a page that is still the kept copy then needs a
-reload.
+reload. When the copy is shown because the server was slow, not because the
+phone is offline, the banner says "This is taking a while to load, so here's
+the page as it was at Saturday 14:05. If you just sent something, it may still
+be on its way: Try again to see."; Try again reloads the page.
 
 Taps on the On the day page made without a connection are kept on the phone
 too, and sent when it's back, at the time they were tapped: see [taps without
