@@ -77,15 +77,20 @@ the view screen held either way
    Built 2026-11-13: every action that moves entries on or off a waiting
    list opens the notification window, and their page says so for a week
    ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-3. **Small audit items**: no copy of the database before a migration;
-   privacy notes behind the features; ADRs for site feedback and for
+3. **Small audit items**: privacy notes behind the features; ADRs for site feedback and for
    messages; missing indexes. (Built 2026-11-13: an entry let in over a limit
    no longer stays let in after it moves level; the public individual-entry
    link is limited per address; two blocks with the same name on a day are
    refused; an event longer than a day is offered men and women apart and a
-   longer day.)
-4. **Know when it breaks**: an outside uptime check, an email on errors and
-   panics, and a restore drill.
+   longer day; built 2026-11-13: a consistent copy of the database is
+   written before a migration runs, the newest two kept and deleted after
+   14 days, and a migration is refused if the copy can't be
+   [written](operations/deploy.md#a-copy-before-migrating).)
+4. **Know when it breaks**: the email on panics, unexpected 500s, failed
+   background jobs and a store that won't open, grouped and capped, with the
+   last 20 listed on the maintainer's page, is built 2026-11-13
+   ([deploy](operations/deploy.md#knowing-when-it-breaks)). Still the
+   owner's: an outside uptime check, and a restore drill.
 5. **ISTO's 2027 routines**, swapped in when the document arrives, saying
    what happens to routines already checked against 2025's.
 6. **Hand-off to scoring: to be decided.** Clubs used to enter by hand on

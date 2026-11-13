@@ -65,6 +65,9 @@ func (s *sandboxState) end(err error) {
 func (p *competitionPages) makeSandbox() {
 	p.sandbox = &sandboxState{size: sandboxSize}
 	p.feedbackTo = ""
+	// It tells the maintainer of problems, marked as its own, directly: it
+	// has no deliveries sent.
+	p.problems.sandbox, p.problems.queue = true, nil
 	if p.notify != nil {
 		p.notify.sandbox, p.notify.mail = true, nil
 	}
@@ -322,6 +325,7 @@ func (p *competitionPages) rollDay() {
 			switch {
 			case err != nil:
 				log.Printf("Restarting the sandbox's day: %v", err)
+				p.problems.job("the sandbox's daily restart", err)
 			case did:
 				log.Print("Restarted the sandbox's day")
 			}

@@ -105,6 +105,10 @@ func failed(w http.ResponseWriter, r *http.Request, err error) {
 	default:
 		// The route's pattern, not its path, which holds the secret link.
 		log.Printf("Competition storage: %s: %v", r.Pattern, err)
+		// A visitor who left has nothing to tell the maintainer.
+		if !errors.Is(err, context.Canceled) {
+			problemsOf(r.Context()).unexpected(r, err)
+		}
 		message(w, r, http.StatusInternalServerError, "Something went wrong", "That didn't work. Please try again in a minute.")
 	}
 }
@@ -166,18 +170,34 @@ func clubOf(e store.Entry) string {
 
 // deleteExpired deletes competitions 120 days after their date (ADR 0004
 // Decision 6) and clubs unused for 13 months (ADR 0011 Decision 7), now and
-// every few hours.
-func deleteExpired(st *store.Store) {
+// every few hours; what fails is told to the maintainer (rep).
+func deleteExpired(st *store.Store, rep *problems) {
 	for {
-		comps, clubs, err := st.DeleteExpired(context.Background())
-		switch {
-		case err != nil:
-			log.Printf("Deleting expired competitions and clubs: %v", err)
-		case comps+clubs > 0:
-			log.Printf("Deleted %d expired competitions and %d unused clubs", comps, clubs)
-		}
-		deleteOldCaptures(st, time.Now())
+		expireOnce(st, rep, time.Now())
 		time.Sleep(6 * time.Hour)
+	}
+}
+
+// expireOnce is one round of deleteExpired at now: competitions and clubs,
+// pictures and copies of pages, and the copies of the database made before
+// migrating (store.MigrationCopyDays), which hold everything it did.
+func expireOnce(st *store.Store, rep *problems, now time.Time) {
+	comps, clubs, err := st.DeleteExpired(context.Background())
+	switch {
+	case err != nil:
+		log.Printf("Deleting expired competitions and clubs: %v", err)
+		rep.job("the expiry job", err)
+	case comps+clubs > 0:
+		log.Printf("Deleted %d expired competitions and %d unused clubs", comps, clubs)
+	}
+	deleteOldCaptures(st, rep, now)
+	n, err := st.DeleteOldMigrationCopies(now.AddDate(0, 0, -store.MigrationCopyDays))
+	switch {
+	case err != nil:
+		log.Printf("Deleting old copies of the database: %v", err)
+		rep.job("the expiry job", err)
+	case n > 0:
+		log.Printf("Deleted %d old copies of the database made before migrating", n)
 	}
 }
 

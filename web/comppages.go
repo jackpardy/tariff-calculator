@@ -64,6 +64,7 @@ type competitionPages struct {
 	pages                             map[string]bool                        // the GET patterns of the pages here, which can send feedback
 	clubPatterns                      []string                               // the routes under a club's link, each through clubGate
 	sandbox                           *sandboxState                          // nil unless the app is the sandbox (ADR 0016)
+	problems                          *problems                              // what's gone wrong, told to the maintainer (problems.go)
 }
 
 func newCompetitionPages(st *store.Store) *competitionPages {
@@ -81,8 +82,11 @@ func newCompetitionPages(st *store.Store) *competitionPages {
 		feedbackTo:              os.Getenv("FEEDBACK_EMAIL"),
 		pages:                   map[string]bool{},
 	}
+	p.problems = newProblems(func() time.Time { return p.now() })
 	if st != nil {
 		p.notify = newNotifier(st)
+		p.notify.problems = p.problems
+		p.problems.queue = p.queueProblem
 	}
 	return p
 }

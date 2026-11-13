@@ -137,6 +137,66 @@ migration, restore the backup taken before the newer version ran. Uploads
 of coaches' certificates are refused while the data directory's disk has
 less than 1 GB free.
 
+# A copy before migrating
+
+When the app starts with at least one
+migration to run on a database that already has data (not a new one), it
+first writes a consistent copy beside it, with `VACUUM INTO`, named for the
+migration about to run: `tariff-before-v59.db` in `DATA_DIR` is the
+database as it was before migration 59. It keeps the newest two and deletes
+older ones. A migration that fails rolls back by itself; this is for one
+that succeeds and is wrong, which could otherwise only be undone from last
+night's backup. If the copy can't be written, or the disk has less free
+than the database's size plus 10% and 64 MB, the app **doesn't migrate**:
+storage stays off, as for a failed migration (`/healthz` fails and the deploy
+with it), with a log line saying why. It logs how long the copy took. The
+copies hold everything the database does, so they are as secret as it is,
+and the expiry job (every 6 hours) deletes any older than 14 days, as what
+they hold may since have been deleted from the database. To put one back:
+stop the app, move `tariff.db`, `tariff.db-wal` and `tariff.db-shm` out of
+`DATA_DIR`, copy the `tariff-before-vNN.db` file there as `tariff.db` (owner
+uid 1000, mode 600), start the app of the version **before** that migration
+(the copy is at that version, and the newer one would migrate it again),
+and look at it before anything else. Anything entered since the copy is
+lost: the nightly backup, or the broken database moved aside, are the other
+ways to look for it.
+
+# Knowing when it breaks
+
+The maintainer (`FEEDBACK_EMAIL`, with the email
+settings; unset, nothing is sent and nothing breaks) is emailed, through the
+same kept deliveries as other emails, when:
+
+- a handler panics, or a page is answered 500 for an error nobody expected
+  (not a link that leads nowhere, a closed deadline, a limit and the like,
+  nor a visitor who left);
+- a background job fails: the expiry job, the notifier's tick, the
+  sender's workers, the sandbox's daily restart;
+- the database doesn't open or migrate at start. The store is what's down,
+  so this one is sent straight away, once, if the email settings exist, and
+  not kept: if they don't, or the mail server is down too, it is only in the
+  log (`COMPETITION STORAGE IS OFF`), and the health check and deploy fail
+  as before.
+
+The same problem (the same route and error text, or the same panic site)
+is emailed once, then counted, and told again no sooner than an hour later
+with how many times it happened since. At most 20 are emailed a day, then
+one "more problems: see the log" email. An email says what (panic or error,
+its message), where (the route's pattern and the method, or the job), when,
+how often since last told, the app's version (the same one the pages send as
+`X-App-Version`; the image's revision label isn't known to the running app)
+and, for a panic, the first lines of the stack. It never has a path, a query,
+form values or a name: error text has anything shaped like a secret link
+(`/clubs/member/{token}`) or an email address taken out and is cut to 300
+characters. The sandbox's say so in the subject and body.
+
+The maintainer's page lists the last 20 problems, from memory (a restart
+forgets them), under **Problems lately**. Emails failing (more than 10 in an
+hour, usually the mail server) can't be emailed about: that is logged
+(`EMAILS ARE FAILING`) and shown at the top of that page for as long as it
+lasts. Still the owner's: the outside uptime check and the restore drill
+([roadmap](../roadmap.md)).
+
 # Notifications
 
 [Notifications](../features/competition-entries.md#notifications-adr-0008)
@@ -308,7 +368,12 @@ set up:
    `/srv/data/tariff-sandbox` mounted at `/data`, owned by uid 1000, mode
    700, with `DATA_DIR=/data`), `PUBLIC_URL=https://sandbox.tariff.pardy.ie`,
    the same `stop_grace_period`, and **no** `SMTP_*`, `MAIL_FROM` or
-   `FEEDBACK_EMAIL` (nothing would be sent anyway: sandbox mode drops it).
+   `FEEDBACK_EMAIL` (nothing would be sent anyway: sandbox mode drops it,
+   feedback and competitions made included). The one exception is
+   [the email when something breaks](#knowing-when-it-breaks): give the
+   sandbox `SMTP_*`, `MAIL_FROM` and `FEEDBACK_EMAIL` too and it emails
+   those, marked `[sandbox]`, sent straight away (it has no deliveries
+   sent), and nothing else.
    The nightly backup needn't include it: nothing in it is kept.
 2. **DNS**: a record for `sandbox.tariff.pardy.ie` pointing at the server
    (e.g. a CNAME to `tariff.pardy.ie`), unless a wildcard `*.pardy.ie`
