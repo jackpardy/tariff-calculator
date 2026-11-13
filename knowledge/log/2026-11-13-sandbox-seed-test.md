@@ -1,0 +1,1 @@
+* **Update**: The [sandbox](features/sandbox.md)'s morning now always has a flight on Panel 2 with who's up, however the day's entries fall: before, a day whose flights landed badly around 11:15 on all three panels could leave nobody up, which failed `TestSandboxSeed/on_the_day` now and then.

@@ -417,15 +417,20 @@ type keep struct {
 }
 
 // morningUntil is when the seeded morning stops, in minutes after midnight:
-// flights finished by then are finished, and the one on then is under way.
+// flights finished by then are finished, and the one on then is under way
+// (always, in the area with onNow: see morningAreas).
 const morningUntil = 11*60 + 15
 
 // The areas the seed's venue has (run), and how late each is running on the
-// morning, in minutes.
+// morning, in minutes. The one with onNow always has a flight on at the end
+// of the morning with who's up tapped, whichever way the day's flights fall
+// around morningUntil (it may run a few minutes past it): the others stop at
+// it, and a flight on then can still be left warming up.
 var morningAreas = []struct {
-	name string
-	late int
-}{{"Panel 1", 10}, {"Panel 2", 0}, {"Panel 3", 5}, {"Track 1", 0}, {"DMT 1", 0}}
+	name  string
+	late  int
+	onNow bool
+}{{"Panel 1", 10, false}, {"Panel 2", 0, true}, {"Panel 3", 5, false}, {"Track 1", 0, false}, {"DMT 1", 0, false}}
 
 // Morning taps through the first morning of the competition whose admin
 // link is admin, on the date of today, with the clock set to when each tap
@@ -443,6 +448,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 	s.post(admin+"/desk/screen", url.Values{"text": {"Welcome to ISTO! The general warm-up is on every area from 09:00."}, "for": {"0"}})
 
 	underWay := map[string]string{} // the flight on each area at the end of the morning, by key
+	tapped := 0                     // flights with who's up tapped
 	for ai, area := range morningAreas {
 		done := map[string]bool{}
 		for n := 0; s.err == nil; n++ {
@@ -464,7 +470,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 				break
 			}
 			done[key] = true
-			if start+area.late > morningUntil {
+			if start+area.late > morningUntil && !area.onNow {
 				break
 			}
 			entries := matches(box, `data-tap="checkin:([^"]+)"`)
@@ -514,7 +520,7 @@ func Morning(h Clocked, admin string, today time.Time) error {
 			// The flight on now: a few routines in, or still warming up if
 			// its competing isn't due yet.
 			underWay[area.name] = key
-			if competing+area.late > morningUntil {
+			if competing+area.late > morningUntil && !area.onNow {
 				break
 			}
 			if !skipped {
@@ -530,6 +536,9 @@ func Morning(h Clocked, admin string, today time.Time) error {
 					break
 				}
 				s.post(admin+"/day/up", url.Values{"flight": {key}, "what": {"next"}, "entry": {entry[0]}, "round": {round[0]}})
+				if k == 0 {
+					tapped++
+				}
 			}
 			if late {
 				set(competing + area.late + 5)
@@ -537,6 +546,10 @@ func Morning(h Clocked, admin string, today time.Time) error {
 			}
 			break
 		}
+	}
+
+	if s.err == nil && tapped == 0 {
+		s.fail("no flight on now has anyone up")
 	}
 
 	// Messages from the desk: to a club, to the panel of a flight on now,

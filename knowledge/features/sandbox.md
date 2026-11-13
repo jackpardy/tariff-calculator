@@ -70,8 +70,9 @@ competitions:
   and gymnasts checked in from a quarter of an hour before each flight (a
   judge marked missing then here, a gymnast scratched), the flights started
   and finished until 11:15 (Panel 1 runs 10 minutes late, Panel 3 five), the
-  one on then started, a few gymnasts in, with a gymnast checking in late on
-  Panel 1, messages from the desk (to a club, a flight's panel, every
+  one on then started, a few gymnasts in (Panel 2 always has one on with who's
+  up, however the entries fall: the others can be left warming up), with a
+  gymnast checking in late on Panel 1, messages from the desk (to a club, a flight's panel, every
   official, and someone asked to come to the desk) and two notices on the
   venue screen.
 
