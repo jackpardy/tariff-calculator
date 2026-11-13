@@ -400,9 +400,10 @@ with its reply-to, role and details, goes after 90 days too (2026-11-13,
 a **Delete** on the maintainer's page, asking first. The form says "What you
 send is kept for 90 days, then deleted." Pictures and copies are left off
 (the words still kept) past 500 MB of them or with the disk nearly full. The
-app takes 300 pieces a day; an address sends 30 an hour from any page, a
-link's or not (a whole gym on one wifi shares an address), and one link takes
-20 a day from anyone (2026-11-13). Those two refusals say so and aren't
+app takes 300 pieces a day; an address sends 30 an hour from the pages
+without a link and 200 an hour from links' pages (a hall's wifi shares an
+address on a competition day), and one link takes 20 a day from anyone
+(2026-11-13): the real per-sender limit. These refusals say so and aren't
 counted in the app's 300. A picture is up
 to 2 MB, a copy 3 MB as sent and 12 MB unzipped. A picture that isn't a
 JPEG, PNG or WebP is left off.

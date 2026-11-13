@@ -137,8 +137,12 @@ const (
 	// copy of the page and the form around them.
 	maxFeedbackBytes = maxFeedbackPicture + maxFeedbackSnapshot + 64<<10
 	// maxFeedbackPerHour is how much feedback one address can send in an
-	// hour, from any page; a whole gym on one wifi shares one.
-	maxFeedbackPerHour = 30
+	// hour from the pages without a link; maxFeedbackUnderLinkPerHour from
+	// links' pages, higher because a hall's wifi shares one address on a
+	// competition day, when feedback is wanted. The per-link limit is the
+	// real per-sender one.
+	maxFeedbackPerHour          = 30
+	maxFeedbackUnderLinkPerHour = 200
 	// maxFeedbackPerLinkPerDay is how much can be sent under one link in a
 	// day, whoever from, so one link can't use up the app's day.
 	maxFeedbackPerLinkPerDay = 20
@@ -380,7 +384,11 @@ func (p *competitionPages) sendFeedback(w http.ResponseWriter, r *http.Request) 
 	}
 	// The limits come before anything is kept, so a refusal isn't counted
 	// against the app's day.
-	if !p.feedbackLimiter.allow(clientIP(r), p.now()) {
+	byAddress := p.feedbackLimiter
+	if r.URL.Path != "/feedback" {
+		byAddress = p.feedbackLinkAddrLimiter
+	}
+	if !byAddress.allow(clientIP(r), p.now()) {
 		refuse(http.StatusTooManyRequests, "That's a lot of feedback from here: please try again in an hour.")
 		return
 	}

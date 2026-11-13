@@ -51,7 +51,8 @@ type competitionPages struct {
 	facts                             factCache                              // what the pages work out from each competition's entries
 	fixes                             fixCache                               // changes that might make each timetable fit
 	feedbackTo                        string                                 // where feedback is emailed (FEEDBACK_EMAIL); "" for nowhere
-	feedbackLimiter                   *limiter                               // feedback, per address
+	feedbackLimiter                   *limiter                               // feedback without a link, per address
+	feedbackLinkAddrLimiter           *limiter                               // feedback under a link, per address
 	feedbackLinkLimiter               *limiter                               // feedback under a link, per link
 	siteFeedback                      atomic.Pointer[store.FeedbackSettings] // the maintainer's choices, once read
 	pages                             map[string]bool                        // the GET patterns of the pages here, which can send feedback
@@ -61,16 +62,17 @@ type competitionPages struct {
 
 func newCompetitionPages(st *store.Store) *competitionPages {
 	p := &competitionPages{
-		st:                  st,
-		limiter:             newLimiter(maxCompetitionsPerHour, time.Hour),
-		clubLimiter:         newLimiter(maxClubsPerHour, time.Hour),
-		joinLimiter:         newLimiter(maxJoinsPerHour, time.Hour),
-		emailLimiter:        newLimiter(maxEmailsPerHour, time.Hour),
-		feedbackLimiter:     newLimiter(maxFeedbackPerHour, time.Hour),
-		feedbackLinkLimiter: newLimiter(maxFeedbackPerLinkPerDay, 24*time.Hour),
-		now:                 time.Now,
-		feedbackTo:          os.Getenv("FEEDBACK_EMAIL"),
-		pages:               map[string]bool{},
+		st:                      st,
+		limiter:                 newLimiter(maxCompetitionsPerHour, time.Hour),
+		clubLimiter:             newLimiter(maxClubsPerHour, time.Hour),
+		joinLimiter:             newLimiter(maxJoinsPerHour, time.Hour),
+		emailLimiter:            newLimiter(maxEmailsPerHour, time.Hour),
+		feedbackLimiter:         newLimiter(maxFeedbackPerHour, time.Hour),
+		feedbackLinkAddrLimiter: newLimiter(maxFeedbackUnderLinkPerHour, time.Hour),
+		feedbackLinkLimiter:     newLimiter(maxFeedbackPerLinkPerDay, 24*time.Hour),
+		now:                     time.Now,
+		feedbackTo:              os.Getenv("FEEDBACK_EMAIL"),
+		pages:                   map[string]bool{},
 	}
 	if st != nil {
 		p.notify = newNotifier(st)

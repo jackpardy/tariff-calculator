@@ -423,24 +423,47 @@ func TestFeedbackPerSender(t *testing.T) {
 
 	// One address: 30 an hour across links and without, then no more.
 	base := stored()
+	public := url.Values{"text": {"Hi"}, "page": {"/"}}
 	for i := range maxFeedbackPerHour {
-		a, f := "/feedback", url.Values{"text": {"Hi"}, "page": {"/"}}
-		if i%2 == 1 {
-			a, f = otherAction, otherFields
-		}
-		if rec := postFeedbackFrom(t, h, "192.0.2.77:1", a, f, nil); rec.Code != http.StatusOK {
+		if rec := postFeedbackFrom(t, h, "192.0.2.77:1", "/feedback", public, nil); rec.Code != http.StatusOK {
 			t.Fatalf("%d from one address: %d %s", i, rec.Code, rec.Body)
 		}
 	}
-	rec = postFeedbackFrom(t, h, "192.0.2.77:1", otherAction, otherFields, nil)
+	rec = postFeedbackFrom(t, h, "192.0.2.77:1", "/feedback", public, nil)
 	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "from here") {
-		t.Errorf("the address's limit under a link: %d %q", rec.Code, rec.Body)
+		t.Errorf("the address's limit without a link: %d %q", rec.Code, rec.Body)
 	}
 	if n := stored(); n != base+maxFeedbackPerHour {
 		t.Errorf("refusals aren't kept: %d", n)
 	}
-	if rec := postFeedbackFrom(t, h, "192.0.2.78:1", "/feedback", url.Values{"text": {"Hi"}, "page": {"/"}}, nil); rec.Code != http.StatusOK {
+	if rec := postFeedbackFrom(t, h, "192.0.2.77:1", otherAction, otherFields, nil); rec.Code != http.StatusOK {
+		t.Errorf("under a link from the same address: %d", rec.Code)
+	}
+	if rec := postFeedbackFrom(t, h, "192.0.2.78:1", "/feedback", public, nil); rec.Code != http.StatusOK {
 		t.Errorf("another address: %d", rec.Code)
+	}
+
+	// Under links, one address (a hall's wifi) sends 200 an hour, across links.
+	hall, sent := "192.0.2.90:1", 0
+	for i := 0; sent < maxFeedbackUnderLinkPerHour; i++ {
+		l := anIndividual(t, h, admin, fmt.Sprintf("Gym Member %d", i))
+		a, f, _ := feedbackFormOf(t, do(t, h, http.MethodGet, l, nil).Body.String())
+		f.Set("text", "Hi")
+		for range maxFeedbackPerLinkPerDay {
+			if sent == maxFeedbackUnderLinkPerHour {
+				break
+			}
+			if rec := postFeedbackFrom(t, h, hall, a, f, nil); rec.Code != http.StatusOK {
+				t.Fatalf("%d from the hall: %d %s", sent, rec.Code, rec.Body)
+			}
+			sent++
+		}
+	}
+	l := anIndividual(t, h, admin, "Gym Member Last")
+	a, f, _ := feedbackFormOf(t, do(t, h, http.MethodGet, l, nil).Body.String())
+	f.Set("text", "Hi")
+	if rec := postFeedbackFrom(t, h, hall, a, f, nil); rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "from here") {
+		t.Errorf("the hall's limit: %d %q", rec.Code, rec.Body)
 	}
 }
 
