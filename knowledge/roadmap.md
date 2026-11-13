@@ -1045,7 +1045,9 @@ Notifications (7) are built; numbers 1–7 below are built.
     synchronisation at any level; execution, difficulty and chair each up to
     a level of their own; the "below their own level" rule replaced by a note
     from the organiser; the timetable's seat dropdown lists who can take the
-    seat first, and the ask says why someone can't.
+    seat first, and the ask says why someone can't. *Built 2026-11-13*: a
+    renamed level's judges can be carried over to the new name, only when the
+    organiser chooses it.
 - **For attendees:**
   - **Add to calendar**: a person's or club's flights and duties as a
     calendar link that updates when the timetable is published again

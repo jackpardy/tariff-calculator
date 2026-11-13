@@ -3,6 +3,7 @@ package competitions
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -78,6 +79,109 @@ type OfficialSettings struct {
 	// 0006).
 	RecordersChange bool `json:"recorders_change,omitempty"`
 	MarshalsChange  bool `json:"marshals_change,omitempty"`
+	// Renamed are levels renamed since, that judges' offers may still name by
+	// their old name, so the organiser can carry them over later (ADR 0017,
+	// 2026-11-13). Few: the oldest go past maxRenamed.
+	Renamed []LevelRename `json:"renamed,omitempty"`
+}
+
+// LevelRename is a tumbling or DMT level renamed, with the name it had.
+type LevelRename struct {
+	Discipline string `json:"d"`
+	From       string `json:"from"`
+	To         string `json:"to"`
+}
+
+// maxRenamed is how many renames the competition keeps to carry later.
+const maxRenamed = 20
+
+// NoteRenames keeps renames of a discipline's levels (RenamedLevels), so
+// they can be carried later. A level renamed again carries on from where it
+// was: T2 to Tier 2, then to Tier II, is T2 to Tier II.
+func (s *OfficialSettings) NoteRenames(discipline string, renames [][2]string) {
+	s.Renamed = slices.Clone(s.Renamed)
+	for _, r := range renames {
+		for i, k := range s.Renamed {
+			if k.Discipline == discipline && k.To == r[0] {
+				s.Renamed[i].To = r[1]
+			}
+		}
+		if k := (LevelRename{discipline, r[0], r[1]}); !slices.Contains(s.Renamed, k) {
+			s.Renamed = append(s.Renamed, k)
+		}
+	}
+	s.Renamed = slices.DeleteFunc(s.Renamed, func(k LevelRename) bool { return k.From == k.To })
+	if n := len(s.Renamed) - maxRenamed; n > 0 {
+		s.Renamed = s.Renamed[n:]
+	}
+}
+
+// RenamedLevels are the levels renamed between two lists of a discipline's
+// levels, as {was, now} pairs: lines that changed in place, where as many
+// were taken away as put in between two levels that stayed. A level that
+// only moved, or one taken away or added on its own, isn't a rename.
+func RenamedLevels(was, now []string) [][2]string {
+	n, m := len(was), len(now)
+	l := make([][]int, n+1)
+	for i := range l {
+		l[i] = make([]int, m+1)
+	}
+	for i := n - 1; i >= 0; i-- {
+		for j := m - 1; j >= 0; j-- {
+			if was[i] == now[j] {
+				l[i][j] = l[i+1][j+1] + 1
+			} else {
+				l[i][j] = max(l[i+1][j], l[i][j+1])
+			}
+		}
+	}
+	var out [][2]string
+	var gone, added []string
+	flush := func() {
+		if len(gone) == len(added) {
+			for k := range gone {
+				if !slices.Contains(now, gone[k]) && !slices.Contains(was, added[k]) {
+					out = append(out, [2]string{gone[k], added[k]})
+				}
+			}
+		}
+		gone, added = nil, nil
+	}
+	i, j := 0, 0
+	for i < n && j < m {
+		switch {
+		case was[i] == now[j]:
+			flush()
+			i, j = i+1, j+1
+		case l[i+1][j] >= l[i][j+1]:
+			gone = append(gone, was[i])
+			i++
+		default:
+			added = append(added, now[j])
+			j++
+		}
+	}
+	gone, added = append(gone, was[i:]...), append(added, now[j:]...)
+	flush()
+	return out
+}
+
+// Carried is the offer with every role of a discipline that's up to the level
+// from now up to the level to, and whether any was.
+func (o Offer) Carried(discipline, from, to string) (Offer, bool) {
+	j, ok := o.Judge[discipline]
+	if !ok || from == "" || !slices.Contains(slices.Collect(maps.Values(j.UpTo)), from) {
+		return o, false
+	}
+	out := Offer{Judge: maps.Clone(o.Judge), Recorder: o.Recorder, Marshal: o.Marshal}
+	j.UpTo = maps.Clone(j.UpTo)
+	for role, upTo := range j.UpTo {
+		if upTo == from && slices.Contains(LevelRoles, role) {
+			j.UpTo[role] = to
+		}
+	}
+	out.Judge[discipline] = j
+	return out, true
 }
 
 // Stays says whether a seat in the role stays with an event's whole run:

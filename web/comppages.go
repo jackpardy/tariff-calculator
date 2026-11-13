@@ -117,6 +117,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	handle("POST /competitions/admin/{token}/entries/{id}/restore", p.restoreEntry)
 	handle("POST /competitions/admin/{token}/split", p.setSplit)
 	handle("POST /competitions/admin/{token}/events", p.setEvents)
+	handle("POST /competitions/admin/{token}/events/carry", p.carryLevels)
 	handle("POST /competitions/admin/{token}/levels/move", p.moveLevel)
 	handle("GET /competitions/signoff/{token}", p.individualSignoff)
 	handle("POST /competitions/signoff/{token}", p.signOffIndividual)

@@ -960,8 +960,21 @@ is open, so ticking someone qualified keeps the list as it was, back at their ro
   level any more: ask them, or set it** on the organiser's Officials page,
   on the judge's own page, and as the reason in the seat dropdown's ask; a
   seat they hold is reported like any seat someone can't take. Offers aren't
-  rewritten when a level is renamed: the judge or organiser sets the level
-  again. The organiser's
+  rewritten by themselves when a tumbling or DMT level is renamed, but the
+  organiser is asked **after saving** the events: "You renamed T2 to Tier 2.
+  7 judges said they can judge up to T2. Carry them over to Tier 2, or leave
+  them for each judge to set again?" (several renames at once, a tick each,
+  none ticked). A rename is a line changed in place: as many levels taken
+  away as put in between two that stayed (`competitions.RenamedLevels`); a
+  level only removed, added or moved isn't one. Carrying rewrites "up to
+  T2" for every role in every offer of that competition, in one transaction:
+  members' own offers (so a club's next send keeps the name), the held
+  copies, individuals' and added people's, and writes "Carried 7 judges'
+  levels from T2 to Tier 2" in the history. Renames left are kept (up to 20,
+  in `OfficialSettings.Renamed`, with the old name; a second rename chains)
+  and the Officials page offers the same ask while some offer still names the
+  old level; only the organiser's and everything links can carry. The
+  organiser's
   **note to those offering**, if any, is above the form. The comp sec can correct it, or add one for a
   member who hasn't, and it goes to the competition with every send. An
   offer counts as something to send like an entry: one the organiser doesn't
