@@ -3049,8 +3049,8 @@ the server made it (Irish time, e.g. "Saturday 14:05"). It goes when the
 connection comes back; a page that is still the kept copy then needs a
 reload. When the copy is shown because the server was slow, not because the
 phone is offline, the banner says "This is taking a while to load, so here's
-the page as it was at Saturday 14:05. Anything you just sent is saved once it
-arrives: Try again."; Try again reloads the page.
+the page as it was at Saturday 14:05. If you just sent something, it may still
+be on its way: Try again to see."; Try again reloads the page.
 
 Taps on the On the day page made without a connection are kept on the phone
 too, and sent when it's back, at the time they were tapped: see [taps without
