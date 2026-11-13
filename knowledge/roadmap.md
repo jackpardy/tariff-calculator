@@ -67,11 +67,15 @@ the view screen held either way
 1. **Notifications and emails kept across a restart**: a table of deliveries
    still to send, so a deploy doesn't drop them, and time limits on sending an
    email. From the November audit; not built.
-2. **Feedback made safe for real entries**: a capture must not keep other
-   people's working links; feedback deleted at 90 days; a limit per sender;
-   capture switched from Full to Light
-   ([feedback](features/competition-entries.md#feedback-about-the-app)). From
-   the audit; not built.
+2. **Feedback made safe for real entries**: built 2026-11-13: a capture no
+   longer keeps other people's working links (`data-private` blurred and
+   blanked, secret-link paths cleaned, on the server too), a copy can't load
+   from elsewhere, feedback is deleted at 90 days with a Delete for each, and
+   there's a limit per address and per link
+   ([feedback](features/competition-entries.md#feedback-about-the-app)). Left
+   to the owner: **switch capture from Full to Light** on the maintainer's page
+   before real entries open
+   ([deploy](operations/deploy.md#notifications)).
 3. **Tell someone let in from a waiting list** when another withdraws.
    Built 2026-11-13: every action that moves entries on or off a waiting
    list opens the notification window, and their page says so for a week

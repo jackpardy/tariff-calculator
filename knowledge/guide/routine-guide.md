@@ -285,4 +285,5 @@ guide](competition-guide.md#keep-your-routines-on-your-page)).
 If a bar says **The app has been updated**, tap **Refresh**.
 
 Something confusing, wrong or missing? The **Feedback** tab at the right edge
-of the screen sends it to the people who make the app.
+of the screen sends it to the people who make the app. It's kept for 90
+days, then deleted.

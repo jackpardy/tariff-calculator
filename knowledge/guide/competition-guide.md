@@ -239,8 +239,9 @@ pair's one routine), checked as the Routine Builder checks them.
 - **Feedback:** while the app is new, every page has a **Feedback** tab at
   the right edge of the screen, for anyone to say what confused them. It
   goes to the people who make the app, not to you; while the app is being
-  tried out, a picture of the screen and a copy of the page go with it, and
-  the form says so. For something about your competition, people use **Tell
+  tried out, a picture of the screen and a copy of the page go with it (links
+  and emails shown on the page are left out), and the form says so and that
+  it's kept for 90 days. For something about your competition, people use **Tell
   the organiser** (helpers **Flag a concern**).
 - **Approved coaches:** where entries need sign-off, tick **Coaches must be
   approved** and choose the lowest coaching level you accept in each
@@ -1246,7 +1247,9 @@ them. Videos are never uploaded: only their links.
 
 Feedback sent with the **Feedback** tab goes to the people who make the
 app, with the page it was sent from; while the app is being tried out, a
-picture of the screen and a copy of the page go with it, kept for 90 days.
+picture of the screen and a copy of the page go with it, with links and
+emails left out. All of it, with any name or email left for a reply, is
+deleted after 90 days.
 
 # Keeping your links safe
 

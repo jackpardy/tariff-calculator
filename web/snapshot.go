@@ -19,8 +19,10 @@ import (
 // with what had been typed and opened. It's cleaned once, when it arrives,
 // so the maintainer's page can show it as it looked and nothing more: no
 // scripts, nothing that loads from elsewhere, and no link or form that goes
-// anywhere, since every page's links are secret and the copy holds the
-// sender's (taken out where it's known). It's shown with a policy that
+// anywhere, since every page's links are secret. The sender's own is taken
+// out where it's known; what the page marks private (data-private) is
+// blanked, whatever the sender's script did, and any other secret link, in
+// whatever attribute or text, loses its token. It's shown with a policy that
 // allows none of that either (maintainerpages.go, snapshotPolicy).
 
 // errNotHTML is a copy that couldn't be read.
@@ -83,8 +85,15 @@ func clean(n *html.Node) {
 		if c.Type == html.ElementNode && dropped(c) {
 			n.RemoveChild(c)
 		} else {
-			if c.Type == html.ElementNode {
+			switch c.Type {
+			case html.ElementNode:
 				c.Attr = cleanAttrs(c)
+				blankPrivate(c)
+			case html.TextNode:
+				if c.Parent != nil && c.Parent.DataAtom == atom.Style {
+					c.Data = cleanStyle(c.Data)
+				}
+				c.Data = hideTokens(c.Data)
 			}
 			clean(c)
 		}
@@ -136,15 +145,85 @@ func cleanAttrs(n *html.Node) []html.Attribute {
 				continue
 			}
 		case key == "style":
-			if strings.Contains(strings.ToLower(a.Val), "url(") {
+			if v := strings.ToLower(a.Val); strings.Contains(v, "url(") || strings.Contains(v, "image-set(") || strings.Contains(v, `\`) {
 				continue
 			}
 		case key == "target":
 			continue
 		}
+		a.Val = hideTokens(a.Val)
 		out = append(out, a)
 	}
 	return out
+}
+
+// blankPrivate takes out of an element marked data-private what it shows: an
+// input's or option's value, a text's words, a picture's source (a QR code
+// encodes the link). The marked element's own children go too.
+func blankPrivate(n *html.Node) {
+	if !hasAttribute(n, "data-private") {
+		return
+	}
+	var out []html.Attribute
+	for _, a := range n.Attr {
+		switch strings.ToLower(a.Key) {
+		case "value", "src", "alt", "title", "checked", "selected":
+			continue
+		}
+		out = append(out, a)
+	}
+	n.Attr = out
+	for c := n.FirstChild; c != nil; c = n.FirstChild {
+		n.RemoveChild(c)
+	}
+}
+
+// hasAttribute says whether an element has an attribute, whatever its value.
+func hasAttribute(n *html.Node, key string) bool {
+	for _, a := range n.Attr {
+		if strings.EqualFold(a.Key, key) {
+			return true
+		}
+	}
+	return false
+}
+
+// secretLink is the start of the app's secret links and the token after it
+// (22 characters; 16 or more is as good), wherever it's written: as a
+// whole address, a path, or inside a longer value.
+var secretLink = regexp.MustCompile(`(/(?:competitions/(?:admin|club|enter|entry|gymnast|partner|signoff)|clubs/(?:admin|member|coach|join)|site|notify/(?:confirm|off)|secret)/)[A-Za-z0-9_-]{16,}`)
+
+// hideTokens puts a placeholder for the token of every secret link in a
+// value: a second net, for a link the page showed that nothing marked.
+func hideTokens(s string) string {
+	if !strings.Contains(s, "/") {
+		return s
+	}
+	return secretLink.ReplaceAllString(s, "${1}{token}")
+}
+
+var (
+	cssImport = regexp.MustCompile(`(?is)@import[^;]*(?:;|$)`)
+	cssURL    = regexp.MustCompile(`(?is)url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)`)
+	cssSet    = regexp.MustCompile(`(?is)(?:-webkit-)?image-set\((?:[^()]|\([^)]*\))*\)`)
+)
+
+// cleanStyle is a <style>'s text without what loads from elsewhere: no
+// @import, no url() but of a data: address, no image-set(), and no
+// backslash (CSS lets one spell those another way).
+func cleanStyle(css string) string {
+	css = strings.ReplaceAll(css, `\`, "")
+	css = cssImport.ReplaceAllString(css, "")
+	css = cssSet.ReplaceAllString(css, "none")
+	return cssURL.ReplaceAllStringFunc(css, func(u string) string {
+		m := cssURL.FindStringSubmatch(u)
+		for _, arg := range m[1:] {
+			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(arg)), "data:") {
+				return u
+			}
+		}
+		return "none"
+	})
 }
 
 // inlineStyles puts the app's style sheets a cleaned copy links to into

@@ -3,7 +3,9 @@
 // is lost, with details about the browser and, as the maintainer chooses,
 // a picture of the screen and a copy of the page: Full takes both as the
 // button opens, before the form covers anything; Light takes only the
-// picture, when they tick for it, with what's marked data-private blurred.
+// picture, when they tick for it. Both blur what's marked data-private (a
+// link, an email) in the picture, and the copy of the page has its value or
+// text taken out. The server does the same again.
 // The picture's library (modern-screenshot) loads only then. Without
 // JavaScript, the form posts and comes back to the page.
 (() => {
@@ -92,7 +94,7 @@
                     node.removeAttribute(a.name);
                 }
             }
-            if (light && node.hasAttribute('data-private')) {
+            if (node.hasAttribute('data-private')) {
                 node.style.filter = 'blur(6px)';
             }
         },
@@ -126,7 +128,12 @@
             if (!c || ours(el)) {
                 return;
             }
-            if (el.type === 'password' || el.type === 'file') {
+            if (el.hasAttribute('data-private')) {
+                c.removeAttribute('value');
+                if (el.tagName === 'TEXTAREA') {
+                    c.textContent = '';
+                }
+            } else if (el.type === 'password' || el.type === 'file') {
                 c.removeAttribute('value');
             } else if (el.type === 'checkbox' || el.type === 'radio') {
                 c.toggleAttribute('checked', el.checked);
@@ -138,6 +145,13 @@
                 c.setAttribute('value', el.value);
             }
         });
+        // What's private (a link, an email) isn't in the copy: its text goes,
+        // and the Copy button's link with it.
+        doc.querySelectorAll('[data-private]:not(input, textarea, select)').forEach((el) => {
+            el.textContent = '';
+        });
+        doc.querySelectorAll('img[data-private]').forEach((el) => el.removeAttribute('src'));
+        doc.querySelectorAll('[data-copy]').forEach((el) => el.removeAttribute('data-copy'));
         doc.querySelectorAll('[data-site-feedback], script, link[href*="/feedback.css"]').forEach((el) => el.remove());
         const html = '<!DOCTYPE html>\n' + doc.outerHTML;
         if (!window.CompressionStream) {
