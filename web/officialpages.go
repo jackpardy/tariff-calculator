@@ -262,6 +262,10 @@ func (p *competitionPages) officials(w http.ResponseWriter, r *http.Request) {
 		}
 		page.Cover = append(page.Cover, cover)
 	}
+	if page.Carry, err = p.carryAsk(r.Context(), r, c, "officials", ""); err != nil {
+		failed(w, r, err)
+		return
+	}
 	var clubs []string
 	for _, o := range people {
 		clubs = append(clubs, o.ClubName)
@@ -329,7 +333,7 @@ func (p *competitionPages) officialSettings(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Note: strings.TrimSpace(r.FormValue("note")), Panels: map[string]competitions.Panel{}, RecordersChange: r.FormValue("recordersChange") == "1", MarshalsChange: r.FormValue("marshalsChange") == "1"}
+	settings := competitions.OfficialSettings{Judge: r.FormValue("judge"), Note: strings.TrimSpace(r.FormValue("note")), Panels: map[string]competitions.Panel{}, RecordersChange: r.FormValue("recordersChange") == "1", MarshalsChange: r.FormValue("marshalsChange") == "1", Renamed: c.Officials.Renamed}
 	for _, d := range c.Disciplines() {
 		n := func(role string) int {
 			v, err := strconv.Atoi(strings.TrimSpace(r.FormValue("panel-" + offerKey(d) + "-" + role)))

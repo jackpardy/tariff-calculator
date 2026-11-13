@@ -65,7 +65,13 @@ performed as written.
    tumbling and DMT levels, one a line, easiest first. Leave them empty for
    trampoline only. To run synchro levels together, pair them, one event a
    line: "BUCS L1 + BUCS L2" makes one event, "Synchro BUCS L1/L2", where each
-   pair says which level they're doing.
+   pair says which level they're doing. If you later rename a tumbling or
+   DMT level that judges said they can judge up to, the page asks once the
+   change is saved whether to **carry them over** to the new name; nothing is
+   carried unless you choose it (tick each rename you want, or tap **Leave
+   them**). A level you remove is never carried. If you left them, the
+   Officials page keeps offering it, and says "Says up to T2, which isn't a
+   level any more" against each judge until someone sets their level again.
 4. Choose when **Entries open**: when you go live (the competition stays
    private while you set it up), at a set time, or now.
 5. Choose whether **gymnasts can also enter on their own**, whether to ask for

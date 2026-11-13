@@ -122,6 +122,12 @@ func (p *competitionPages) renderSettings(w http.ResponseWriter, r *http.Request
 		}
 		page.CoachApproval = coachApprovalForm(c.Competition, sent, named)
 	}
+	if q.Get("carry") == "1" {
+		if page.Carry, err = p.carryAsk(r.Context(), r, c, "settings", settingsPath(r.PathValue("token"))+"#events"); err != nil {
+			failed(w, r, err)
+			return
+		}
+	}
 	render(w, r, views.CompetitionSettings(page))
 }
 

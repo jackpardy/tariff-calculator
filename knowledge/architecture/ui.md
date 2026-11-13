@@ -263,6 +263,11 @@ its weight calls for, and only once:
   competition or club.
 - A button that asks first can say so in its title ("You're asked first").
 - Once the competition has begun, Plan again is refused, not asked about.
+- A choice **after** a change is saved is the same box with the change
+  already made: renaming a tumbling or DMT level that judges' offers name
+  asks whether to carry them over (`views.CarryAsk`, `carryBox`), with
+  nothing ticked and no default; the Officials page keeps asking while it
+  can.
 
 # The same words
 

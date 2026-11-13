@@ -311,3 +311,99 @@ func (s *Store) SetOfficialSettings(ctx context.Context, id string, settings com
 	}
 	return affected(s.db.ExecContext(ctx, `UPDATE competitions SET officials = $1 WHERE id = $2`, string(data), id))
 }
+
+// carryOffers finds the offers of a competition, kept as a member made them
+// (member_offers) and as the competition holds them (officials: sent by a
+// club, an individual's own, or added by the organiser), that say "up to" a
+// level in a discipline (from), and with write rewrites them to say to. It
+// says how many people: a member whose offer was sent has both.
+func carryOffers(ctx context.Context, tx *sql.Tx, competitionID, discipline, from, to string, write bool) (int, error) {
+	people := map[string]bool{}
+	for _, t := range []struct{ query, update string }{
+		{`SELECT member_id, member_id, offer FROM member_offers WHERE competition_id = $1`,
+			`UPDATE member_offers SET offer = $2 WHERE member_id = $1 AND competition_id = $3`},
+		{`SELECT id, COALESCE(NULLIF(member_id, ''), id), offer FROM officials WHERE competition_id = $1`,
+			`UPDATE officials SET offer = $2 WHERE id = $1 AND competition_id = $3`},
+	} {
+		rows, err := tx.QueryContext(ctx, t.query, competitionID)
+		if err != nil {
+			return 0, err
+		}
+		changed := map[string]string{}
+		for rows.Next() {
+			var id, person, data string
+			if err := rows.Scan(&id, &person, &data); err != nil {
+				rows.Close()
+				return 0, err
+			}
+			var o competitions.Offer
+			if err := json.Unmarshal([]byte(data), &o); err != nil {
+				rows.Close()
+				return 0, err
+			}
+			if carried, ok := o.Carried(discipline, from, to); ok {
+				people[person] = true
+				if out, err := json.Marshal(carried); err == nil {
+					changed[id] = string(out)
+				}
+			}
+		}
+		if err := rows.Close(); err != nil {
+			return 0, err
+		}
+		if write {
+			for id, data := range changed {
+				if _, err := tx.ExecContext(ctx, t.update, id, data, competitionID); err != nil {
+					return 0, err
+				}
+			}
+		}
+	}
+	return len(people), nil
+}
+
+// LevelOffers is how many people's offers at a competition say they'll judge
+// up to a level (up to means any role).
+func (s *Store) LevelOffers(ctx context.Context, competitionID, discipline, level string) (int, error) {
+	var n int
+	err := s.tx(ctx, func(tx *sql.Tx) (err error) {
+		n, err = carryOffers(ctx, tx, competitionID, discipline, level, level, false)
+		return
+	})
+	return n, err
+}
+
+// CarryLevels carries renamed levels over in every offer of the competition,
+// in one go, both the copies members made and what the competition holds, so
+// a club's next send keeps the new name. It says how many people each
+// rename carried, and forgets the renames carried.
+func (s *Store) CarryLevels(ctx context.Context, competitionID string, renames []competitions.LevelRename) ([]int, error) {
+	counts := make([]int, len(renames))
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		for i, r := range renames {
+			n, err := carryOffers(ctx, tx, competitionID, r.Discipline, r.From, r.To, true)
+			if err != nil {
+				return err
+			}
+			counts[i] = n
+		}
+		var data string
+		if err := tx.QueryRowContext(ctx, `SELECT officials FROM competitions WHERE id = $1`, competitionID).Scan(&data); err != nil {
+			return notFound(err)
+		}
+		var settings competitions.OfficialSettings
+		if data != "" {
+			if err := json.Unmarshal([]byte(data), &settings); err != nil {
+				return err
+			}
+		}
+		settings.Renamed = slices.DeleteFunc(settings.Renamed, func(k competitions.LevelRename) bool { return slices.Contains(renames, k) })
+		out, err := json.Marshal(settings)
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE competitions SET officials = $1 WHERE id = $2`, string(out), competitionID)
+		return err
+	})
+	return counts, err
+}

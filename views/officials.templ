@@ -237,6 +237,7 @@ type OfficialsPage struct {
 	TakenBack       []TakenBackRow // offers their club took back: listed, in no seat
 	Tools           ListTools // the People list's search and filters
 	Add             OfferForm // for adding a person
+	Carry           *CarryAsk // levels renamed that offers still name, to carry over
 }
 
 // PanelSetting is a discipline's panel, as the form shows it.
@@ -284,6 +285,7 @@ templ CompetitionOfficials(p OfficialsPage) {
 			// Stays in sight as the page goes to the person changed.
 			@stickyNotice(p.Notice)
 		}
+		@carryBox(p.Carry)
 		<div class="table-container">
 			<table class="table is-narrow">
 				<thead><tr><th>Discipline</th><th>Can judge</th><th>Can chair</th><th>One panel needs</th></tr></thead>
@@ -488,4 +490,65 @@ func panelsNow(p OfficialsPage) string {
 		out += "; with a note to those offering"
 	}
 	return out
+}
+
+// CarryAsk asks whether to carry judges' levels over a rename (ADR 0017,
+// 2026-11-13): nothing is carried unless the organiser chooses it, so no
+// box is ticked.
+type CarryAsk struct {
+	Action  string
+	Renames []CarryRename
+	Back    string // where Leave them goes; "" for no button (the Officials page keeps asking)
+	Return  string // the page to come back to: "settings" or "officials"
+}
+
+// CarryRename is one level renamed, that judges' offers still name.
+type CarryRename struct {
+	Key        string // discipline and old name, as posted
+	Discipline string // its name
+	From, To   string
+	Judges     int
+}
+
+// carryBox is a CarryAsk, at the top of the page. Nothing when there's none.
+templ carryBox(a *CarryAsk) {
+	if a != nil && len(a.Renames) > 0 {
+		<div class="notification is-warning is-light comp-ask" id="carry" role="alert">
+			if len(a.Renames) == 1 {
+				<p class="mb-2"><strong>You renamed { a.Renames[0].From } to { a.Renames[0].To }</strong></p>
+				<p class="mb-3">
+					{ Count(a.Renames[0].Judges, "judge said they can", "judges said they can") } judge up to { a.Renames[0].From }.
+					Carry them over to { a.Renames[0].To }, or leave them for each judge to set again?
+				</p>
+			} else {
+				<p class="mb-2"><strong>You renamed { strconv.Itoa(len(a.Renames)) } levels</strong></p>
+				<p class="mb-3">Judges who said they can judge up to a level's old name can be carried over to its new one, or left for each judge to set again. Tick the ones to carry over.</p>
+			}
+			<form method="post" action={ templ.SafeURL(a.Action) }>
+				<input type="hidden" name="back" value={ a.Return }/>
+				if len(a.Renames) == 1 {
+					<input type="hidden" name="carry" value={ a.Renames[0].Key }/>
+				} else {
+					for _, r := range a.Renames {
+						<div class="field mb-2">
+							<label class="checkbox">
+								<input type="checkbox" name="carry" value={ r.Key }/>
+								{ r.Discipline }: { r.From } to { r.To } ({ Count(r.Judges, "judge", "judges") } said up to { r.From })
+							</label>
+						</div>
+					}
+				}
+				<div class="buttons">
+					if len(a.Renames) == 1 {
+						<button class="button is-small is-primary" type="submit">Carry them over to { a.Renames[0].To }</button>
+					} else {
+						<button class="button is-small is-primary" type="submit">Carry the ticked ones over</button>
+					}
+					if a.Back != "" {
+						<a class="button is-small" href={ templ.SafeURL(a.Back) }>Leave them</a>
+					}
+				</div>
+			</form>
+		</div>
+	}
 }

@@ -451,6 +451,7 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	changed.Synchro = competitions.OrderLevels(was, changed.Synchro)
 	notice := "Events changed."
+	carry := false // a renamed level that offers name, to ask about
 	var err error
 	if changed.Synchro, err = competitions.PairLevels(changed.Synchro, pairs); err != nil {
 		noteRefused(w)
@@ -462,6 +463,13 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	} else {
+		// A level renamed that judges' offers name: ask once saved whether to
+		// carry them over (levelcarry.go).
+		var err error
+		if carry, err = p.noteRenames(r.Context(), c, changed); err != nil {
+			failed(w, r, err)
+			return
+		}
 		// Entries in a level taken away stay, each with a problem: say how many.
 		entries, err := p.entriesOf(r.Context(), c.ID)
 		if err != nil {
@@ -484,6 +492,10 @@ func (p *competitionPages) setEvents(w http.ResponseWriter, r *http.Request) {
 			notice += fmt.Sprintf(" %s in a level no longer offered (%s): each shows a problem on Entries until moved or removed.",
 				views.Count(n, "entry is", "entries are"), strings.Join(names, ", "))
 		}
+	}
+	if carry {
+		seeOther(w, r, settingsPath(r.PathValue("token"))+"?carry=1#carry", notice)
+		return
 	}
 	backToSettings(w, r, notice)
 }

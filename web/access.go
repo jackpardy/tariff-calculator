@@ -339,6 +339,8 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 			}
 		}
 		return "Asked for the entries " + name + " signed off to be signed off again"
+	case path == "/events/carry":
+		return "" // carryLevels writes its own lines, with how many
 	case strings.HasPrefix(path, "/coaches/") || strings.HasPrefix(path, "/entry-coaches/"):
 		if what, ok := coachDecisions[f("action")]; ok {
 			return what
