@@ -79,3 +79,15 @@ can't be hd judge at ISTO Elite-Pro").
   page, the seat dropdown's reason says the same, and a seat they hold is
   reported by the holder checks. Offers aren't rewritten when the organiser
   renames a level; someone sets the level again.
+- **Carrying a rename** (2026-11-13). Offers still aren't rewritten by
+  themselves, but the organiser can choose to: after saving events where a
+  tumbling or DMT level was renamed and offers name it, the page asks "You
+  renamed T2 to Tier 2. 7 judges said they can judge up to T2. Carry them
+  over to Tier 2, or leave them for each judge to set again?" Nothing is
+  carried unless they choose (the owner: "give the option ... but not by
+  default"). A rename is a line changed in place (as many levels taken away
+  as put in between two that stayed); a removed level is never carried.
+  Carrying rewrites every role's "up to" in every place that competition
+  keeps offers, in one transaction, and writes a history line. A rename left
+  is kept with the officials settings (up to 20) and the Officials page keeps
+  asking while an offer names the old level.

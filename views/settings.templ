@@ -37,6 +37,7 @@ type SettingsPage struct {
 	Split          SplitForm
 	Events         EventsForm
 	LevelOrder     []LevelOrder
+	Carry          *CarryAsk // levels just renamed that judges' offers name
 }
 
 // settingsGroup is a heading on the settings page, with the id its jump link
@@ -62,6 +63,7 @@ templ CompetitionSettings(p SettingsPage) {
 			@stickyNotice(p.Notice)
 		}
 		@askBox(p.Ask)
+		@carryBox(p.Carry)
 		<p class="is-size-7 mb-4">
 			Jump to:
 			<a href="#links">Links</a> ·

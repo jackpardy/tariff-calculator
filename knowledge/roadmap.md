@@ -244,7 +244,7 @@ Dates are when built, where known.
 - [What if there's a delay](features/competition-entries.md#what-if-theres-a-delay) and [what if an official has to leave](features/competition-entries.md#what-if-an-official-has-to-leave), with their missing checks (2026-10-16); an official leaving puts no one in two places (2026-11-11).
 - Saying what a manual change breaks, with fixes (2026-10-16); re-planning keeps what's marked on the day (2026-10-19).
 - Judges' qualifications ([ADR 0014](../docs/adr/0014-judges-qualifications.md), 2026-10-16) and levels by role ([ADR 0017](../docs/adr/0017-judge-levels-by-role.md), 2026-10-22); seat problems and who's free for a seat (2026-10-22).
-- A judge's level that has gone: the offer takes that role at no level and says so (2026-11-11); carrying levels over on a rename is in progress.
+- A judge's level that has gone: the offer takes that role at no level and says so (2026-11-11); renaming a level can carry judges' levels over, if the organiser chooses (2026-11-13).
 - [Flight times of their own](features/competition-entries.md#flight-times-roadmap-15): warm-up and competing apart, an event's own, a flight's own (2026-11-11).
 - Recorders' score sheets (2026-10-08).
 
