@@ -2,6 +2,9 @@
 
 New lines start as files in [log/](log/), one per change, and are moved here, under their dates, after they merge ([how](log/README.md)).
 
+## 2026-11-13
+* **Update**: The [roadmap](roadmap.md) rewritten short: where it stands, the dates, what is left before the dry run, before ISTO's entries open and before the day, what waits on others and on the server, what is not planned, the decisions that still hold, and one line for each thing built.
+
 ## 2026-11-11
 * **Update**: [Browser tests](architecture/testing.md#browser-tests-how-to-wait) no longer fail now and then on timing: the taps test waits for its offline sends to fail before the phone's clock moves, the card-edit tests wait out a page reloading, the sheet test loads the sheet once, and a failing step prints the requests the server answered; in the app, a control in a form htmx has just loaded works at once (not 20 ms later) and the card's form scrolling into view stops where it is when pressed, so a quick tap on a shape is no longer lost
 * **Update**: [What if an official has to leave?](features/competition-entries.md#what-if-an-official-has-to-leave) no longer puts anyone in two places (anyone moved is checked free first, and gives up their own real seat), no longer changes a flight that has ended, and no longer leaves an event with two chairs (a mover gives up all of their own event still to come, one person fills it, "from flight 2" where it starts part way); the page lists everything the result breaks, people in two places first, and "What's changed since you published" says which flights a part-run seat changed on. Found in the audit of 2026-11-10.
