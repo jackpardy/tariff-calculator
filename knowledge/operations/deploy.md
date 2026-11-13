@@ -174,6 +174,16 @@ sent too, and an email for each competition made; it needs the email
 settings above. Without it, feedback and the competitions made are only on
 the maintainer's page.
 
+**Full or Light.** Feedback is **Full** to start with (a picture and a copy
+of the page with every piece), for the demo and the dry run. Before real
+entries open, switch it to **Light**: it's a setting on the maintainer's page
+(**Capture**, then **Save**), kept in the database, not an environment
+variable, so it takes effect at once with no deploy. Light keeps details and
+a picture only when the sender ticks for it, with links and emails blurred,
+and never a copy of the page. Check it on the live and sandbox maintainer
+pages separately: each has its own. Feedback and what came with it is deleted
+after 90 days.
+
 Without `SMTP_HOST` and `MAIL_FROM`, email isn't offered. Phone push needs
 nothing set: the app makes its push (VAPID) keys on first use and keeps them
 in the database, so the nightly backup covers them (losing them stops push

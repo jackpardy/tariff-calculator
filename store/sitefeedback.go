@@ -176,6 +176,36 @@ func (s *Store) DeleteCaptures(ctx context.Context, before time.Time) (int64, er
 	return res.RowsAffected()
 }
 
+// DeleteSiteFeedback deletes a piece of feedback with its picture and copy;
+// ErrNotFound if there's none.
+func (s *Store) DeleteSiteFeedback(ctx context.Context, id string) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM site_feedback_captures WHERE feedback_id = $1`, id); err != nil {
+			return err
+		}
+		return affected(tx.ExecContext(ctx, `DELETE FROM site_feedback WHERE id = $1`, id))
+	})
+}
+
+// DeleteOldSiteFeedback deletes the feedback sent before a time, with its
+// pictures and copies, and says how many went.
+func (s *Store) DeleteOldSiteFeedback(ctx context.Context, before time.Time) (int64, error) {
+	var n int64
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		cutoff := formatTime(before)
+		if _, err := tx.ExecContext(ctx, `DELETE FROM site_feedback_captures WHERE feedback_id IN (SELECT id FROM site_feedback WHERE at < $1)`, cutoff); err != nil {
+			return err
+		}
+		res, err := tx.ExecContext(ctx, `DELETE FROM site_feedback WHERE at < $1`, cutoff)
+		if err != nil {
+			return err
+		}
+		n, err = res.RowsAffected()
+		return err
+	})
+	return n, err
+}
+
 // FeedbackSettings are the maintainer's choices for feedback about the app.
 type FeedbackSettings struct {
 	// Off hides the Feedback button on every page. It's on until turned off.

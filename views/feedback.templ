@@ -71,8 +71,9 @@ templ feedbackButton(f *FeedbackForm) {
 								Include a picture of the screen
 							</label>
 						} else {
-							<p class="site-feedback-small site-feedback-grey">A picture of your screen and a copy of this page go with it, to the people who make the app only.</p>
+							<p class="site-feedback-small site-feedback-grey">A picture of your screen and a copy of this page go with it, to the people who make the app only. Links and emails shown on the page are left out.</p>
 						}
+						<p class="site-feedback-small site-feedback-grey">What you send is kept for 90 days, then deleted.</p>
 						<figure class="site-feedback-picture" hidden data-feedback-picture>
 							<img alt="The picture of your screen that goes with it"/>
 							<figcaption class="site-feedback-small site-feedback-grey" data-feedback-caption></figcaption>
@@ -165,7 +166,7 @@ templ Maintainer(p MaintainerPage) {
 			}
 			@opens("Pictures and copies kept", keptLine(p.Captures, p.Size), "Delete", false) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/captures/delete") } class="mb-3">
-					<p class="is-size-7 mb-2">Every picture and copy of a page goes; what people wrote stays. They go by themselves after 90 days.</p>
+					<p class="is-size-7 mb-2">Every picture and copy of a page goes; what people wrote stays. Each piece of feedback and what came with it goes by itself after 90 days.</p>
 					<button class="button is-small is-danger" type="submit">Delete them all</button>
 				</form>
 			}
@@ -262,6 +263,15 @@ templ Maintainer(p MaintainerPage) {
 						</label>
 						<noscript><button class="button is-small" type="submit">Change</button></noscript>
 					</form>
+					@opens("", "", "Delete", false) {
+						<form method="post" action={ templ.SafeURL(p.Base + "/feedback/" + f.ID + "/delete") }>
+							<p class="is-size-7 mb-2">Delete this feedback, with its reply-to, picture and copy of the page, for good?</p>
+							if p.All {
+								<input type="hidden" name="all" value="1"/>
+							}
+							<button class="button is-small is-danger" type="submit">Delete it</button>
+						</form>
+					}
 				</div>
 			}
 		</div>
