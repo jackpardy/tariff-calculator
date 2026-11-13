@@ -1,1 +1,0 @@
-* **Update**: [Copying a competition](features/competition-entries.md#copying-a-competition): an organiser copies its set-up for another competition, or makes a private rehearsal copy with its entries that sends nothing and is deleted after 30 days; a finished competition's set-up is now kept for 3 years once its people are deleted at 120 days (ADR 0004 note).
