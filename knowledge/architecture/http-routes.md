@@ -164,7 +164,7 @@ transaction, and marks their club used (once a day) only when it's due.
 | `POST /competitions/admin/{token}/limits` | `limit-<n>` for each event, in the competition's order (empty: none), `anyway=1` | Sets each event's limit (waiting lists). Limits that would let entries in from a waiting list, or move entries in onto one, show **Before you change it** (200), naming them, unless `anyway=1` |
 | `POST /competitions/admin/{token}/entries/{id}/let-in` | `on` (`1`/`0`) | Lets a waiting entry in over the limit, or back |
 | `GET /competitions/admin/{token}/fees` | — | Entry fees: what's charged, and each club's and individual's account |
-| `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `instructions` | Sets the fees |
+| `POST /competitions/admin/{token}/fees/settings` | `currency` (`GBP` or not), `fee-<discipline>`, `club`, `charge_removed=1` (still charge an entry its club removes after entries close), `removed_fee` (a fee for removing one then), `instructions` | Sets the fees |
 | `POST /competitions/admin/{token}/fees/payments` | `payer` (`club:<id>` or `entry:<id>`), `amount`, `note` | Records a payment |
 | `POST /competitions/admin/{token}/fees/payments/{id}/remove` | `anyway=1` | Removes a payment; without `anyway`, Fees asking first (200). One removed already says so |
 | `GET /competitions/admin/{token}/fees/invoice` | `payer` | A payer's invoice, to print |
@@ -255,6 +255,7 @@ allow it (`clubRoutes` in `web/clubaccess.go`, ADR 0015); others get 403,
 | `POST /clubs/admin/{token}/coaches` | `name` | Adds a coach: the club page with their coach link, shown once |
 | `POST /clubs/admin/{token}/coaches/from-member` | `member` | Makes a member a coach too; their member link opens the coach's page. Back to Coaches |
 | `POST /clubs/admin/{token}/ties/remove` | `id` (the tie) | Stops someone's own link opening the comp sec's pages. Back to Settings |
+| `POST /clubs/admin/{token}/competitions/{id}/take-out` | `member`, `what` (`entries`, `offer` or `both`), `anyway=1` | Takes a member out of one competition, staying in the club: sent entries become removed by the club, unsent ones go; the offer to judge or help is taken back. Without `anyway`, the competition's Entries page asking first (200), with any charge after entries close. Refused once changes close, or for nothing to take out (Enter and change entries) |
 | `POST /clubs/admin/{token}/coaches/{coach}/new-link`, `/remove` | `anyway=1` | A coach's new link (shown once), or removing them; without `anyway`, Coaches asking first (200) |
 | `POST /clubs/admin/{token}/coaches-see-all` | `on` (`1`/`""`) | Whether every coach sees every member |
 | `GET /clubs/coach/{token}` | — | A coach's page: each competition's entries they see, and their sign-off |
@@ -339,7 +340,8 @@ allow it (`clubRoutes` in `web/clubaccess.go`, ADR 0015); others get 403,
 | `GET /competitions/admin/{token}/coaches` | optional `notice`, `undo` (a coach's anchor, after a withdrawal) | Coaches (ADR 0007): each club's coaches sent for approval and individuals' coaches, with their qualifications and certificates, to approve or not |
 | `POST /competitions/admin/{token}/approve-coaches` | `on` (`1`/`0`), `level-<discipline>`, `anyway=1` | Whether only approved coaches' sign-offs count. Turning it on where entries are signed off by coaches not approved shows **Before you change it** (200), with how many would wait, unless `anyway=1` |
 | `POST /competitions/admin/{token}/coaches/{coach}` | `action` (`approve`, `afresh` for sign-offs from now on, `refuse`, `withdraw`), `note`, `anyway=1` | The organiser's decision on a club's coach, with a note the club sees; back at the coach (`#coach-<id>`). Approving a coach sent with no qualifications shows Coaches asking first (200) unless `anyway=1`. A withdrawal comes back with `undo=coach-<id>`, its notice offering **Undo** (approving again, with their sign-offs before) |
-| `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded |
+| `POST /competitions/admin/{token}/coaches/{coach}/signoff-again` | `anyway=1` | For a coach their club removed: the entries they signed off go back to waiting for a coach's sign-off, with the reason shown to the club, gymnasts and coaches (who are told); without `anyway`, Coaches asking first (200), naming the entries. Refused (back at the coach, "Nothing was changed") for a coach still at their club or with nothing signed. Organiser and co-organiser links only |
+| `GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}` | — | A club coach's certificate, as uploaded (gone once their club removes them) |
 | `POST /competitions/admin/{token}/entry-coaches/{entry}` | `action` (as above), `note` | The organiser's decision on an individual's coach; back at the coach (`#named-<entry>`), a withdrawal with `undo=named-<entry>` |
 | `GET /competitions/admin/{token}/entry-coaches/{entry}/certificate` | — | An individual's coach's certificate |
 | `POST /competitions/admin/{token}/remove` | `entry` (repeated), `action` (`hold` to hold rather than remove), `note`, `to` (who the note is for: the club, the member or both) | Removes or holds the ticked entries, with a note; back to the dashboard with the filters and `sort` in its query |

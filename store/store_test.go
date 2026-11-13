@@ -264,7 +264,7 @@ func TestClubsAndMembers(t *testing.T) {
 	if len(members) != 1 || members[0].Name != "A. Murphy" {
 		t.Errorf("members: %+v", members)
 	}
-	must(t, s.RemoveMember(ctx, club.ID, m.ID))
+	must(t, s.RemoveMember(ctx, club.ID, m.ID, "Club admin"))
 	if _, err := s.MemberByLink(ctx, fresh); !errors.Is(err, ErrNotFound) {
 		t.Error("a removed member's link stops working")
 	}
@@ -367,7 +367,7 @@ func TestSending(t *testing.T) {
 	}
 
 	// Removing the club keeps what it sent with the competition.
-	must(t, s.DeleteClub(ctx, club.ID))
+	must(t, s.DeleteClub(ctx, club.ID, "Club admin"))
 	if list, _ := s.Entries(ctx, c.ID); len(list) != 1 || list[0].ClubName != "UCD" || list[0].ClubID != "" {
 		t.Errorf("sent entries stay with the competition: %+v", list)
 	}
@@ -592,7 +592,7 @@ func TestWithdrawnEntries(t *testing.T) {
 		t.Errorf("nothing withdrawn yet: %v", got)
 	}
 	must(t, s.WithdrawMemberEntry(ctx, a.ID, c.ID, ""))
-	must(t, s.RemoveMember(ctx, club.ID, b.ID))
+	must(t, s.RemoveMember(ctx, club.ID, b.ID, "Club admin"))
 	if got := withdrawn(); !got["A"] || !got["B"] || got["I"] {
 		t.Errorf("A withdrew and B left: both marked until the club sends again: %v", got)
 	}
@@ -602,8 +602,8 @@ func TestWithdrawnEntries(t *testing.T) {
 	}
 	_, err = s.Send(ctx, club.ID, c.ID, nil)
 	must(t, err)
-	if got := withdrawn(); len(got) != 1 || got["I"] {
-		t.Errorf("sending everyone's takes them back: %v", got)
+	if got := withdrawn(); len(got) != 2 || got["I"] || !got["B"] {
+		t.Errorf("sending everyone's takes back what A withdrew, but B, removed by the club, stays with the organiser: %v", got)
 	}
 }
 
@@ -705,7 +705,7 @@ func TestCoaches(t *testing.T) {
 	}
 
 	// Removing a coach leaves their members without one.
-	must(t, s.RemoveCoach(ctx, club.ID, ann.ID))
+	must(t, s.RemoveCoach(ctx, club.ID, ann.ID, "Club admin"))
 	if m, _ := s.Member(ctx, club.ID, x.ID); m.CoachID != "" {
 		t.Errorf("no coach now: %+v", m)
 	}
@@ -1137,7 +1137,7 @@ func TestCoachQualifications(t *testing.T) {
 		t.Errorf("removed: %+v", qs)
 	}
 	// Removing the coach removes their certificates.
-	must(t, s.RemoveCoach(ctx, club.ID, ann.ID))
+	must(t, s.RemoveCoach(ctx, club.ID, ann.ID, "Club admin"))
 	var n int
 	must(t, s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM coach_qualifications`).Scan(&n))
 	if n != 0 {

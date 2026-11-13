@@ -288,6 +288,8 @@ who.
 | Held for changes | On hold | "On hold: the organiser asks for changes" / "On hold: changed, send it again" |
 | Problems on its card | 1 problem, 2 problems | the problems listed under the chip |
 | Removed / withdrawn | Removed / Withdrawn | "Removed by the organiser" |
+| Removed by its club (the member or coach, or the club itself, removed after sending) | Removed by the club | "UCD removed Ann Ryan on 11 Nov, by Club admin, after entries closed" |
+| An official's offer their club took back | Offer taken back by the club | Officials' "Offers taken back by their club" list |
 
 A member's offer to judge or help uses the same words (Not sent, Changed since sent, Sent; one withdrawn since it was sent is Changed since sent) and chips, on the club's Judging and helping tab and the member's page; the club's page counts them as "2 offers to send".
 

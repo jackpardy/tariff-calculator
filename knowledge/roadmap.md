@@ -227,7 +227,7 @@ Dates are when built, where known.
 - [Club roles and links](features/competition-entries.md#club-roles-and-links-adr-0015) (2026-10-21).
 - Joining with several people on one phone: the join page lists the phone's pages at the club, a known name asks first (2026-11-11).
 - Who sends: four club settings for members sending their own, and the organiser taking only what clubs send ([late changes](features/competition-entries.md#late-changes), 2026-11-11).
-- Removed members and coaches staying visible to the organiser, with fees for removal after entries close: PR #202, in review, not merged at 2026-11-13.
+- [Removed by the club](features/competition-entries.md#removed-by-the-club): removed members and coaches stay visible to the organiser, sign-offs can be asked for again, a pair whose partner has gone is flagged, a member can be taken out of one competition (entries, offer to judge, or both), and fees for removal after entries close (2026-11-13).
 
 ## Fees, limits, late requests
 

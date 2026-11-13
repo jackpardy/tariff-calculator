@@ -22,6 +22,7 @@ func (p *competitionPages) registerApprovals(handle func(string, http.HandlerFun
 	handle("POST /competitions/admin/{token}/approve-coaches", p.setApproveCoaches)
 	handle("GET /competitions/admin/{token}/coaches", p.approvals)
 	handle("POST /competitions/admin/{token}/coaches/{coach}", p.decideCoach)
+	handle("POST /competitions/admin/{token}/coaches/{coach}/signoff-again", p.signoffAgain)
 	handle("GET /competitions/admin/{token}/coaches/{coach}/certificates/{q}", p.competitionCertificate)
 	handle("POST /competitions/admin/{token}/entry-coaches/{entry}", p.decideEntryCoach)
 	handle("GET /competitions/admin/{token}/entry-coaches/{entry}/certificate", p.entryCertificate)
@@ -208,6 +209,27 @@ func (p *competitionPages) renderApprovals(w http.ResponseWriter, r *http.Reques
 				Certificate: base + "/coaches/" + s.CoachID + "/certificates/" + q.ID})
 			keys = append(keys, q.Qualification)
 		}
+		if s.Removed() {
+			for _, q := range s.RemovedQualifications {
+				row.Qualifications = append(row.Qualifications, views.ApprovalQualification{Name: qualificationName(q)})
+				keys = append(keys, q)
+			}
+			row.Removed = s.RemovedAt.In(local).Format("2 Jan")
+			if s.RemovedBy != "" {
+				row.Removed += ", by " + s.RemovedBy
+			}
+			signed, err := p.st.SignedByCoach(r.Context(), c.ID, s.CoachID)
+			if err != nil {
+				failed(w, r, err)
+				return
+			}
+			if row.Signed = len(signed); row.Signed > 0 && can(r, "POST", "/coaches/{coach}/signoff-again") {
+				row.AskAgain = base + "/coaches/" + s.CoachID + "/signoff-again"
+			}
+			if !s.AskedAgainAt.IsZero() {
+				row.AskedAgain = s.AskedAgainAt.In(local).Format("2 Jan")
+			}
+		}
 		row.Meets = meets(c.Competition, keys)
 		row.List = views.ListRow{Name: s.Name, Values: map[string][]string{"club": {clubValue(s.ClubName)}, "status": {coachStatusValue(s.Status)}}}
 		clubs = append(clubs, s.ClubName)
@@ -291,6 +313,72 @@ func (p *competitionPages) decideCoach(w http.ResponseWriter, r *http.Request) {
 	}
 	// Back to the coach, where it shows.
 	seeOther(w, r, decidedPath(r, "coach-"+coach.CoachID, status), notice)
+}
+
+// signoffAgain asks, for a coach their club has removed, for the entries
+// they signed off to be signed off again by another of the club's coaches:
+// asking first, naming them, then each waits for a sign-off, with the
+// reason shown to the club, the gymnast and their coaches, who are told.
+func (p *competitionPages) signoffAgain(w http.ResponseWriter, r *http.Request) {
+	c, ok := p.admin(w, r)
+	if !ok {
+		return
+	}
+	sent, err := p.st.CompetitionCoaches(r.Context(), c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	i := slices.IndexFunc(sent, func(s store.SentCoach) bool { return s.CoachID == r.PathValue("coach") })
+	if i < 0 {
+		failed(w, r, store.ErrNotFound)
+		return
+	}
+	coach := sent[i]
+	back := adminPath(r.PathValue("token")) + "/coaches"
+	if !coach.Removed() {
+		refuse(w, r, back+"#coach-"+coach.CoachID, coach.Name+" is still one of "+coach.ClubName+"'s coaches: their sign-offs stand. Nothing was changed.")
+		return
+	}
+	signed, err := p.st.SignedByCoach(r.Context(), c.ID, coach.CoachID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	if len(signed) == 0 {
+		refuse(w, r, back+"#coach-"+coach.CoachID, "No entry is signed off by "+coach.Name+" now. Nothing was changed.")
+		return
+	}
+	if !asked(r) {
+		var names []string
+		for _, e := range signed {
+			names = append(names, e.Entry.Gymnasts()+" · "+e.Entry.Event())
+		}
+		verb := "go"
+		if len(signed) == 1 {
+			verb = "goes"
+		}
+		text := fmt.Sprintf("%s %s back to waiting for a coach's sign-off: %s. %s, the gymnasts and their coaches see why, and those who asked to hear about changes are told.",
+			views.Count(len(signed), "entry", "entries"), verb, strings.Join(names, "; "), coach.ClubName)
+		if !c.SignoffsOpen(p.now()) {
+			text += " Sign-offs have closed, so no coach can sign these now: they stay waiting unless you let sign-offs in later (Settings, when changes and sign-offs close)."
+		}
+		noteAsked(w)
+		p.renderApprovals(w, r, c, inPlace(r, views.Ask{
+			Title:  "Ask for " + coach.Name + "'s sign-offs to be given again?",
+			Text:   text,
+			Button: "Ask for these to be signed off again", Back: back + "#coach-" + coach.CoachID,
+		}))
+		return
+	}
+	p.notify.changing(r.Context(), c)
+	reason := fmt.Sprintf("Signed off by %s, who is no longer one of %s's coaches: the organiser has asked for another coach to sign it off", coach.Name, coach.ClubName)
+	done, err := p.st.AskSignoffAgain(r.Context(), c.ID, coach.CoachID, reason)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	seeOther(w, r, back+"#coach-"+coach.CoachID, fmt.Sprintf("Asked for %s signed off by %s to be signed off again.", views.Count(len(done), "entry", "entries"), coach.Name))
 }
 
 // competitionCertificate shows the organiser a certificate of a coach sent

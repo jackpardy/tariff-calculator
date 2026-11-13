@@ -56,6 +56,7 @@ func (p *competitionPages) registerClubs(mux *http.ServeMux) {
 	handle("GET /clubs/admin/{token}/competitions/{id}/enter-member", p.enterMember)
 	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}", p.saveMemberEntryForMember)
 	handle("POST /clubs/admin/{token}/members/{member}/competitions/{id}/withdraw", p.withdrawForMember)
+	handle("POST /clubs/admin/{token}/competitions/{id}/take-out", p.takeOut)
 	handle("POST /clubs/admin/{token}/members/{member}/new-link", p.newMemberLink)
 	handle("POST /clubs/admin/{token}/members/{member}/remove", p.removeMember)
 	handle("POST /clubs/admin/{token}/replace-link", p.replaceClubLink)
@@ -276,6 +277,12 @@ func (p *competitionPages) clubCompetitionFees(w http.ResponseWriter, r *http.Re
 // competition: 404 for one the club isn't in, and for Coaches or Fees where
 // the competition doesn't approve coaches or charge.
 func (p *competitionPages) renderClubCompetition(w http.ResponseWriter, r *http.Request, tab string) {
+	p.renderClubCompetitionWith(w, r, tab, nil)
+}
+
+// renderClubCompetitionWith is renderClubCompetition, asking before a
+// change (ask).
+func (p *competitionPages) renderClubCompetitionWith(w http.ResponseWriter, r *http.Request, tab string, ask *views.Ask) {
 	club, ok := p.clubAdmin(w, r)
 	if !ok {
 		return
@@ -289,7 +296,7 @@ func (p *competitionPages) renderClubCompetition(w http.ResponseWriter, r *http.
 		return
 	}
 	token := r.PathValue("token")
-	page := views.ClubPage{Base: clubPath(token), Name: club.Name, Notice: r.URL.Query().Get("notice"), Menu: clubCompetitionMenu(r, c, tab)}
+	page := views.ClubPage{Base: clubPath(token), Name: club.Name, Notice: r.URL.Query().Get("notice"), Menu: clubCompetitionMenu(r, c, tab), Ask: ask}
 	ctx := r.Context()
 	coaches, err := p.st.Coaches(ctx, club.ID)
 	if err != nil {
@@ -592,7 +599,7 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 			place := waitingPlace[e.MemberID+"/"+e.Discipline]
 			state := lost.state(memberState(e, rem, removed, place))
 			row.State = stateOfStanding(state)
-			row.Unsent = lost.Line
+			row.Unsent, row.PartnerGone = lost.Line, partnerGoneForThem(e.PartnerGone)
 			switch state {
 			case entryRemoved, entryHeld:
 				row.Status = removalStatus(rem, e.ChangedSinceSent())
@@ -686,6 +693,25 @@ func (p *competitionPages) clubCompetitions(r *http.Request, club store.Club, ba
 		// Offers waiting to be sent count on the home page too.
 		if cc.Offers, cc.NoOffer, cc.OffersToSend, err = p.clubOffers(r, base, club, c, members); err != nil {
 			return nil, err
+		}
+		// Taking a member out of it: who has something here, while changes
+		// are open (as withdrawing).
+		if enter && !home {
+			inEntries, inOffers, err := p.st.InCompetition(ctx, club.ID, c.ID)
+			if err != nil {
+				return nil, err
+			}
+			for _, m := range members {
+				if !inEntries[m.ID] && !inOffers[m.ID] {
+					continue
+				}
+				if !c.ChangesOpen(p.now()) {
+					cc.TakeOutClosed = "Changes to entries have closed, so the club can't take anyone out of this competition now: tell the organiser, or remove the member from the club."
+					break
+				}
+				cc.TakeOut = append(cc.TakeOut, views.FlightOption{Value: m.ID, Label: m.Name})
+			}
+			cc.TakeOutAction = clubCompetitionPath(r.PathValue("token"), c.ID) + "/take-out"
 		}
 		out = append(out, cc)
 	}
@@ -1016,15 +1042,22 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 		failed(w, r, err)
 		return
 	}
+	text := "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition's organiser, marked removed by the club, and aren't in it any more. Their offers to judge or help are taken back too."
+	if lines, err := p.removalCosts(r, m.ID, ""); err != nil {
+		failed(w, r, err)
+		return
+	} else if len(lines) > 0 {
+		text += " " + strings.Join(lines, " ")
+	}
 	if p.askClub(w, r, club, clubMembers, views.Ask{
 		Remove: true, // takes something away: red
 		Title:  "Remove " + m.Name + "?",
-		Text:   "Their entries go with them, and their link stops working. Entries the club has sent already stay with each competition.",
+		Text:   text,
 		Button: "Remove " + m.Name, Back: clubMembersPath(r.PathValue("token")) + "#" + views.MemberAnchor(m.ID),
 	}) {
 		return
 	}
-	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID); err != nil {
+	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}
@@ -1060,11 +1093,141 @@ func (p *competitionPages) deleteClub(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, clubSettingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Type delete in the box to delete the club; nothing was deleted."), http.StatusSeeOther)
 		return
 	}
-	if err := p.st.DeleteClub(r.Context(), club.ID); err != nil {
+	if err := p.st.DeleteClub(r.Context(), club.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}
-	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries already sent stay with each competition.")
+	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries and coaches already sent stay with each competition's organiser, marked removed by the club.")
+}
+
+// takeOut takes one of the club's members out of a competition (member),
+// staying in the club: what=entries, offer (to judge or help) or both;
+// asking first, with what it costs after entries close.
+func (p *competitionPages) takeOut(w http.ResponseWriter, r *http.Request) {
+	club, ok := p.clubAdmin(w, r)
+	if !ok {
+		return
+	}
+	c, ok := p.enteredCompetition(w, r, club.ID)
+	if !ok {
+		return
+	}
+	back := clubCompetitionPath(r.PathValue("token"), c.ID)
+	m, err := p.st.Member(r.Context(), club.ID, r.FormValue("member"))
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	what := r.FormValue("what")
+	entries, offer := what == "entries" || what == "both", what == "offer" || what == "both"
+	inEntries, inOffers, err := p.st.InCompetition(r.Context(), club.ID, c.ID)
+	if err != nil {
+		failed(w, r, err)
+		return
+	}
+	switch {
+	case !entries && !offer:
+		refuse(w, r, back, "Choose what to take "+m.Name+" out of. Nothing was changed.")
+		return
+	case !c.ChangesOpen(p.now()):
+		refuse(w, r, back, "Changes to entries for "+c.Name+" have closed, so "+m.Name+" can't be taken out now: tell the organiser, or remove them from the club. Nothing was changed.")
+		return
+	case (entries && !offer && !inEntries[m.ID]) || (offer && !entries && !inOffers[m.ID]) || (!inEntries[m.ID] && !inOffers[m.ID]):
+		refuse(w, r, back, m.Name+" has nothing of that here to take out. Nothing was changed.")
+		return
+	}
+	if !asked(r) {
+		var parts []string
+		if entries {
+			parts = append(parts, "Their entries at "+c.Name+" come out: those the club sent stay with the organiser, marked removed by the club, and any not sent go.")
+			if lines, err := p.removalCosts(r, m.ID, c.ID); err != nil {
+				failed(w, r, err)
+				return
+			} else {
+				parts = append(parts, lines...)
+			}
+		}
+		if offer {
+			parts = append(parts, "Their offer to judge or help comes out: the organiser sees it taken back by the club, and they're taken off any seats on the timetable.")
+		}
+		parts = append(parts, m.Name+" stays in the club, and can be entered again, or offer again, while changes are open.")
+		button := map[string]string{"entries": "Take out their entries", "offer": "Take out their offer", "both": "Take out both"}[what]
+		noteAsked(w)
+		p.renderClubCompetitionWith(w, r, clubCompEntries, inPlace(r, views.Ask{
+			Remove: true,
+			Title:  "Take " + m.Name + " out of " + c.Name + "?",
+			Text:   strings.Join(parts, " "),
+			Button: button, Back: back,
+		}))
+		return
+	}
+	if err := p.st.TakeOut(r.Context(), club.ID, m.ID, c.ID, entries, offer, clubLinkOf(r).Who()); err != nil {
+		failed(w, r, err)
+		return
+	}
+	notice := map[string]string{"entries": "Took " + m.Name + "'s entries out of " + c.Name + ".", "offer": "Took " + m.Name + "'s offer to judge or help out of " + c.Name + ".",
+		"both": "Took " + m.Name + "'s entries and offer to judge or help out of " + c.Name + "."}[what]
+	seeOther(w, r, back, notice)
+}
+
+// removalCosts are the lines saying what removing a member, or taking them
+// out of one competition (only, its id), costs the club, a competition at a
+// time: their entries the club sent to one whose entries have closed, where
+// its organiser charges for that.
+func (p *competitionPages) removalCosts(r *http.Request, memberID, only string) ([]string, error) {
+	sent, err := p.st.MemberSent(r.Context(), memberID)
+	if err != nil {
+		return nil, err
+	}
+	var order []string
+	byComp := map[string][]store.Entry{}
+	for _, e := range sent {
+		if only != "" && e.CompetitionID != only {
+			continue
+		}
+		if _, ok := byComp[e.CompetitionID]; !ok {
+			order = append(order, e.CompetitionID)
+		}
+		byComp[e.CompetitionID] = append(byComp[e.CompetitionID], e)
+	}
+	now := p.now()
+	var out []string
+	for _, id := range order {
+		c, err := p.st.Competition(r.Context(), id)
+		if err != nil {
+			return nil, err
+		}
+		if !c.Live(now) || c.Open(now) {
+			continue // not closed: removing them costs nothing
+		}
+		total, each := 0, -1
+		for _, e := range byComp[id] {
+			cost := c.Fees.RemovedCost(e.Entry.Discipline)
+			total += cost
+			if each == -1 || each == cost {
+				each = cost
+			} else {
+				each = -2 // they differ
+			}
+		}
+		if total == 0 {
+			continue
+		}
+		n := len(byComp[id])
+		entries := "Their entry"
+		if n > 1 {
+			entries = fmt.Sprintf("Their %d entries", n)
+		}
+		switch {
+		case n == 1:
+			out = append(out, fmt.Sprintf("%s at %s was sent and entries have closed: the organiser charges %s for it.", entries, c.Name, c.Fees.Money(total)))
+		case each >= 0:
+			out = append(out, fmt.Sprintf("%s at %s were sent and entries have closed: the organiser charges %s for each.", entries, c.Name, c.Fees.Money(each)))
+		default:
+			out = append(out, fmt.Sprintf("%s at %s were sent and entries have closed: the organiser charges %s for them.", entries, c.Name, c.Fees.Money(total)))
+		}
+	}
+	return out, nil
 }
 
 // --- Entering a club in a competition ---
@@ -1380,7 +1543,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			}
 			e, lost := heldAs(c, e, sent, now, "You")
 			ev.Level = e.Entry.Event()
-			ev.Unsent, ev.NoChange = lost.Line, lost.Never
+			ev.Unsent, ev.NoChange, ev.PartnerGone = lost.Line, lost.Never, partnerGoneForThem(e.PartnerGone)
 			copyID, place := "", 0
 			for _, s := range sent {
 				if s.MemberID == m.ID && s.Entry.Discipline == d {

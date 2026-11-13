@@ -66,7 +66,7 @@ func TestKeptRequirements(t *testing.T) {
 	}
 
 	// Gone with the person: the member removed, then the tidy-up.
-	must(t, s.RemoveMember(ctx, club.ID, m.ID))
+	must(t, s.RemoveMember(ctx, club.ID, m.ID, "Club admin"))
 	if _, _, err := s.DeleteExpired(ctx); err != nil {
 		t.Fatal(err)
 	}

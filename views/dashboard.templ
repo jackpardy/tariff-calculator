@@ -25,10 +25,17 @@ type Dashboard struct {
 	// SeatProblems are the timetable's seats whose holders can't have them
 	// any more (they withdrew, say), a line each, for the timetable link.
 	SeatProblems []string
+	// RemovedLate are the entries clubs removed after entries closed, a
+	// line each with a link, to know about.
+	RemovedLate []LinkedLine
+	// PartnerGone are the pairs' entries whose partner the club removed or
+	// took out, a line each with a link: they may need a new partner.
+	PartnerGone []LinkedLine
 	SeatsHint    string // what to do about them, e.g. "Give the seat to someone else, then publish again."
 	Waiting      []WaitingList // each limited event's waiting list
 	Unchecked    int           // entries not checked yet
 	Withdrawn    int           // entries withdrawn since their club sent them
+	ClubRemoved  int           // entries whose club removed the gymnast, or itself, since it sent them
 	Competition  CompetitionSummary
 	Links        CompetitionLinks
 	Clubs        []string // the clubs entered, by name
@@ -91,7 +98,8 @@ type DashboardRow struct {
 	Checked           bool
 	Note              string
 	Video             string // "" when not needed, else missing, provided, OK or need more
-	Withdrawn         bool   // withdrawn since the club sent it
+	Withdrawn         bool   // withdrawn since the club sent it, or removed by the club
+	ClubRemoved       string // when and by whom the club removed it ("" if it didn't), e.g. "11 Nov, 14:02, by Club admin, after entries closed"
 	Category          string // Men or Women, where the level splits them
 	Signoff           SignoffView
 	Coach             string // who coaches them: who signed off, or else their coach
@@ -112,7 +120,9 @@ type EntryDetail struct {
 	Note        string
 	VideoReview string // "", "ok" or "more"
 	VideoNote   string
-	Withdrawn   bool // withdrawn since the club sent it
+	Withdrawn   bool   // withdrawn since the club sent it, or removed by the club
+	ClubRemoved string // as DashboardRow's
+	PartnerGone string // a partner the club removed or took out (partnerGoneLine)
 	LetIn       bool   // let in from its event's waiting list, over the limit
 	List        string // the entries page's filters and sort it was opened from, as a query (Dashboard.List)
 }
@@ -151,6 +161,27 @@ templ CompetitionDashboard(d Dashboard) {
 				</a>
 				<span class="is-size-7 has-text-grey ml-1">Below the entries.</span>
 			</p>
+		}
+		if len(d.RemovedLate) > 0 {
+			<div class="mb-3">
+				@StateChip(Attention, Count(len(d.RemovedLate), "entry removed by its club", "entries removed by their clubs")+" after entries closed")
+				<span class="is-size-7 has-text-grey ml-1">They're out of the competition, but listed with the entries.</span>
+				<ul class="is-size-7 mt-1">
+					for _, l := range d.RemovedLate {
+						<li><a href={ templ.SafeURL(l.Href) }>{ l.Text }</a></li>
+					}
+				</ul>
+			</div>
+		}
+		if len(d.PartnerGone) > 0 {
+			<div class="mb-3">
+				@StateChip(Attention, Count(len(d.PartnerGone), "pair", "pairs")+" may need a new partner")
+				<ul class="is-size-7 mt-1">
+					for _, l := range d.PartnerGone {
+						<li><a href={ templ.SafeURL(l.Href) }>{ l.Text }</a></li>
+					}
+				</ul>
+			</div>
 		}
 		if len(d.SeatProblems) > 0 {
 			<div class="mb-3">
@@ -307,6 +338,9 @@ templ CompetitionDashboard(d Dashboard) {
 				if d.Withdrawn > 0 {
 					@count(d.Withdrawn, "withdrawn")
 				}
+				if d.ClubRemoved > 0 {
+					@count(d.ClubRemoved, "removed by the club")
+				}
 				@count(len(d.Clubs), "clubs")
 			</nav>
 		</section>
@@ -328,6 +362,11 @@ func hasIndividuals(d Dashboard) bool {
 	return false
 }
 
+// LinkedLine is a line of text that links somewhere.
+type LinkedLine struct {
+	Text, Href string
+}
+
 templ count(n int, label string) {
 	<div class="level-item has-text-centered">
 		<div>
@@ -345,7 +384,16 @@ templ CompetitionEntry(d EntryDetail) {
 		<h1 class="title is-4">{ d.Card.Gymnast }</h1>
 		<p class="subtitle is-6">{ d.Card.Club } · { d.Card.Level }</p>
 		@pageMenu(d.Menu)
-		if d.Withdrawn {
+		if d.PartnerGone != "" {
+			<div class="notification is-warning is-light">
+				<p>{ d.PartnerGone }.</p>
+			</div>
+		}
+		if d.ClubRemoved != "" {
+			<div class="notification is-warning is-light">
+				<p><strong>Removed by the club.</strong> { d.Card.Club } removed { d.Card.Gymnast } on { d.ClubRemoved }, after sending this entry. It isn't in the competition: it isn't counted, charged (unless your fees say so), put in a flight or printed, and stays here as it was last sent.</p>
+			</div>
+		} else if d.Withdrawn {
 			<div class="notification is-warning is-light">
 				<p><strong>Withdrawn.</strong> { d.Card.Gymnast } has withdrawn this entry, or left the club, since { d.Card.Club } sent it. It goes when the club sends its entries again; until then it isn't counted or printed.</p>
 			</div>
@@ -550,6 +598,9 @@ templ signoffLine(s SignoffView) {
 				{ "by " }
 				@coachName(s.By, s.Link, s.Unapproved)
 			</span>
+		}
+		if s.Again != "" && !s.Signed {
+			<span class="is-block is-size-7">{ s.Again }.</span>
 		}
 	</span>
 }
@@ -839,7 +890,11 @@ templ dashboardRow(d Dashboard, l DashboardLevel, r DashboardRow) {
 			if r.Partner != "" {
 				<a class="is-size-7 ml-1" href={ templ.SafeURL(r.Partner) } title="Everything the partner is doing">partner</a>
 			}
-			if r.Withdrawn {
+			if r.ClubRemoved != "" {
+				<span class="ml-1" title={ "Removed by the club on " + r.ClubRemoved + ". It stays here, out of the competition." }>
+					@StateChip(Stopped, "Removed by the club")
+				</span>
+			} else if r.Withdrawn {
 				<span class="ml-1" title="Withdrawn since the club sent it; it goes when the club sends again">
 					@StateChip(Stopped, "Withdrawn")
 				</span>

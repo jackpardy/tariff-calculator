@@ -67,6 +67,12 @@ approved.
    with the coach until the comp sec replaces or removes them, removes the
    coach, or the club is deleted (ADR 0004 Decision 6). Only the comp sec
    and the organisers the coach is sent to can open them.
+   *Noted 2026-11-11:* removing a coach, or the club, no longer takes them
+   from the competitions they were sent to: each keeps them, marked removed
+   by the club, with the kinds of qualification sent (the certificates
+   still go), their approval as it was, and their sign-offs counting until
+   the organiser asks for the entries they signed to be signed off again
+   (migration 56).
 
 5. **Clubs send coaches to a competition.** For a competition that requires
    approved coaches, the club's page lists its coaches who can sign off, to

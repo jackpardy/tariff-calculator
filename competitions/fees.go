@@ -20,6 +20,13 @@ type Fees struct {
 	PerEntry     map[string]int `json:"per_entry,omitempty"` // in cents, by discipline
 	PerClub      int            `json:"per_club,omitempty"`  // in cents, once for each club entered
 	Instructions string         `json:"instructions,omitempty"`
+	// For an entry its club removes (by removing its member, or itself)
+	// after entries have closed (2026-11-11): ChargeRemoved keeps its entry
+	// fee on the club's invoice, and RemovedFee (in cents) is charged for it
+	// as well, on a line of its own. Removed before the close, it's never
+	// charged.
+	ChargeRemoved bool `json:"charge_removed,omitempty"`
+	RemovedFee    int  `json:"removed_fee,omitempty"`
 }
 
 // The currencies fees can be in.
@@ -33,7 +40,7 @@ const MaxFee = 100000
 
 // On says whether the competition charges anything.
 func (f Fees) On() bool {
-	if f.PerClub > 0 {
+	if f.PerClub > 0 || f.RemovedFee > 0 {
 		return true
 	}
 	for _, c := range f.PerEntry {
@@ -97,6 +104,39 @@ func parseAmount(s string, most int) (int, error) {
 	}
 	cents := int(math.Round(v * 100))
 	return cents, nil
+}
+
+// RemovedCost is what an entry in a discipline costs its club if the club
+// removes it after entries have closed: 0 for nothing.
+func (f Fees) RemovedCost(discipline string) int {
+	cost := f.RemovedFee
+	if f.ChargeRemoved {
+		cost += f.PerEntry[discipline]
+	}
+	return cost
+}
+
+// RemovedLines are the lines for entries a club removed after entries
+// closed, as the fees say to charge them (in the usual order): each one's
+// entry fee, and the fee for removing it.
+func (f Fees) RemovedLines(entries []Entry) ([]InvoiceLine, int) {
+	entries = slices.Clone(entries)
+	slices.SortStableFunc(entries, func(a, b Entry) int {
+		return cmp.Or(CompareNames(a.Gymnast, b.Gymnast),
+			cmp.Compare(slices.Index(AllDisciplines, a.Discipline), slices.Index(AllDisciplines, b.Discipline)))
+	})
+	var lines []InvoiceLine
+	total := 0
+	for _, e := range entries {
+		what := e.Gymnasts() + " · " + e.Event()
+		if amount := f.PerEntry[e.Discipline]; f.ChargeRemoved && amount > 0 {
+			lines, total = append(lines, InvoiceLine{what + " (removed after entries closed)", amount}), total+amount
+		}
+		if f.RemovedFee > 0 {
+			lines, total = append(lines, InvoiceLine{"Removed after entries closed: " + what, f.RemovedFee}), total+f.RemovedFee
+		}
+	}
+	return lines, total
 }
 
 // InvoiceLine is one thing charged.

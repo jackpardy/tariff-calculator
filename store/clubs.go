@@ -126,12 +126,16 @@ func (s *Store) ReplaceClubAdmin(ctx context.Context, id string) (string, error)
 	return admin, affected(s.db.ExecContext(ctx, `UPDATE clubs SET admin_hash = $1 WHERE id = $2`, hash(admin), id))
 }
 
-// DeleteClub deletes a club, its members and their entries. Entries it already
-// sent stay with each competition, under the competition's retention. The
-// shared links tied to its admin link, or added on its members' and coaches'
-// pages, go with it.
-func (s *Store) DeleteClub(ctx context.Context, id string) error {
+// DeleteClub deletes a club, by who (the club link's Who), its members and
+// their entries. Entries it already sent stay with each competition, under
+// the competition's retention, removed by the club, and so do the coaches it
+// sent (keepClubs). The shared links tied to its admin link, or added on its
+// members' and coaches' pages, go with it.
+func (s *Store) DeleteClub(ctx context.Context, id, who string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
+		if err := keepClubs(ctx, tx, s.stamp(), who, `id = $3`, id); err != nil {
+			return err
+		}
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id)); err != nil {
 			return err
 		}
@@ -264,15 +268,28 @@ func (s *Store) ReplaceMemberLink(ctx context.Context, clubID, memberID string) 
 	return token, nil
 }
 
-// RemoveMember removes a member from their club, with their entries and the
-// shared links added on their page. Entries already sent stay with each
-// competition.
-func (s *Store) RemoveMember(ctx context.Context, clubID, memberID string) error {
+// RemoveMember removes a member from their club, by who (the club link's
+// Who), with their entries and the shared links added on their page.
+// Entries already sent stay with each competition, removed by the club
+// (keepEntries), before or after the deadline.
+func (s *Store) RemoveMember(ctx context.Context, clubID, memberID, who string) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
+		club, err := clubName(ctx, tx, clubID)
+		if err != nil {
+			return err
+		}
+		now := s.stamp()
+		if err := keepEntries(ctx, tx, now, who, club, false, false, `member_id = $3 AND club_id = $4`,
+			`partner_member = $3 AND (member_id IS NULL OR member_id <> $3)`, memberID, clubID); err != nil {
+			return err
+		}
+		if err := keepOffers(ctx, tx, now, who, club, `member_id = $3`, memberID); err != nil {
+			return err
+		}
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID)); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, memberID)
+		_, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, memberID)
 		return err
 	})
 }
@@ -357,6 +374,12 @@ type MemberEntry struct {
 	SignedAt         time.Time // when a coach signed it off; zero if not, or changed since
 	SignedBy         string    // the coach who signed it off, or said not yet
 	SignNote         string    // the coach's note
+	// SignoffAgain is why the organiser asked for another coach to sign it
+	// off, until one does: the coach who did was removed by the club.
+	SignoffAgain string
+	// PartnerGone flags a synchro entry whose partner their club removed,
+	// or took out of the competition, until the partner is changed.
+	PartnerGone *PartnerGone
 }
 
 // SignedOff says whether a coach has signed off the entry as it is now.
@@ -430,6 +453,8 @@ func upsertMemberEntry(ctx context.Context, tx *sql.Tx, memberID, competitionID 
 				partner_confirmed = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_confirmed ELSE FALSE END,
 				partner_member = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_member ELSE NULL END,
 				partner_entry = CASE WHEN member_entries.partner_token = excluded.partner_token THEN member_entries.partner_entry ELSE NULL END,
+				partner_gone = CASE WHEN member_entries.partner_token = excluded.partner_token
+					AND json_extract(member_entries.entry, '$.partner.name') IS json_extract(excluded.entry, '$.partner.name') THEN member_entries.partner_gone ELSE '' END,
 				partner_token = excluded.partner_token, partner_hash = excluded.partner_hash`,
 		memberID, competitionID, e.Discipline, string(data), now, token, nullHash(token))
 	return err
@@ -450,7 +475,7 @@ func (s *Store) WithdrawMemberEntry(ctx context.Context, memberID, competitionID
 
 const memberEntrySelect = `SELECT me.member_id, m.name, me.competition_id, me.discipline, me.entry, me.updated_at, COALESCE(e.sent_at, ''),
 		e.checked_at IS NOT NULL, COALESCE(e.note, ''), COALESCE(e.video_review, ''), COALESCE(e.video_note, ''),
-		COALESCE(me.signed_at, ''), me.signed_by, me.sign_note, me.partner_token, me.partner_confirmed
+		COALESCE(me.signed_at, ''), me.signed_by, me.sign_note, me.partner_token, me.partner_confirmed, me.signoff_again, me.partner_gone
 	FROM member_entries me
 	JOIN members m ON m.id = me.member_id
 	LEFT JOIN entries e ON e.member_id = me.member_id AND e.competition_id = me.competition_id AND e.discipline = me.discipline`
@@ -465,8 +490,12 @@ func (s *Store) memberEntries(ctx context.Context, where string, args ...any) ([
 	var out []MemberEntry
 	for rows.Next() {
 		var e MemberEntry
-		var entry, updated, sent, signed string
-		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &e.Discipline, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote, &signed, &e.SignedBy, &e.SignNote, &e.PartnerLink, &e.PartnerConfirmed); err != nil {
+		var entry, updated, sent, signed, partnerGone string
+		if err := rows.Scan(&e.MemberID, &e.MemberName, &e.CompetitionID, &e.Discipline, &entry, &updated, &sent, &e.Checked, &e.Note, &e.VideoReview, &e.VideoNote, &signed, &e.SignedBy, &e.SignNote, &e.PartnerLink, &e.PartnerConfirmed, &e.SignoffAgain, &partnerGone); err != nil {
+			return nil, err
+		}
+		var err error
+		if e.PartnerGone, err = readPartnerGone(partnerGone); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
@@ -515,11 +544,12 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 			member, name, discipline, entry string
 			signedAt                        sql.NullString
 			signedBy, signNote, signedCoach string
+			signoffAgain, partnerGone       string
 			partnerConfirmed                bool
 			partnerMember, partnerEntry     sql.NullString
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT me.member_id, m.name, me.discipline, me.entry, me.signed_at, me.signed_by, me.sign_note, me.signed_coach,
-			me.partner_confirmed, me.partner_member, me.partner_entry FROM member_entries me
+			me.partner_confirmed, me.partner_member, me.partner_entry, me.signoff_again, me.partner_gone FROM member_entries me
 			JOIN members m ON m.id = me.member_id
 			WHERE m.club_id = $1 AND me.competition_id = $2`, clubID, competitionID)
 		if err != nil {
@@ -529,7 +559,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		for rows.Next() {
 			var p pending
 			if err := rows.Scan(&p.member, &p.name, &p.discipline, &p.entry, &p.signedAt, &p.signedBy, &p.signNote, &p.signedCoach,
-				&p.partnerConfirmed, &p.partnerMember, &p.partnerEntry); err != nil {
+				&p.partnerConfirmed, &p.partnerMember, &p.partnerEntry, &p.signoffAgain, &p.partnerGone); err != nil {
 				rows.Close()
 				return err
 			}
@@ -552,8 +582,10 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				}
 			}
 		} else {
-			// Everyone's: what the competition has from this club becomes exactly this.
-			if _, err := tx.ExecContext(ctx, `DELETE FROM entries WHERE competition_id = $1 AND club_id = $2
+			// Everyone's: what the competition has from this club becomes
+			// exactly this, but for what the club removed, which the
+			// organiser keeps.
+			if _, err := tx.ExecContext(ctx, `DELETE FROM entries WHERE competition_id = $1 AND club_id = $2 AND club_removed_at = ''
 				AND NOT EXISTS (SELECT 1 FROM member_entries me JOIN members m ON m.id = me.member_id
 					WHERE m.club_id = $2 AND me.competition_id = $1
 					AND me.member_id = entries.member_id AND me.discipline = entries.discipline)`, competitionID, clubID); err != nil {
@@ -594,18 +626,19 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 		for _, p := range chosen {
 			result.Sent = append(result.Sent, SentEntry{MemberID: p.member, Discipline: p.discipline})
 			if _, err := tx.ExecContext(ctx, `INSERT INTO entries (id, competition_id, club_id, member_id, discipline, club_name, individual, gymnast, entry, sent_at,
-				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach, entered_at)
-				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16, $8)
+				signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach, entered_at, signoff_again, partner_gone)
+				VALUES ($1, $2, $3, $4, $12, $5, FALSE, $6, $7, $8, $9, $10, $11, $13, $14, $15, $16, $8, $17, $18)
 				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
 					entered_at = CASE WHEN json_extract(entries.entry, '$.level') = json_extract(excluded.entry, '$.level') THEN entries.entered_at ELSE excluded.entered_at END,
 					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
+					signoff_again = excluded.signoff_again, partner_gone = excluded.partner_gone,
 					resent = entries.resent OR (entries.removal = 'held' AND entries.entry <> excluded.entry),
 					partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry,
 					checked_at = CASE WHEN entries.entry = excluded.entry THEN entries.checked_at ELSE NULL END,
 					video_review = CASE WHEN entries.entry = excluded.entry THEN entries.video_review ELSE '' END`,
 				newID(), competitionID, clubID, p.member, name, p.name, p.entry, now, p.signedAt, p.signedBy, p.signNote,
-				p.discipline, p.partnerConfirmed, p.partnerMember, p.partnerEntry, p.signedCoach); err != nil {
+				p.discipline, p.partnerConfirmed, p.partnerMember, p.partnerEntry, p.signedCoach, p.signoffAgain, p.partnerGone); err != nil {
 				return err
 			}
 		}

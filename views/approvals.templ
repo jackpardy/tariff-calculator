@@ -53,9 +53,28 @@ type ApprovalRow struct {
 	Qualifications []ApprovalQualification
 	Meets          []string // each discipline asked for, met or not, e.g. "Trampoline ✓"
 	List           ListRow  // what the list's search and filters see
+	// Removed says when and by whom their club removed them, e.g. "11 Nov,
+	// by Club admin"; "" if it hasn't. Signed are the entries they signed
+	// off that are still in, and AskAgain where asking for those to be
+	// signed off again posts ("" if nothing's left to ask); AskedAgain says
+	// when the organiser last did.
+	Removed    string
+	Signed     int
+	AskAgain   string
+	AskedAgain string
 }
 
-// ApprovalQualification is a coach's qualification, with its certificate.
+// removedCertificates says, for a coach their club removed, that their
+// certificates went with them, where they had any.
+func removedCertificates(k ApprovalRow) string {
+	if len(k.Qualifications) == 0 {
+		return ""
+	}
+	return ". Their certificates went when the club removed them; the qualifications are as sent"
+}
+
+// ApprovalQualification is a coach's qualification, with its certificate
+// ("" once the club has removed the coach).
 type ApprovalQualification struct {
 	Name, Certificate string
 }
@@ -109,16 +128,35 @@ templ CompetitionApprovals(p ApprovalsPage) {
 									<p>
 										<strong><a href={ templ.SafeURL(k.Person) }>{ k.Name }</a></strong>
 										@StateChip(approvalState(k))
+										if k.Removed != "" {
+											@StateChip(Stopped, "Removed by the club")
+										}
 										if k.Changed {
 											<span class="is-size-7 has-text-grey">· the club has changed their qualifications since, not sent yet</span>
 										}
 									</p>
+									if k.Removed != "" {
+										<p class="is-size-7">Their club removed them on { k.Removed }. They can't sign anything off now, but the sign-offs they gave still count{ removedCertificates(k) }.</p>
+										if k.AskAgain != "" {
+											<form method="post" action={ templ.SafeURL(k.AskAgain) } class="mt-1 mb-1">
+												<button class="button is-small" type="submit" title="You're asked first">Ask for these to be signed off again</button>
+												<span class="is-size-7 has-text-grey ml-1">{ Count(k.Signed, "entry", "entries") } signed off by them</span>
+											</form>
+										} else if k.AskedAgain != "" {
+											<p class="is-size-7 has-text-grey">You asked for their entries to be signed off again on { k.AskedAgain }.</p>
+										}
+									}
 									if len(k.Qualifications) == 0 {
 										<p class="is-size-7 has-text-danger">No qualifications sent.</p>
 									}
 									<ul class="is-size-7">
 										for _, q := range k.Qualifications {
-											<li>{ q.Name } · <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a></li>
+											<li>
+												{ q.Name }
+												if q.Certificate != "" {
+													· <a href={ templ.SafeURL(q.Certificate) } target="_blank" rel="noopener">certificate</a>
+												}
+											</li>
 										}
 									</ul>
 									<p class="is-size-7 has-text-grey">{ strings.Join(k.Meets, " · ") }</p>

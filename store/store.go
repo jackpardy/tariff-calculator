@@ -103,7 +103,7 @@ func (s *Store) Close() error {
 // them on, dropping the old table deletes, or fails on, the rows that refer
 // to it. Give its version in rebuilds: it then runs on a connection of its
 // own with foreign keys off, and commits only if PRAGMA foreign_key_check
-// finds every reference still holds. No migration so far needs it.
+// finds every reference still holds.
 //
 // A database migrated further than the app knows isn't opened (migrate):
 // after a rollback, an older app would write rows without the newer
@@ -948,6 +948,53 @@ var migrations = []string{
 	ALTER TABLE clubs ADD COLUMN member_asks_late_changes BOOLEAN NOT NULL DEFAULT FALSE;
 	ALTER TABLE clubs ADD COLUMN member_asks_late_entries BOOLEAN NOT NULL DEFAULT FALSE;
 	ALTER TABLE competitions ADD COLUMN clubs_send BOOLEAN NOT NULL DEFAULT FALSE;`,
+
+	// 56: what a club removes stays with the organiser (2026-11-11). The
+	// competition's copy of an entry whose member, or club, is removed is
+	// marked removed by the club (when, by whom, and whether after entries
+	// closed, for fees), rather than reading as withdrawn; a coach sent to a
+	// competition keeps their row, with their club's name and the
+	// qualifications sent, so their sign-offs keep counting: coach_id no
+	// longer cascades, so the table is rebuilt. signoff_again is the reason
+	// the organiser asked for an entry to be signed off again, until it is.
+	// partner_gone (JSON, '' for none) flags a pair's entry whose partner the
+	// club removed, or took out of the competition. An official whose offer
+	// the club took back stays, marked (taken_back_at), keeping the person
+	// key they had as a member.
+	`ALTER TABLE entries ADD COLUMN club_removed_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN partner_gone TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_entries ADD COLUMN partner_gone TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN taken_back_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN taken_back_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE officials ADD COLUMN person_key TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN club_removed_by TEXT NOT NULL DEFAULT '';
+	ALTER TABLE entries ADD COLUMN club_removed_late BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE entries ADD COLUMN signoff_again TEXT NOT NULL DEFAULT '';
+	ALTER TABLE member_entries ADD COLUMN signoff_again TEXT NOT NULL DEFAULT '';
+	CREATE TABLE competition_coaches_new (
+		competition_id         TEXT NOT NULL REFERENCES competitions (id) ON DELETE CASCADE,
+		coach_id               TEXT NOT NULL,
+		club_id                TEXT NOT NULL,
+		club_name              TEXT NOT NULL DEFAULT '',
+		name                   TEXT NOT NULL,
+		qualifications         TEXT NOT NULL DEFAULT '[]',
+		sent_at                TEXT NOT NULL,
+		status                 TEXT NOT NULL DEFAULT '',
+		note                   TEXT NOT NULL DEFAULT '',
+		decided_at             TEXT,
+		counts_from            TEXT NOT NULL DEFAULT '',
+		removed_at             TEXT NOT NULL DEFAULT '',
+		removed_by             TEXT NOT NULL DEFAULT '',
+		removed_qualifications TEXT NOT NULL DEFAULT '[]',
+		asked_again_at         TEXT NOT NULL DEFAULT '',
+		PRIMARY KEY (competition_id, coach_id)
+	);
+	INSERT INTO competition_coaches_new (competition_id, coach_id, club_id, club_name, name, qualifications, sent_at, status, note, decided_at, counts_from)
+		SELECT cc.competition_id, cc.coach_id, cc.club_id, COALESCE((SELECT name FROM clubs WHERE id = cc.club_id), ''),
+			cc.name, cc.qualifications, cc.sent_at, cc.status, cc.note, cc.decided_at, cc.counts_from FROM competition_coaches cc;
+	DROP TABLE competition_coaches;
+	ALTER TABLE competition_coaches_new RENAME TO competition_coaches;
+	CREATE INDEX competition_coaches_club ON competition_coaches (club_id, competition_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
@@ -960,7 +1007,7 @@ var migrationSteps = map[int]func(context.Context, *sql.Tx) error{
 
 // rebuilds are the migrations, by version, that rebuild a table, so run
 // with foreign keys off (see migrations).
-var rebuilds = map[int]bool{}
+var rebuilds = map[int]bool{56: true}
 
 // migrate runs the migrations the database hasn't had yet.
 func (s *Store) migrate(ctx context.Context) error {

@@ -278,12 +278,38 @@ type Entry struct {
 	// as an individual: their entry's.
 	CoachID          string
 	PartnerPersonKey string
+	// ClubRemovedAt is when the club removed the entry's member, or the
+	// club itself ("" by: the club's record expired), so it's out of the
+	// competition, Withdrawn, but the organiser still sees it (migration
+	// 56); ClubRemovedLate says it was after entries closed, for fees. Zero
+	// for one the club hasn't removed.
+	ClubRemovedAt   time.Time
+	ClubRemovedBy   string
+	ClubRemovedLate bool
+	// SignoffAgain is why the organiser asked for another coach to sign
+	// the entry off (their coach was removed by the club), until one does.
+	SignoffAgain string
+	// PartnerGone flags a pair's entry whose partner the club removed, or
+	// took out of the competition, until the entrant changes partner; nil
+	// for none.
+	PartnerGone *PartnerGone
 }
 
+// ClubRemoved says whether the club removed the entry (ClubRemovedAt).
+func (e Entry) ClubRemoved() bool { return !e.ClubRemovedAt.IsZero() }
+
 // entryKeys are the columns after person_key that scanEntry reads: the
-// member's coach, and the person key of a partner confirmed as an individual.
+// member's coach, the person key of a partner confirmed as an individual,
+// its removal by the club and the organiser's ask to sign it off again.
 const entryKeys = `COALESCE((SELECT m.coach_id FROM members m WHERE m.id = entries.member_id), ''),
-	COALESCE((SELECT p.person_key FROM entries p WHERE p.id = entries.partner_entry), '')`
+	COALESCE((SELECT p.person_key FROM entries p WHERE p.id = entries.partner_entry), ''),
+	club_removed_at, club_removed_by, club_removed_late, signoff_again, partner_gone`
+
+// withdrawnColumn is whether a row of entries is out of the competition
+// though the organiser has it (Entry.Withdrawn): removed by the club, or a
+// club's entry its member has withdrawn.
+const withdrawnColumn = `(club_removed_at <> '' OR (club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
+			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline)))`
 
 // Key is the gymnast's person key: a member by their member id, an
 // individual by their person's key in the competition (ADR 0010).
@@ -493,8 +519,7 @@ func (s *Store) LetIn(ctx context.Context, competitionID, id string, on bool) er
 // entriesWhere are the entries meeting a condition, by club then gymnast.
 func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]Entry, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
-		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
-			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
+		`+withdrawnColumn+`, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
 		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, `+entryKeys+`
 		FROM entries WHERE `+where+`
 		ORDER BY individual, club_name, gymnast, id`, args...)
@@ -525,11 +550,16 @@ func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]
 // scanEntry reads a row of entries, as Entries selects it.
 func scanEntry(row interface{ Scan(...any) error }) (Entry, error) {
 	var e Entry
-	var entry, sent, checked, signed, entered string
+	var entry, sent, checked, signed, entered, removedAt, partnerGone string
 	var counts bool
-	if err := row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey, &e.CoachID, &e.PartnerPersonKey); err != nil {
+	var err error
+	if err = row.Scan(&e.ID, &e.CompetitionID, &e.ClubID, &e.ClubName, &e.MemberID, &e.Individual, &entry, &sent, &checked, &e.Note, &e.VideoReview, &e.VideoNote, &e.Withdrawn, &signed, &e.SignedBy, &e.SignNote, &e.SignoffLink, &e.Coach, &e.PartnerLink, &e.PartnerConfirmed, &e.PartnerMemberID, &e.PartnerEntryID, &e.SignedCoach, &counts, &e.Removal, &e.RemovalNote, &e.RemovalTo, &e.Resent, &entered, &e.LetIn, &e.IndividualID, &e.PersonKey, &e.CoachID, &e.PartnerPersonKey, &removedAt, &e.ClubRemovedBy, &e.ClubRemovedLate, &e.SignoffAgain, &partnerGone); err != nil {
 		return Entry{}, notFound(err)
 	}
+	if e.PartnerGone, err = readPartnerGone(partnerGone); err != nil {
+		return Entry{}, err
+	}
+	e.ClubRemovedAt = parseTime(removedAt)
 	e.Unapproved = signed != "" && !counts
 	if err := json.Unmarshal([]byte(entry), &e.Entry); err != nil {
 		return Entry{}, fmt.Errorf("reading entry %s: %w", e.ID, err)
@@ -795,6 +825,9 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 			return err
 		}
 		unusedClubs := now.AddDate(0, -ClubRetentionMonths, 0).Format(timeLayout)
+		if err := keepClubs(ctx, tx, s.stamp(), "", `last_used <= $3`, unusedClubs); err != nil {
+			return err
+		}
 		if res, err = tx.ExecContext(ctx, `DELETE FROM clubs WHERE last_used <= $1`, unusedClubs); err != nil {
 			return err
 		}
@@ -842,8 +875,7 @@ func (s *Store) SetIndividuals(ctx context.Context, id string, on bool) error {
 // CompetitionEntry is one of a competition's entries, by id.
 func (s *Store) CompetitionEntry(ctx context.Context, competitionID, id string) (Entry, error) {
 	return scanEntry(s.db.QueryRowContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
-		club_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM member_entries me
-			WHERE me.member_id = entries.member_id AND me.competition_id = entries.competition_id AND me.discipline = entries.discipline), COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
+		`+withdrawnColumn+`, COALESCE(signed_at, ''), signed_by, sign_note, signoff_token,
 		COALESCE((SELECT c.name FROM members m JOIN coaches c ON c.id = m.coach_id WHERE m.id = entries.member_id), ''), partner_token, partner_confirmed, COALESCE(partner_member, ''), COALESCE(partner_entry, ''), signed_coach, `+signoffCounts+`, removal, removal_note, removal_to, resent, entered_at, let_in, COALESCE(individual_id, ''), person_key, `+entryKeys+`
 		FROM entries WHERE competition_id = $1 AND id = $2`, competitionID, id))
 }

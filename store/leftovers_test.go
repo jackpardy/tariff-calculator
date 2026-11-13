@@ -95,7 +95,7 @@ func TestNothingLeftBehind(t *testing.T) {
 	_, oLink, _ := s.Join(ctx, other.ID, "Cara")
 	must2(s.Tie(ctx, oLink, RoleClub, clubAdmin))
 	_ = co
-	must(t, s.DeleteClub(ctx, club.ID))
+	must(t, s.DeleteClub(ctx, club.ID, "Club admin"))
 	noLeftovers(t, s, "a club deleted")
 
 	// A competition deleted: the ties to its admin and helper links.

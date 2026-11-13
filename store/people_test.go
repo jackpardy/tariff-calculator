@@ -103,7 +103,7 @@ func TestTieBothWays(t *testing.T) {
 
 	// Tied again, then the coach removed: the member's link no longer opens it.
 	must2(s.Tie(ctx, cLink, RoleMember, newLink))
-	must(t, s.RemoveCoach(ctx, club.ID, c.ID))
+	must(t, s.RemoveCoach(ctx, club.ID, c.ID, "Club admin"))
 	if got := roleKinds(t, s, newLink); !slices.Equal(got, []string{RoleMember}) {
 		t.Errorf("a removed coach is gone from the member's roles: %v", got)
 	}
@@ -199,7 +199,7 @@ func TestSharedTiesOneWay(t *testing.T) {
 	}
 	// Removing the coach ends what came through them.
 	must2(s.Tie(ctx, cLink, RoleMember, mLink))
-	must(t, s.RemoveCoach(ctx, club.ID, c.ID))
+	must(t, s.RemoveCoach(ctx, club.ID, c.ID, "Club admin"))
 	if _, err := s.ClubByAdmin(ctx, Via(mLink, club.ID)); !errors.Is(err, ErrNotFound) {
 		t.Errorf("removing the coach ends it: %v", err)
 	}

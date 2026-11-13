@@ -55,6 +55,7 @@ var clubRoutes = map[string]string{
 	"POST /members/{member}/competitions/{id}/late":       store.ClubEnter,
 	"POST /members/{member}/competitions/{id}/late/reply": store.ClubEnter,
 	"POST /competitions/{id}/send":                        store.ClubSend,
+	"POST /competitions/{id}/take-out":                    store.ClubEnter,
 	"POST /competitions/{id}/coaches":                     store.ClubSend,
 	"GET /competitions/{id}/fees":                         store.ClubFees,
 	"GET /competitions/{id}/invoice":                      store.ClubFees,
@@ -251,6 +252,13 @@ func (p *competitionPages) describeClub(r *http.Request, club store.Club, patter
 		return "Sent the new and changed entries to " + competition()
 	case "/competitions/{id}/coaches":
 		return "Sent coaches to " + competition()
+	case "/competitions/{id}/take-out":
+		name := "a member"
+		if m, err := p.st.Member(ctx, club.ID, f("member")); err == nil {
+			name = m.Name
+		}
+		what := map[string]string{"entries": "their entries", "offer": "their offer to judge or help", "both": "their entries and offer to judge or help"}[f("what")]
+		return "Took " + name + " out of " + competition() + ": " + what
 	case "/members/{member}/competitions/{id}":
 		if e, err := p.memberEntry(r, r.PathValue("member"), r.PathValue("id")); err == nil && e != nil {
 			return "Changed an entry: " + entry()

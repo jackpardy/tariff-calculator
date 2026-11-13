@@ -209,7 +209,7 @@ func TestDeletingAClubTakesItsRoles(t *testing.T) {
 	_, token, err := s.AddClubLink(ctx, club.ID, role.ID, "Mary")
 	must(t, err)
 	must(t, s.RecordClub(ctx, club.ID, "Club admin", "Made a role"))
-	must(t, s.DeleteClub(ctx, club.ID))
+	must(t, s.DeleteClub(ctx, club.ID, "Club admin"))
 	if _, _, err := s.ClubByLink(ctx, token); !errors.Is(err, ErrNotFound) {
 		t.Errorf("the link goes: %v", err)
 	}

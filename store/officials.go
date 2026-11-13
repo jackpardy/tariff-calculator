@@ -28,6 +28,13 @@ type Official struct {
 	Offer     competitions.Offer
 	Qualified bool // the organiser marked them qualified to judge
 	UpdatedAt time.Time
+	// TakenBackAt is when their club took their offer back (taking them out
+	// of the competition, or removing them), by whom (TakenBackBy, "" for
+	// the club's record expiring), and PersonKey the member's key they had:
+	// only TakenBack reads these.
+	TakenBackAt time.Time
+	TakenBackBy string
+	PersonKey   string
 }
 
 // SaveMemberOffer keeps what a member offers to do at a competition their club
@@ -114,7 +121,7 @@ type HeldOffer struct {
 // beside an offer aren't copied: the organiser reads them from the member's.
 func (s *Store) ClubHeldOffers(ctx context.Context, clubID, competitionID string) (map[string]HeldOffer, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT member_id, name, offer FROM officials
-		WHERE competition_id = $1 AND club_id = $2 AND NOT added AND COALESCE(member_id, '') <> ''`, competitionID, clubID)
+		WHERE competition_id = $1 AND club_id = $2 AND NOT added AND COALESCE(member_id, '') <> '' AND taken_back_at = ''`, competitionID, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +145,9 @@ func (s *Store) ClubHeldOffers(ctx context.Context, clubID, competitionID string
 // members offer now, keeping the organiser's qualified marks. It's part of
 // sending the club's entries.
 func sendOffers(ctx context.Context, tx *sql.Tx, clubID, clubName, competitionID, now string) error {
-	if _, err := tx.ExecContext(ctx, `DELETE FROM officials WHERE competition_id = $1 AND club_id = $2 AND NOT added
+	// An offer the club took back stays, marked, until the member offers
+	// again (keepOffers).
+	if _, err := tx.ExecContext(ctx, `DELETE FROM officials WHERE competition_id = $1 AND club_id = $2 AND NOT added AND taken_back_at = ''
 		AND NOT EXISTS (SELECT 1 FROM member_offers mo WHERE mo.competition_id = $1 AND mo.member_id = officials.member_id)`,
 		competitionID, clubID); err != nil {
 		return err
@@ -148,7 +157,7 @@ func sendOffers(ctx context.Context, tx *sql.Tx, clubID, clubName, competitionID
 		FROM member_offers mo JOIN members m ON m.id = mo.member_id
 		WHERE m.club_id = $2 AND mo.competition_id = $1
 		ON CONFLICT (competition_id, member_id) DO UPDATE SET offer = excluded.offer, name = excluded.name,
-			club_name = excluded.club_name, updated_at = excluded.updated_at`,
+			club_name = excluded.club_name, updated_at = excluded.updated_at, taken_back_at = '', taken_back_by = '', person_key = ''`,
 		competitionID, clubID, now, clubName)
 	return err
 }
@@ -208,11 +217,12 @@ func (s *Store) IndividualOffer(ctx context.Context, entryID string) (competitio
 // Officials are a competition's officials, by name. An individual whose
 // entries there the organiser has all removed isn't one, until one is put
 // back: their offer goes with them, as it does when they withdraw. One held
-// for changes keeps it.
+// for changes keeps it. One whose club took their offer back isn't one
+// either (TakenBack lists them).
 func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, name, club_name, COALESCE(member_id, ''), COALESCE(entry_id, ''), added, offer, qualified, updated_at,
 			COALESCE((SELECT person_key FROM entries WHERE id = officials.entry_id), '')
-		FROM officials WHERE competition_id = $1
+		FROM officials WHERE competition_id = $1 AND taken_back_at = ''
 		AND NOT (COALESCE((SELECT removal FROM entries WHERE id = officials.entry_id), '') = $2
 			AND NOT EXISTS (SELECT 1 FROM entries x JOIN individuals xi ON xi.id = x.individual_id
 				JOIN entries e ON e.competition_id = x.competition_id AND e.individual AND lower(e.gymnast) = lower(x.gymnast)
@@ -234,6 +244,34 @@ func (s *Store) Officials(ctx context.Context, competitionID string) ([]Official
 			return nil, err
 		}
 		o.UpdatedAt = parseTime(updated)
+		out = append(out, o)
+	}
+	slices.SortStableFunc(out, func(a, b Official) int {
+		return cmp.Or(competitions.CompareNames(a.Name, b.Name), competitions.CompareNames(a.ClubName, b.ClubName))
+	})
+	return out, rows.Err()
+}
+
+// TakenBack are a competition's officials whose club took their offer back,
+// by name: listed for the organiser, but in no rota or seat.
+func (s *Store) TakenBack(ctx context.Context, competitionID string) ([]Official, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id, name, club_name, COALESCE(member_id, ''), offer, updated_at, taken_back_at, taken_back_by, person_key
+		FROM officials WHERE competition_id = $1 AND taken_back_at <> '' ORDER BY name, club_name, id`, competitionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Official
+	for rows.Next() {
+		var o Official
+		var offer, updated, at string
+		if err := rows.Scan(&o.ID, &o.Name, &o.ClubName, &o.MemberID, &offer, &updated, &at, &o.TakenBackBy, &o.PersonKey); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(offer), &o.Offer); err != nil {
+			return nil, err
+		}
+		o.UpdatedAt, o.TakenBackAt = parseTime(updated), parseTime(at)
 		out = append(out, o)
 	}
 	slices.SortStableFunc(out, func(a, b Official) int {

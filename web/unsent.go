@@ -71,7 +71,7 @@ func heldAs(c store.Competition, e store.MemberEntry, sent []store.Entry, now ti
 	}
 	e.Entry, e.UpdatedAt, e.SentAt = held.Entry, held.SentAt, held.SentAt
 	e.Checked, e.Note, e.VideoReview, e.VideoNote = held.Checked(), held.Note, held.VideoReview, held.VideoNote
-	e.SignedAt, e.SignedBy, e.SignNote = held.SignedAt, held.SignedBy, held.SignNote
+	e.SignedAt, e.SignedBy, e.SignNote, e.SignoffAgain = held.SignedAt, held.SignedBy, held.SignNote, held.SignoffAgain
 	e.PartnerConfirmed = held.PartnerConfirmed
 	return e, unsent{Line: line}
 }
