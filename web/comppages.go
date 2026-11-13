@@ -40,11 +40,17 @@ var local = func() *time.Location {
 // hour (ADR 0004 Decision 7).
 const maxCompetitionsPerHour = 5
 
+// maxIndividualEntriesPerHour is how many entries one address can make
+// through a competition's individual link in an hour, asking to enter late
+// included: the link is public, and the competition takes only so many.
+const maxIndividualEntriesPerHour = 20
+
 // competitionPages serves the competition pages from the store, which is nil
 // when storage is off.
 type competitionPages struct {
 	st                                *store.Store
 	limiter, clubLimiter, joinLimiter *limiter
+	enterLimiter                      *limiter // entries made through the individual link, per address
 	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
 	notify                            *notifier                              // nil when storage is off
@@ -66,6 +72,7 @@ func newCompetitionPages(st *store.Store) *competitionPages {
 		limiter:                 newLimiter(maxCompetitionsPerHour, time.Hour),
 		clubLimiter:             newLimiter(maxClubsPerHour, time.Hour),
 		joinLimiter:             newLimiter(maxJoinsPerHour, time.Hour),
+		enterLimiter:            newLimiter(maxIndividualEntriesPerHour, time.Hour),
 		emailLimiter:            newLimiter(maxEmailsPerHour, time.Hour),
 		feedbackLimiter:         newLimiter(maxFeedbackPerHour, time.Hour),
 		feedbackLinkAddrLimiter: newLimiter(maxFeedbackUnderLinkPerHour, time.Hour),

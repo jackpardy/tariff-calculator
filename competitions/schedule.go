@@ -315,9 +315,21 @@ func (s Setup) Check(events []string) error {
 			}
 		}
 	}
+	type blockDay struct {
+		name string
+		day  int
+	}
+	named := map[blockDay]bool{}
 	for _, b := range s.Blocks {
 		if strings.TrimSpace(b.Name) == "" || b.Minutes <= 0 {
 			errs = append(errs, errors.New("blocked time needs a name and a length"))
+		}
+		// A placed block is found again by its name and day, so two the
+		// same would be taken for one: the second dropped without a word.
+		if k := (blockDay{b.Name, b.Day}); named[k] {
+			errs = append(errs, fmt.Errorf("two blocks on the same day are called %q: give each its own name", b.Name))
+		} else {
+			named[k] = true
 		}
 		if b.Day < 0 || b.Day >= len(s.Days) {
 			errs = append(errs, fmt.Errorf("%s is on a day the competition doesn't have", b.Name))

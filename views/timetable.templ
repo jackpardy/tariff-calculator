@@ -151,6 +151,7 @@ type ReportView struct {
 	Days      []DayFinish
 	Unplaced  []string
 	Blocks    []string // blocked time that couldn't be placed
+	TooLong   []string // runs longer than any day, e.g. "BUCS L3 takes 10h 50m in one run: the longest day is 9h 00m"
 	ShortRest []string
 	Broken    []string
 	Fixes     []FixView
@@ -892,6 +893,9 @@ templ reportView(r ReportView) {
 		if len(r.Unplaced) > 0 || len(r.Blocks) > 0 {
 			<div class="notification is-warning is-light mt-2 mb-2">
 				<p><strong>Doesn't fit:</strong> { joinNames(append(r.Unplaced, r.Blocks...)) }.</p>
+				for _, l := range r.TooLong {
+					<p class="mt-1">{ l }, so another panel or quicker turns won't help.</p>
+				}
 				if len(r.Fixes) > 0 {
 					<p class="mt-2">What each change would do:</p>
 					<ul>

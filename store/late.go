@@ -240,7 +240,7 @@ func (s *Store) AskToEnterLate(ctx context.Context, competitionID, memberID, dis
 			signed_at, signed_by, sign_note, partner_confirmed, partner_member, partner_entry, signed_coach, entered_at, removal)
 			VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $9, 'asked')
 			ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
-			SET entry = excluded.entry, gymnast = excluded.gymnast, sent_at = excluded.sent_at, entered_at = excluded.entered_at,
+			SET entry = excluded.entry, gymnast = excluded.gymnast, sent_at = excluded.sent_at, entered_at = excluded.entered_at, let_in = FALSE,
 				signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
 				partner_confirmed = excluded.partner_confirmed, partner_member = excluded.partner_member, partner_entry = excluded.partner_entry`,
 			copyID, competitionID, clubID, memberID, discipline, clubName, name, entry, now, signedAt, signedBy, signNote,
@@ -467,6 +467,7 @@ func (s *Store) AcceptLateChange(ctx context.Context, competitionID, id, reason,
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3,
 			entered_at = CASE WHEN json_extract(entry, '$.level') = json_extract($1, '$.level') THEN entered_at ELSE $3 END,
+			let_in = CASE WHEN json_extract(entry, '$.level') = json_extract($1, '$.level') THEN let_in ELSE FALSE END,
 			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
 			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END,
 			signed_at = $6, signed_by = $7, sign_note = $8, signed_coach = $9
