@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/ecdh"
 	"encoding/base64"
 	"encoding/json"
@@ -214,7 +215,7 @@ func (p *competitionPages) saveEmail(r *http.Request, t notifyTarget, was *store
 	if token == "" {
 		return "Saved.", nil
 	}
-	if err := p.notify.confirmEmail(sub); err != nil {
+	if err := p.notify.confirmEmail(r.Context(), sub); err != nil {
 		p.st.RemoveSubscription(r.Context(), t.c.ID, t.kind, t.owner, sub.ID)
 		return "", []string{"The email couldn't be sent. Check the address, or try again later."}
 	}
@@ -353,4 +354,24 @@ func (p *competitionPages) noWait(w http.ResponseWriter, r *http.Request) {
 		notice = "On the competition's days, changes are told as soon as they're published."
 	}
 	backToSettings(w, r, notice)
+}
+
+// toldRound is how the competition's latest change notifications went, for
+// the dashboard: nil if none have gone (or the last was over a week ago).
+func (p *competitionPages) toldRound(ctx context.Context, competitionID string) (*views.ToldRound, error) {
+	r, ok, err := p.st.LatestRound(ctx, competitionID, store.RoundChanges)
+	if err != nil || !ok {
+		return nil, err
+	}
+	t := &views.ToldRound{At: r.At.In(local).Format("Mon 2 Jan, 15:04"), Sent: r.Pushed + r.Emailed, Sending: r.Sending, Failed: r.Failed}
+	if r.Failed > 0 {
+		failed, err := p.st.FailedDeliveries(ctx, r.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range failed {
+			t.Failures = append(t.Failures, views.ToldFailure{Who: d.Who, Why: d.Why})
+		}
+	}
+	return t, nil
 }

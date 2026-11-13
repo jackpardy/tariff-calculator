@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"log"
 	"strings"
 
 	"tariffCalculator/competitions"
@@ -70,8 +71,10 @@ func (p *competitionPages) emailMade(c store.Competition) {
 		return
 	}
 	subject, body := madeEmail(c, p.site(), p.notify.base)
-	p.notify.send.send([]delivery{{about: "Emailing that a competition was made",
-		email: &email{to: p.feedbackTo, subject: subject, body: body}}})
+	if err := p.notify.send.add(context.Background(), store.Round{}, []delivery{{about: "Emailing that a competition was made", who: "The maintainer",
+		email: &email{to: p.feedbackTo, subject: subject, body: body}}}); err != nil {
+		log.Printf("Emailing that a competition was made: %v", err)
+	}
 }
 
 // madeEmail is the email saying a competition was made: its name, its day,

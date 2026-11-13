@@ -72,11 +72,11 @@ func (p *competitionPages) makeSandbox() {
 
 // sendingNotice says who a desk message is being sent to, by push and
 // email; in the sandbox, that notifications don't work.
-func (p *competitionPages) sendingNotice(pushes, emails int) string {
+func (p *competitionPages) sendingNotice(pushes, emails int, err error) string {
 	if p.sandbox != nil {
 		return views.NotificationsOff
 	}
-	return sendingNotice(pushes, emails)
+	return sendingNotice(pushes, emails, err)
 }
 
 func (p *competitionPages) registerSandbox(mux *http.ServeMux) {

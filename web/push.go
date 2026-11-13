@@ -15,7 +15,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,8 +29,20 @@ import (
 // each message encrypted for its browser (RFC 8291, aes128gcm), on the
 // standard library alone.
 
-// errGone is a push subscription the push service says no longer exists.
+// errGone is a push subscription the push service says no longer exists,
+// or one whose keys no browser can have made: either way it's dropped.
 var errGone = errors.New("push subscription gone")
+
+// errPushTooLong is a message too long for one push (fitPush trims it).
+var errPushTooLong = errors.New("push message too long")
+
+// pushStatusError is a push service's answer other than yes or gone.
+type pushStatusError struct {
+	code   int
+	status string
+}
+
+func (e pushStatusError) Error() string { return "push service: " + e.status }
 
 // pushServices are the push services' hosts a browser can give an address
 // at; anything else is refused, so the server only ever posts to them.
@@ -131,11 +142,14 @@ func (n *notifier) push(ctx context.Context, sub store.Subscription, m pushMessa
 	if err := json.Unmarshal([]byte(sub.Keys), &keys); err != nil {
 		return errGone
 	}
-	payload, err := json.Marshal(m)
+	payload, err := fitPush(m)
 	if err != nil {
 		return err
 	}
 	body, err := encryptPush(keys, payload)
+	if errors.Is(err, errPushTooLong) {
+		return err
+	}
 	if err != nil {
 		return errGone // keys a browser can't have made
 	}
@@ -167,9 +181,32 @@ func (n *notifier) push(ctx context.Context, sub store.Subscription, m pushMessa
 	case res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone:
 		return errGone
 	case res.StatusCode >= 300:
-		return fmt.Errorf("push service: %s", res.Status)
+		return pushStatusError{res.StatusCode, res.Status}
 	}
 	return nil
+}
+
+// maxPushPayload is the longest message one push can carry (sealPush).
+const maxPushPayload = pushRecordSize - 86 - 1 - 16
+
+// fitPush is a push message as sent, its body trimmed to fit, ending with an
+// ellipsis, if it's too long.
+func fitPush(m pushMessage) ([]byte, error) {
+	payload, err := json.Marshal(m)
+	if err != nil || len(payload) <= maxPushPayload {
+		return payload, err
+	}
+	body := []rune(m.Body)
+	for len(body) > 0 {
+		// A character takes at most 12 bytes in JSON (two escapes).
+		cut := max((len(payload)-maxPushPayload)/12, 1)
+		body = body[:max(len(body)-cut, 0)]
+		m.Body = string(body) + "…"
+		if payload, err = json.Marshal(m); err != nil || len(payload) <= maxPushPayload {
+			return payload, err
+		}
+	}
+	return nil, errPushTooLong
 }
 
 // client is the HTTP client pushes go by: no redirects followed, a short
@@ -254,8 +291,8 @@ func encryptPush(keys pushKeys, payload []byte) ([]byte, error) {
 
 // sealPush is encryptPush with its key pair and salt given.
 func sealPush(as *ecdh.PrivateKey, ua *ecdh.PublicKey, authSecret, salt, payload []byte) ([]byte, error) {
-	if len(payload)+1+16 > pushRecordSize-86 {
-		return nil, errors.New("push message too long")
+	if len(payload) > maxPushPayload {
+		return nil, errPushTooLong
 	}
 	shared, err := as.ECDH(ua)
 	if err != nil {

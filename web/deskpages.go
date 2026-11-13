@@ -340,10 +340,7 @@ func (p *competitionPages) desk(w http.ResponseWriter, r *http.Request) {
 	for _, m := range sent {
 		s := views.DeskSent{
 			At: m.At.In(local).Format("Mon 2 Jan, 15:04"), Who: m.Who, To: m.Audience, Text: m.Full(),
-			Pushed: m.Pushed, Emailed: m.Emailed, Failed: m.Failed,
-		}
-		if t, ok := p.notify.deskProgress(m.ID); ok {
-			s.Pushed, s.Emailed, s.Failed, s.ToGo = t.pushed, t.emailed, t.failed, t.toGo()
+			Pushed: m.Pushed, Emailed: m.Emailed, Failed: m.Failed, ToGo: m.Sending,
 		}
 		page.Sent = append(page.Sent, s)
 	}
@@ -379,8 +376,8 @@ func (p *competitionPages) sendDesk(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
-	seeOther(w, r, back, "Sent to "+m.Audience+". "+p.sendingNotice(pushes, emails)+" Everyone sees it on their own page.")
+	pushes, emails, err := p.notify.tellDesk(r.Context(), c, m)
+	seeOther(w, r, back, "Sent to "+m.Audience+". "+p.sendingNotice(pushes, emails, err)+" Everyone sees it on their own page.")
 }
 
 // deskNotes are the messages that reach someone, newest first, at most

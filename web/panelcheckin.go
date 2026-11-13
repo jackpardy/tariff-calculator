@@ -426,8 +426,8 @@ func (p *competitionPages) notifyOne(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
-	pushes, emails := p.notify.tellDesk(r.Context(), c, m)
-	notice := "Sent to " + m.Audience + ". " + p.sendingNotice(pushes, emails)
+	pushes, emails, err := p.notify.tellDesk(r.Context(), c, m)
+	notice := "Sent to " + m.Audience + ". " + p.sendingNotice(pushes, emails, err)
 	http.Redirect(w, r, backToDay(r, notice, anchor), http.StatusSeeOther)
 }
 

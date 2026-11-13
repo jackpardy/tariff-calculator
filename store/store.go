@@ -1011,6 +1011,51 @@ var migrations = []string{
 	ALTER TABLE individuals ADD COLUMN rehearsal_id TEXT REFERENCES competitions (id) ON DELETE CASCADE;
 	CREATE INDEX clubs_rehearsal ON clubs (rehearsal_id);
 	CREATE INDEX individuals_rehearsal ON individuals (rehearsal_id);`,
+	// 58: the emails and pushes to send, kept until they go (2026-11-13),
+	// so a restart or a failed send loses none. kind is 'email' or 'push';
+	// address is the email or push endpoint, keys a push's keys; body is
+	// an email's text or a push's JSON. state is 'waiting' (due at
+	// next_at), 'sending', or 'failed' after its last try, with why in
+	// plain words, kept 7 days for the organiser's counts. who is the
+	// subscription's owner in words, never the address; drop_ids are the
+	// push subscriptions dropped if the push service says it's gone.
+	// round_id ties a delivery to a round: a desk message (its id) or one
+	// round of change notifications, whose counts of what went are kept in
+	// delivery_rounds. Neither table has a foreign key: competition_id is
+	// '' for an email to the maintainer, and dropLeftovers deletes the
+	// rows of competitions that are gone.
+	`CREATE TABLE deliveries (
+		id              TEXT PRIMARY KEY,
+		kind            TEXT NOT NULL CHECK (kind IN ('email', 'push')),
+		competition_id  TEXT NOT NULL,
+		round_id        TEXT NOT NULL,
+		subscription_id TEXT NOT NULL,
+		drop_ids        TEXT NOT NULL,
+		who             TEXT NOT NULL,
+		about           TEXT NOT NULL,
+		address         TEXT NOT NULL,
+		keys            TEXT NOT NULL,
+		subject         TEXT NOT NULL,
+		body            TEXT NOT NULL,
+		headers         TEXT NOT NULL,
+		made_at         TEXT NOT NULL,
+		tries           INTEGER NOT NULL DEFAULT 0,
+		next_at         TEXT NOT NULL,
+		state           TEXT NOT NULL DEFAULT 'waiting',
+		why             TEXT NOT NULL DEFAULT ''
+	);
+	CREATE INDEX deliveries_next ON deliveries (state, next_at);
+	CREATE INDEX deliveries_round ON deliveries (round_id);
+	CREATE TABLE delivery_rounds (
+		id             TEXT PRIMARY KEY,
+		competition_id TEXT NOT NULL,
+		kind           TEXT NOT NULL,
+		made_at        TEXT NOT NULL,
+		pushed         INTEGER NOT NULL DEFAULT 0,
+		emailed        INTEGER NOT NULL DEFAULT 0,
+		failed         INTEGER NOT NULL DEFAULT 0
+	);
+	CREATE INDEX delivery_rounds_competition ON delivery_rounds (competition_id, kind, made_at);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

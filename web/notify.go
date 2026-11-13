@@ -377,42 +377,56 @@ func (n *notifier) run() {
 	}
 }
 
-// tell sends every competition's changes that are due.
+// tell sends every competition's changes that are due. Each competition's
+// are cleared only as its deliveries are kept, in one transaction: if
+// working them out fails, they stay due and are tried at the next tick.
 func (n *notifier) tell(ctx context.Context) {
-	due, err := n.st.ClaimDue(ctx)
+	due, err := n.st.DueChanges(ctx)
 	if err != nil {
 		log.Printf("Notifications: %v", err)
 		return
 	}
 	for _, d := range due {
-		if err := n.tellCompetition(ctx, d); err != nil {
+		ds, err := n.tellCompetition(ctx, d)
+		if err != nil {
 			log.Printf("Notifications: %s: %v", d.CompetitionID, err)
+			continue
+		}
+		// Nothing is kept in the sandbox or about a rehearsal copy (keep).
+		kept := n.keep(ds)
+		if _, err := n.st.ToldChanges(ctx, d, kept); err != nil {
+			log.Printf("Notifications: %s: %v", d.CompetitionID, err)
+			continue
+		}
+		if len(kept) > 0 {
+			n.send.kick()
 		}
 	}
 }
 
 // tellCompetition compares a competition's baseline with what's live and
-// hands each address's changes to the sender.
-func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
-	c, err := n.st.Competition(ctx, d.CompetitionID)
-	if err != nil {
-		return err
-	}
+// works out each address's changes.
+func (n *notifier) tellCompetition(ctx context.Context, d store.Due) ([]delivery, error) {
 	var was notifyState
 	if err := json.Unmarshal(d.Baseline, &was); err != nil {
-		return err
+		log.Printf("Notifications: %s: %v", d.CompetitionID, err)
+		return nil, nil // a baseline that can't be read: told as nothing, so not tried for ever
+	}
+	c, err := n.st.Competition(ctx, d.CompetitionID)
+	if err != nil {
+		return nil, err
 	}
 	now, err := n.state(ctx, c)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	all := changes(was, now)
 	if len(all) == 0 {
-		return nil
+		return nil, nil
 	}
 	subs, err := n.st.CompetitionSubscriptions(ctx, c.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Every club's members, for coaches.
 	members := map[string][]store.Member{}
@@ -465,14 +479,24 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 				continue
 			}
 			subject, body, headers := n.changesEmail(c, groups, t.subs)
-			ds = append(ds, delivery{competition: c.ID, about: "Notifications: emailing about " + c.ID, email: &email{t.subs[0].Address, subject, body, headers}})
+			ds = append(ds, delivery{competition: c.ID, about: "Notifications: emailing about " + c.ID, who: n.who(ctx, t.subs[0]),
+				email: &email{t.subs[0].Address, subject, body, headers}})
 		case store.ByPush:
-			ds = append(ds, delivery{competition: c.ID, about: "Notifications: pushing about " + c.ID, sub: t.subs[0], drop: t.subs,
+			ds = append(ds, delivery{competition: c.ID, about: "Notifications: pushing about " + c.ID, who: n.who(ctx, t.subs[0]), sub: t.subs[0], drop: t.subs,
 				push: pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.savedLinks()}})
 		}
 	}
-	n.send.send(ds)
-	return nil
+	return ds, nil
+}
+
+// who is whose a subscription is, and how they're told, for the organiser
+// (e.g. "Ann Ryan, by email"); never the address.
+func (n *notifier) who(ctx context.Context, sub store.Subscription) string {
+	how := "by push"
+	if sub.Channel == store.ByEmail {
+		how = "by email"
+	}
+	return n.st.SubscriberName(ctx, sub) + ", " + how
 }
 
 // changeGroup is the changes for one person.
@@ -551,10 +575,11 @@ func (n *notifier) confirmLink(token string) string { return n.base + "/notify/c
 // send in a day, so its form can't be used to send many.
 const maxConfirmsPerDay = 50
 
-// confirmEmail asks an address to confirm it before anything else is sent.
-// It goes to any address typed in, so it names no competition or club, whose
-// names the organiser and comp sec choose: it can't carry someone's message.
-func (n *notifier) confirmEmail(sub store.Subscription) error {
+// confirmEmail asks an address to confirm it before anything else is sent,
+// keeping it to send in the background, within the cap. It goes to any
+// address typed in, so it names no competition or club, whose names the
+// organiser and comp sec choose: it can't carry someone's message.
+func (n *notifier) confirmEmail(ctx context.Context, sub store.Subscription) error {
 	if n.mail == nil {
 		return fmt.Errorf("email is off")
 	}
@@ -565,7 +590,8 @@ To start, confirm it (the page says which competition):
 
 If it wasn't you, ignore this email: nothing more will be sent.
 `, n.site(), n.confirmLink(sub.Token))
-	return n.mail.send(sub.Address, "Confirm your email", body, nil)
+	return n.send.add(ctx, store.Round{}, []delivery{{competition: sub.CompetitionID, about: "Notifications: emailing a confirmation for " + sub.CompetitionID,
+		who: n.who(ctx, sub), email: &email{to: sub.Address, subject: "Confirm your email", body: body}}})
 }
 
 // site is the site's name, e.g. "tariff.pardy.ie".

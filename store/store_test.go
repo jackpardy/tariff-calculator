@@ -1581,15 +1581,19 @@ func TestSubscriptions(t *testing.T) {
 	// Waiting changes: the first change's baseline stays; claimed when due.
 	must(t, s.MarkChanged(ctx, c.ID, []byte("first"), now.Add(10*time.Minute)))
 	must(t, s.MarkChanged(ctx, c.ID, []byte("second"), now.Add(20*time.Minute)))
-	if due, _ := s.ClaimDue(ctx); len(due) != 0 {
+	if due, _ := s.DueChanges(ctx); len(due) != 0 {
 		t.Error("not due yet")
 	}
 	now = now.Add(10 * time.Minute)
-	if due, _ := s.ClaimDue(ctx); len(due) != 1 || string(due[0].Baseline) != "first" {
-		t.Errorf("due: %+v", due)
+	due, _ := s.DueChanges(ctx)
+	if len(due) != 1 || string(due[0].Baseline) != "first" {
+		t.Fatalf("due: %+v", due)
 	}
-	if due, _ := s.ClaimDue(ctx); len(due) != 0 {
-		t.Error("claimed once")
+	if told, err := s.ToldChanges(ctx, due[0], nil); !told || err != nil {
+		t.Errorf("told: %v %v", told, err)
+	}
+	if due, _ := s.DueChanges(ctx); len(due) != 0 {
+		t.Error("told once")
 	}
 
 	// Deleted with the competition.
@@ -1923,7 +1927,21 @@ func TestDeskMessages(t *testing.T) {
 	now = now.Add(time.Minute)
 	_, err = s.SendDeskMessage(ctx, c.ID, DeskMessage{Text: "Come", Come: true, Audience: "2 people", People: []string{"m:a", "i:bea"}, Who: "Chairs"})
 	must(t, err)
-	must(t, s.SetDeskTold(ctx, c.ID, first.ID, 1, 2, 3))
+	// Told 1 by push and 2 by email; 3 failed.
+	var ds []Delivery
+	for _, kind := range []string{DeliverPush, DeliverEmail, DeliverEmail, DeliverEmail, DeliverEmail, DeliverEmail} {
+		ds = append(ds, Delivery{Kind: kind, CompetitionID: c.ID, About: "test", Address: "a", Body: "b"})
+	}
+	must(t, s.AddDeliveries(ctx, Round{ID: first.ID, CompetitionID: c.ID, Kind: RoundDesk}, ds))
+	for i := range ds {
+		d, _, err := s.TakeDelivery(ctx)
+		must(t, err)
+		if i < 3 {
+			must(t, s.Delivered(ctx, d))
+		} else {
+			must(t, s.DeliveryFailed(ctx, d, "refused", time.Time{}))
+		}
+	}
 	got, err := s.DeskMessages(ctx, c.ID)
 	must(t, err)
 	if len(got) != 2 || got[0].Text != "Come" || got[1].Pushed != 1 || got[1].Emailed != 2 || got[1].Failed != 3 || got[1].Clubs[0] != "club1" || !slices.Equal(got[0].People, []string{"m:a", "i:bea"}) {

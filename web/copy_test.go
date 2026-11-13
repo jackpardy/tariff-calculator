@@ -190,6 +190,9 @@ func TestRehearsalCopy(t *testing.T) {
 	if len(mail.sent) != 0 {
 		t.Errorf("nothing is sent from a rehearsal copy: %+v", mail.sent)
 	}
+	if _, waiting, _ := s.st.NextDelivery(context.Background()); waiting {
+		t.Error("nothing is kept to send from a rehearsal copy")
+	}
 
 	// Tapping on the day in the copy leaves the original's day as it was.
 	orig, _, err := s.st.AdminLink(context.Background(), strings.TrimPrefix(admin, "/competitions/admin/"))
