@@ -161,7 +161,7 @@ func TestFeedbackDeleted(t *testing.T) {
 
 	// 91 days after "Old", it goes, with its picture; the others are
 	// younger than 90 days.
-	deleteOldCaptures(s.st, inDublin(2030, 4, 11, 12, 0))
+	deleteOldCaptures(s.st, nil, inDublin(2030, 4, 11, 12, 0))
 	all, _ = s.st.AllSiteFeedback(t.Context())
 	var texts []string
 	for _, f := range all {

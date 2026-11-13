@@ -51,6 +51,7 @@ const (
 // Store is the database.
 type Store struct {
 	db  *database
+	dir string // the data directory, "" where there's none to put copies in
 	now func() time.Time
 	// free is the space free on the data directory's disk, to refuse
 	// certificates when it's nearly full.
@@ -77,7 +78,7 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	// rather than for itself.
 	db.SetMaxOpenConns(maxConns)
 	db.SetMaxIdleConns(maxConns)
-	s := &Store{db: &database{DB: db}, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return diskFree(dir) }}
+	s := &Store{db: &database{DB: db}, dir: dir, now: func() time.Time { return time.Now().UTC() }, free: func() (uint64, error) { return freeSpace(dir) }}
 	if err := s.migrate(ctx); err != nil {
 		db.Close()
 		return nil, err
@@ -1085,6 +1086,11 @@ func (s *Store) migrate(ctx context.Context) error {
 	if done > len(migrations) {
 		return fmt.Errorf("the database's schema is at version %d, but this version of the app knows only up to %d: "+
 			"it was used by a newer version. Run that version again, or restore a backup taken before it", done, len(migrations))
+	}
+	if done > 0 && done < len(migrations) {
+		if err := s.copyBeforeMigrating(ctx, done+1); err != nil {
+			return fmt.Errorf("not migrating, as the database couldn't be copied first: %w", err)
+		}
 	}
 	for v := done + 1; v <= len(migrations); v++ {
 		run := s.tx

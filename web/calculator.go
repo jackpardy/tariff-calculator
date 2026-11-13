@@ -98,6 +98,7 @@ func routesWithPages(pages *competitionPages) http.Handler {
 			limit = maxKeepBytes
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
+		r = r.WithContext(withProblems(r.Context(), pages.problems))
 		if pages.sandbox != nil {
 			r = r.WithContext(views.WithSandbox(r.Context()))
 		}
