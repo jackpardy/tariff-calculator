@@ -313,6 +313,13 @@ func (s *sender) mail(d store.Delivery) error {
 // flush wakes the workers and waits until nothing is due or being sent:
 // what's waiting to be tried again later isn't waited for.
 func (s *sender) flush() {
+	// Nothing due and nothing being sent: no need to wake the workers.
+	s.mu.Lock()
+	busy := s.busy
+	s.mu.Unlock()
+	if n, err := s.n.st.DeliveriesDue(context.Background()); busy == 0 && (err != nil || n == 0) {
+		return
+	}
 	s.kick()
 	for {
 		s.mu.Lock()

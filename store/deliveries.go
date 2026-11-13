@@ -129,6 +129,12 @@ func scanDelivery(row interface{ Scan(...any) error }) (Delivery, error) {
 // TakeDelivery takes the next delivery due, marking it being sent and
 // counting the try; false when none is due.
 func (s *Store) TakeDelivery(ctx context.Context) (Delivery, bool, error) {
+	// A read first: a transaction takes the write lock, which a worker
+	// finding nothing to send shouldn't.
+	var due int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM deliveries WHERE state = $1 AND next_at <= $2`, deliveryWaiting, s.stamp()).Scan(&due); err != nil || due == 0 {
+		return Delivery{}, false, err
+	}
 	var d Delivery
 	found := false
 	err := s.tx(ctx, func(tx *sql.Tx) error {
