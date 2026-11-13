@@ -232,6 +232,13 @@ Constraints:
 - **A lost admin link can't be recovered.** *Mitigation:* show it once
   prominently with a copy button, offer a printable summary, and let the holder
   replace it if it leaks.
+  *Note, 2026-11-13:* the maintainer can now issue a new organiser or club
+  admin link from the server (`find`, then `new-admin-link`: see
+  [deploy](../../knowledge/operations/deploy.md#a-lost-organiser-or-club-admin-link)).
+  The old link stops at once, the change is written in the competition's or
+  club's history, and the maintainer has to judge that the person asking is
+  really the organiser or the club's: the app can't. The link is still
+  stored only as a hash, so the old one can't be read back.
 - **Members rely on their comp sec** to send (and re-send) their entries.
   *Mitigation:* each member sees whether their current entry has been sent,
   and individual entry stays available where the organiser allows it.

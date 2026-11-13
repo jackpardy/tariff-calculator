@@ -67,7 +67,7 @@ func TestSavedLinks(t *testing.T) {
 	if err != nil {
 		t.Skip("no node to run the saved links in")
 	}
-	out, err := exec.Command(node, "testdata/linkstest.mjs", "../static/js/competitions.js").CombinedOutput()
+	out, err := exec.Command(node, "testdata/linkstest.mjs", "../static/js/competitions.js", "../static/js/toollinks.js").CombinedOutput()
 	if err != nil {
 		t.Errorf("%v\n%s", err, out)
 	}

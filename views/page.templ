@@ -19,6 +19,7 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 			<title>Trampoline Tariff Calculator</title>
 			<meta name="app-version" content={ static.Version }/>
 			<script defer src={ static.URL("js/version.js") }></script>
+			<script defer src={ static.URL("js/toollinks.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
 			// htmx makes what it swaps in work at once, not 20 ms later: a tap on a new control in that moment did nothing.

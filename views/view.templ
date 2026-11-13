@@ -54,6 +54,7 @@ templ ViewPage() {
 			<title>View routine</title>
 			<meta name="app-version" content={ static.Version }/>
 			<script defer src={ static.URL("js/version.js") }></script>
+			<script defer src={ static.URL("js/toollinks.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/view.css") }/>
 			<meta name="htmx-config" content='{"defaultSettleDelay":0}'/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
@@ -80,6 +81,7 @@ templ ViewPage() {
 								{ o.Label }
 							</label>
 						}
+						@competitionsLink("view-menu-link")
 					</div>
 				</details>
 				// Shares what's on screen, as the builder's Share does (static/js/share.js).

@@ -80,6 +80,25 @@ func main() {
 		fmt.Println(strings.TrimSuffix(os.Getenv("PUBLIC_URL"), "/") + "/site/" + token)
 		return
 	}
+	// "find" and "new-admin-link" are the maintainer's way back for a lost
+	// organiser or club admin link (ADR 0004, deploy.md); like the others
+	// they run once and stop, with neither the expiry job nor the server.
+	if len(os.Args) > 1 && (os.Args[1] == "find" || os.Args[1] == "new-admin-link") {
+		if st == nil {
+			log.Fatal("This needs competition storage: set DATA_DIR.")
+		}
+		var err error
+		if os.Args[1] == "find" {
+			err = findCommand(context.Background(), st, os.Args[2:], os.Stdout)
+		} else {
+			err = newAdminLinkCommand(context.Background(), st, os.Args[2:], os.Stdin, os.Stdout, os.Getenv("PUBLIC_URL"))
+		}
+		st.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	// "sandbox-reset" resets the sandbox (ADR 0016) as its maintainer's
 	// button does, then stops.
 	if len(os.Args) > 1 && os.Args[1] == "sandbox-reset" {

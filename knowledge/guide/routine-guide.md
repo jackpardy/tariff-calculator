@@ -282,6 +282,12 @@ on their own can keep requirements on their page (**Save to my page** on the
 requirements page): they then open on any phone (see the [competitions
 guide](competition-guide.md#keep-your-routines-on-your-page)).
 
+Running a competition or a club, or entering one? **Competitions and clubs**
+in the banner at the top opens the pages for that. Once this browser has
+saved a link to one, it reads **Your competitions and clubs** and lists them.
+On a phone it's shortened to **Competitions**. The view screen has it at the
+bottom of its **Show** menu, and the tariff sheet beside **Show on sheet**.
+
 If a bar says **The app has been updated**, tap **Refresh**.
 
 Something confusing, wrong or missing? The **Feedback** tab at the right edge
