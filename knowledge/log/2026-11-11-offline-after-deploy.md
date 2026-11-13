@@ -1,1 +1,0 @@
-* **Update**: A page kept for offline use no longer loses its styles and scripts after an update, a page with no kept copy waits about 15 seconds for a slow server and its offline page has Try again, and a kept copy shown because of a slow server says so instead of "You're offline".
