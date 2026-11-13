@@ -6,6 +6,15 @@ package views
 // names the app and leads to the other tool. The tariff sheet and the view
 // screen are for paper and a big screen, and have their own looks.
 
+// competitionsLink is the one quiet way from the routine tools to the
+// competition and club pages: on the banner, the view screen's Show menu and
+// the tariff sheet's toolbar. It reads "Competitions and clubs", and "Your
+// competitions and clubs" once this browser has saved links
+// (static/js/toollinks.js).
+templ competitionsLink(class string) {
+	<a class={ class } href="/competitions" data-competitions-link><span data-competitions-head>Competitions</span><span class="competitions-more">{ " and clubs" }</span></a>
+}
+
 // toolBanner is the slim banner over a routine tool: the app's name, which
 // on the Routine Builder (here "/") is the page's heading, and a link to the
 // other tool. wide gives it the builder's width, so it lines up with what's
@@ -14,14 +23,15 @@ templ toolBanner(here string, wide bool) {
 	<header class="tool-banner">
 		<div class={ "container", templ.KV("is-narrow-tool", !wide) }>
 			if here == "/" {
-				<h1 class="tool-banner-name">Trampoline Tariff Calculator</h1>
+				<h1 class="tool-banner-name"><span class="tool-banner-brand">Trampoline </span>Tariff Calculator</h1>
 			} else {
-				<a class="tool-banner-name" href="/">Trampoline Tariff Calculator</a>
+				<a class="tool-banner-name" href="/"><span class="tool-banner-brand">Trampoline </span>Tariff Calculator</a>
 			}
 			<span class="tool-banner-note">Difficulty per the FIG Code of Points 2025–2028</span>
 			<nav class="tool-banner-nav" aria-label="Routine tools">
 				<a href="/" aria-current?={ here == "/" }>Routine Builder</a>
 				<a href="/requirements" aria-current?={ here == "/requirements" }>Requirements</a>
+				@competitionsLink("tool-banner-more")
 			</nav>
 		</div>
 	</header>

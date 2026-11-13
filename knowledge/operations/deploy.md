@@ -279,6 +279,41 @@ the server yet.** The provider is Amazon SES in its Ireland region
    spam, and that SPF, DKIM and DMARC pass (Gmail's "Show original").
 7. Optionally have SES send bounces and complaints to an email address.
 
+# A lost organiser or club admin link
+
+There are no accounts, so a competition's organiser link or a club's admin
+link that is lost outright (not just mislaid: the page's own **Replace** works
+while someone still has it) can only be replaced from the server. Two
+commands, run against the live database while the app runs:
+
+```sh
+docker compose exec tariff /app/tariffCalculator find "ucd"
+docker compose exec tariff /app/tariffCalculator new-admin-link club <id>
+docker compose exec tariff /app/tariffCalculator new-admin-link competition <id>
+```
+
+`find` lists the competitions and clubs whose name has the words in it (case
+and accents ignored): the kind, the name, a competition's date and number of
+entries or a club's last use and members, and the id. Nothing secret is
+printed. `new-admin-link` asks for the name to be typed back (`--yes` skips
+that), replaces the link (the old one stops working at once, as the page's
+**Replace** does), prints the new one once (from `PUBLIC_URL`) and writes a
+line in the competition's or club's **History**: "The maintainer replaced the
+admin link, at the organiser's request" (or the club's), so it can't happen
+silently. Helpers' links, role links, club and individual links and everyone's
+personal links keep working. Neither command starts the expiry job or the
+web server.
+
+**Check that the person asking really is the organiser or the club's admin
+before you run it:** anyone with the new link is the organiser. The app can't
+tell; you can (someone you know, the competition's own email or website, the
+club's committee). Send the link only to them, by a way you trust.
+
+The running app looks every link up by its hash on each request and counts
+only its own writes for its page cache (`store/changes.go`), but nothing it
+caches holds the link, so the new link opens and the old one stops on the
+next request, without a restart (`TestAdminLinkReplacedFromAnotherProcess`).
+
 # Garbage collector
 
 What the app keeps in memory is small (about 14 MB with the demo), but a

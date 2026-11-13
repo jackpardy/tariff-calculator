@@ -444,3 +444,8 @@ func postedEntry(r *http.Request, c competitions.Competition, gymnast string) (c
 	}
 	return e, problems
 }
+
+// AdminLinkPath and ClubAdminLinkPath are the paths of a competition's
+// admin link and a club's, for the maintainer's commands to print.
+func AdminLinkPath(token string) string     { return adminPath(token) }
+func ClubAdminLinkPath(token string) string { return clubPath(token) }

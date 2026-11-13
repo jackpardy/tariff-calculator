@@ -91,16 +91,13 @@ the view screen held either way
    last 20 listed on the maintainer's page, is built 2026-11-13
    ([deploy](operations/deploy.md#knowing-when-it-breaks)). Still the
    owner's: an outside uptime check, and a restore drill.
-5. **A lost organiser or club admin link**: a command that issues a new one.
-6. **Link the Routine Builder to the competition pages**: still nothing
-   leads from it to `/competitions`.
-7. **ISTO's 2027 routines**, swapped in when the document arrives, saying
+5. **ISTO's 2027 routines**, swapped in when the document arrives, saying
    what happens to routines already checked against 2025's.
-8. **Hand-off to scoring: to be decided.** Clubs used to enter by hand on
+6. **Hand-off to scoring: to be decided.** Clubs used to enter by hand on
    TrampOnline and ISTO exported a CSV of the entries; TrampOnline has a bulk
    upload tool, but how it works isn't known yet (the owner, 2026-11-13).
    Waiting on a sample of that format.
-9. **Timings learnt from the day**: the Warm-up over tap measures warm-up
+7. **Timings learnt from the day**: the Warm-up over tap measures warm-up
     and competing apart and **Real times today** sets them beside Setup's
     ([flight times](features/competition-entries.md#flight-times-roadmap-15));
     better defaults for tumbling, DMT and rest between turns follow from the
@@ -209,6 +206,7 @@ Dates are when built, where known.
 - [Changing a skill in its card](features/routine-builder.md#changing-a-skill-in-its-card), its head showing the change (2026-10-22, 2026-10-23).
 - [Requirements written beside the routine](features/routine-builder.md#requirements-and-checks), each rule Met or Not met, and a Check against picker with search (2026-10-16).
 - [The routine tools in the competition pages' look](architecture/ui.md#the-routine-builder-and-the-requirements-page) (2026-10-22).
+- [A quiet link from the routine tools to the competition and club pages](features/routine-builder.md#the-page), worded for a browser with saved links (2026-11-13).
 - [Skill names and search](domain/skill-catalog.md): twisting singles to triples named, found by the names people type (2026-10-19).
 - [Execution judging rules](domain/execution.md) (2026-10-07).
 
@@ -284,5 +282,6 @@ Dates are when built, where known.
 - [CI building the image](operations/deploy.md#ci) the server loads (2026-10-23).
 - The November audit's fixes: the vulnerability check, stopping and panics, uploads given 90 seconds, history leaving out refusals, requirements following the person (2026-11-11).
 - [Browser tests made reliable](architecture/testing.md#browser-tests-how-to-wait) (2026-11-11).
+- [A lost organiser or club admin link](operations/deploy.md#a-lost-organiser-or-club-admin-link): the maintainer's `find` and `new-admin-link` commands (2026-11-13).
 
 [^tramponline]: TrampOnline (online entries and scoring)
