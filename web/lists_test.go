@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"html"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"slices"
@@ -115,7 +114,7 @@ func TestListSearchInABrowser(t *testing.T) {
 	s := newTestServer(t, atTime(dayBefore))
 	admin := created(t, s.h, newCompetition())
 	club := aClub(t, s.h, admin, "UCD", false, "Mary Kate Byrne", "Éabha Ní Bhriain", "Tadhg Ryan")
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	shown := func(search string) string {

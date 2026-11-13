@@ -55,6 +55,7 @@ templ ViewPage() {
 			<meta name="app-version" content={ static.Version }/>
 			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/view.css") }/>
+			<meta name="htmx-config" content='{"defaultSettleDelay":0}'/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/routines.js") }></script>
 			<script defer src={ static.URL("js/sets.js") }></script>

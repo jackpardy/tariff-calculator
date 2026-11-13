@@ -21,6 +21,8 @@ templ Page(groups []requirements.BuiltinGroup, back string) {
 			<script defer src={ static.URL("js/version.js") }></script>
 			<link rel="stylesheet" href={ static.URL("css/bulma.min.css") }/>
 			<link rel="stylesheet" href={ static.URL("css/styles.css") }/>
+			// htmx makes what it swaps in work at once, not 20 ms later: a tap on a new control in that moment did nothing.
+			<meta name="htmx-config" content='{"defaultSettleDelay":0}'/>
 			<script src={ static.URL("js/htmx.min.js") }></script>
 			<script defer src={ static.URL("js/selectsearch.js") }></script>
 			<script defer src={ static.URL("js/sortable.min.js") }></script>

@@ -60,7 +60,7 @@ func TestRoutineCardControls(t *testing.T) {
 // question first.
 func TestRemoveAndUndoInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var after, undone, message string
@@ -89,7 +89,7 @@ func TestRemoveAndUndoInABrowser(t *testing.T) {
 // against chooses requirements, not a search box and a list.
 func TestNewLevelChooserInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var level string
@@ -116,7 +116,7 @@ func TestNewLevelChooserInABrowser(t *testing.T) {
 // pop-up: Keep it leaves it, Delete deletes it.
 func TestDeleteAsksOnTheRowInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	var asked string
@@ -150,7 +150,7 @@ func TestDeleteAsksOnTheRowInABrowser(t *testing.T) {
 // checkbox takes the shading away.
 func TestSideBySideShadesTheSecondInABrowser(t *testing.T) {
 	ctx := browser(t)
-	srv := httptest.NewServer(routes())
+	srv := browserServer(t, routes())
 	defer srv.Close()
 
 	const two = `{"current":"r1","beside":"r2","routines":[` +
@@ -188,7 +188,7 @@ func TestSideBySideShadesTheSecondInABrowser(t *testing.T) {
 func TestFeedbackTabClearOfThePageOnAPhoneInABrowser(t *testing.T) {
 	ctx := browser(t)
 	s := newTestServer(t) // the Feedback tab needs the storage it's kept in
-	srv := httptest.NewServer(s.h)
+	srv := browserServer(t, s.h)
 	defer srv.Close()
 
 	var got struct {

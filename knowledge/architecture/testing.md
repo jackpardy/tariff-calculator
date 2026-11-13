@@ -95,6 +95,42 @@ migration once it has shipped.
 The Docker build runs `go test ./...` too, so an image can't be built from
 failing code.
 
+# Browser tests: how to wait
+
+A browser test fails on CI, which can't be watched, so it should never depend
+on how fast the machine is. The rules (the helpers are in `web/browser_test.go`
+and `web/editcard_test.go`):
+
+- **Wait on the page, never on the clock.** Wait for the state the page is in
+  (`poll(...)` a condition: an element shown, a saved value, the form back
+  home), not `Sleep`. A sleep is only for letting a real animation play out
+  before measuring it. If a wait needs a signal the page doesn't give, have
+  the test count one (the taps test counts the page's sends and failures).
+- **Click only what's ready.** A click lands where the element is when the
+  mouse goes down and comes up. Wait until nothing is still moving the form
+  (the page scrolling it into view) or still being switched on (htmx now makes
+  what it swaps in work at once: `defaultSettleDelay` is 0 in each page's
+  `htmx-config` meta). `TestTapOnTheFormWhileItScrollsInABrowser` and
+  `TestChoiceRightAfterTheFormLoadsInABrowser` hold the app to that.
+- **A page that reloads loses its script context**, which is not a failed
+  wait: `poll` starts again in the new page. Save what the page needs on
+  another page and then navigate, rather than reloading the page under test.
+- **A stood-still clock needs the network to stand still too.** The taps test
+  freezes the phone's clock; a send still on its way when the signal returns
+  carries the old clock. Wait until every try has failed before the clock moves.
+- **Headless Chrome reports no mouse** (`hover: hover` is false), so a laptop
+  with a mouse (`wide()`) is false there: don't assume the autofocus on the
+  card's search.
+- **Serve with `browserServer(t, handler)`**, not `httptest.NewServer`: it
+  keeps a log of the requests answered, and a failing `step` prints the last
+  15 (method, path, status, milliseconds since the server started) under the
+  page's state, so a timeout says what did and didn't reach the server.
+
+To find out whether a test is flaky, run it in a loop with the machine loaded:
+build the test binary (`go test -c ./web`), then start four copies, each with
+`-test.count=15`, beside a dozen busy loops. A test that fails once in 60 of
+those will fail in CI.
+
 # Not covered
 
 Apart from the tariff sheet loading (`web/browser_test.go`), the browser JavaScript
