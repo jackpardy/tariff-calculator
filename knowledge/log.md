@@ -3,6 +3,7 @@
 New lines start as files in [log/](log/), one per change, and are moved here, under their dates, after they merge ([how](log/README.md)).
 
 ## 2026-11-13
+* **Update**: [Renaming a tumbling or DMT level](features/competition-entries.md) that judges' offers name now asks after saving whether to carry them over ("You renamed T2 to Tier 2. 7 judges said they can judge up to T2. Carry them over to Tier 2, or leave them for each judge to set again?", a tick per rename, none ticked): carrying changes every role's "up to" in every offer of the competition, including each member's own copy so a club's next send keeps the new name, and writes a history line; left alone it stays flagged, and the Officials page keeps offering it. A removed level is never carried.
 * **Update**: The [roadmap](roadmap.md) rewritten short: where it stands, the dates, what is left before the dry run, before ISTO's entries open and before the day, what waits on others and on the server, what is not planned, the decisions that still hold, and one line for each thing built.
 
 ## 2026-11-11
