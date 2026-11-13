@@ -64,11 +64,15 @@ the view screen held either way
 
 # Next: before ISTO's entries open
 
-1. **Feedback made safe for real entries**: a capture must not keep other
-   people's working links; feedback deleted at 90 days; a limit per sender;
-   capture switched from Full to Light
-   ([feedback](features/competition-entries.md#feedback-about-the-app)). From
-   the audit; not built.
+1. **Feedback made safe for real entries**: built 2026-11-13: a capture no
+   longer keeps other people's working links (`data-private` blurred and
+   blanked, secret-link paths cleaned, on the server too), a copy can't load
+   from elsewhere, feedback is deleted at 90 days with a Delete for each, and
+   there's a limit per address and per link
+   ([feedback](features/competition-entries.md#feedback-about-the-app)). Left
+   to the owner: **switch capture from Full to Light** on the maintainer's page
+   before real entries open
+   ([deploy](operations/deploy.md#notifications)).
 2. **Tell someone let in from a waiting list** when another withdraws. Not
    built ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
 3. **Small audit items**: an entry let in over a limit stays let in after it

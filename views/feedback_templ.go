@@ -195,19 +195,19 @@ func feedbackButton(f *FeedbackForm) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"site-feedback-small site-feedback-grey\">A picture of your screen and a copy of this page go with it, to the people who make the app only.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"site-feedback-small site-feedback-grey\">A picture of your screen and a copy of this page go with it, to the people who make the app only. Links and emails shown on the page are left out.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<figure class=\"site-feedback-picture\" hidden data-feedback-picture><img alt=\"The picture of your screen that goes with it\"><figcaption class=\"site-feedback-small site-feedback-grey\" data-feedback-caption></figcaption></figure><div class=\"site-feedback-buttons\"><button class=\"site-feedback-send\" type=\"submit\">Send</button> <button type=\"button\" data-feedback-close>Close</button></div><p class=\"site-feedback-small\" role=\"status\" data-feedback-said></p></form></div></details></div><script defer src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"site-feedback-small site-feedback-grey\">What you send is kept for 90 days, then deleted.</p><figure class=\"site-feedback-picture\" hidden data-feedback-picture><img alt=\"The picture of your screen that goes with it\"><figcaption class=\"site-feedback-small site-feedback-grey\" data-feedback-caption></figcaption></figure><div class=\"site-feedback-buttons\"><button class=\"site-feedback-send\" type=\"submit\">Send</button> <button type=\"button\" data-feedback-close>Close</button></div><p class=\"site-feedback-small\" role=\"status\" data-feedback-said></p></form></div></details></div><script defer src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/feedback.js"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 89, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 90, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -327,7 +327,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var12 templ.SafeURL
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/settings"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 141, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 142, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -377,7 +377,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var14 templ.SafeURL
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/settings"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 152, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 153, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -432,13 +432,13 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var16 templ.SafeURL
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/captures/delete"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 167, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 168, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" class=\"mb-3\"><p class=\"is-size-7 mb-2\">Every picture and copy of a page goes; what people wrote stays. They go by themselves after 90 days.</p><button class=\"button is-small is-danger\" type=\"submit\">Delete them all</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" class=\"mb-3\"><p class=\"is-size-7 mb-2\">Every picture and copy of a page goes; what people wrote stays. Each piece of feedback and what came with it goes by itself after 90 days.</p><button class=\"button is-small is-danger\" type=\"submit\">Delete them all</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -482,7 +482,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var18 string
 						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 184, Col: 18}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 185, Col: 18}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 						if templ_7745c5c3_Err != nil {
@@ -500,7 +500,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 							var templ_7745c5c3_Var19 string
 							templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(c.How)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 186, Col: 51}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 187, Col: 51}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 							if templ_7745c5c3_Err != nil {
@@ -518,7 +518,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var20 string
 						templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(c.Day)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 189, Col: 20}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 190, Col: 20}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 						if templ_7745c5c3_Err != nil {
@@ -531,7 +531,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var21 string
 						templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(c.At)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 190, Col: 19}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 191, Col: 19}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 						if templ_7745c5c3_Err != nil {
@@ -592,7 +592,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 			var templ_7745c5c3_Var24 templ.SafeURL
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 203, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 204, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -605,7 +605,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(p.Waiting))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 203, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 204, Col: 123}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -640,7 +640,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 			var templ_7745c5c3_Var28 templ.SafeURL
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "?all=1"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 204, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 205, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 			if templ_7745c5c3_Err != nil {
@@ -653,7 +653,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 			var templ_7745c5c3_Var29 string
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(p.Total))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 204, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 205, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 			if templ_7745c5c3_Err != nil {
@@ -699,7 +699,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.ResolveAttributeValue("f-" + f.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 212, Col: 92}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 213, Col: 92}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var32)
 				if templ_7745c5c3_Err != nil {
@@ -712,7 +712,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(f.Text)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 213, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 214, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -725,7 +725,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var34 string
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(f.At)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 215, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 216, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
@@ -738,7 +738,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var35 string
 				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(f.Role)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 215, Col: 99}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 216, Col: 99}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 				if templ_7745c5c3_Err != nil {
@@ -751,7 +751,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Pattern)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 215, Col: 162}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 216, Col: 162}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
 				if templ_7745c5c3_Err != nil {
@@ -764,7 +764,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var37 string
 				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(f.Page)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 215, Col: 173}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 216, Col: 173}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 				if templ_7745c5c3_Err != nil {
@@ -782,7 +782,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 					var templ_7745c5c3_Var38 string
 					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(f.Competition)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 217, Col: 65}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 218, Col: 65}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 					if templ_7745c5c3_Err != nil {
@@ -806,7 +806,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var39 templ.SafeURL
 						templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("mailto:" + f.ReplyTo))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 222, Col: 112}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 223, Col: 112}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 						if templ_7745c5c3_Err != nil {
@@ -819,7 +819,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var40 string
 						templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(f.ReplyTo)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 222, Col: 126}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 223, Col: 126}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 						if templ_7745c5c3_Err != nil {
@@ -837,7 +837,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var41 string
 						templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(f.ReplyTo)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 224, Col: 107}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 225, Col: 107}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 						if templ_7745c5c3_Err != nil {
@@ -857,7 +857,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 					var templ_7745c5c3_Var42 templ.SafeURL
 					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/feedback/" + f.ID + "/picture"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 228, Col: 104}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 229, Col: 104}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 					if templ_7745c5c3_Err != nil {
@@ -870,7 +870,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 					var templ_7745c5c3_Var43 string
 					templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Base + "/feedback/" + f.ID + "/picture")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 229, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 230, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var43)
 					if templ_7745c5c3_Err != nil {
@@ -901,7 +901,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var45 templ.SafeURL
 						templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/feedback/" + f.ID + "/page#feedback-scroll"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 236, Col: 87}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 237, Col: 87}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 						if templ_7745c5c3_Err != nil {
@@ -914,7 +914,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var46 string
 						templ_7745c5c3_Var46, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(frameSize(f.Width, f.Height, 0))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 238, Col: 79}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 239, Col: 79}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 						if templ_7745c5c3_Err != nil {
@@ -927,7 +927,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var47 string
 						templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(f.ScrollY))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 238, Col: 119}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 239, Col: 119}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 						if templ_7745c5c3_Err != nil {
@@ -940,7 +940,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var48 string
 						templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Base + "/feedback/" + f.ID + "/page")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 239, Col: 109}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 240, Col: 109}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 						if templ_7745c5c3_Err != nil {
@@ -953,7 +953,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 						var templ_7745c5c3_Var49 string
 						templ_7745c5c3_Var49, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(frameSize(f.Width, f.Height, f.PageHeight))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 239, Col: 162}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 240, Col: 162}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 						if templ_7745c5c3_Err != nil {
@@ -995,7 +995,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 							var templ_7745c5c3_Var51 string
 							templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(d.Label)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 248, Col: 27}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 249, Col: 27}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 							if templ_7745c5c3_Err != nil {
@@ -1008,7 +1008,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 							var templ_7745c5c3_Var52 string
 							templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(d.Value)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 248, Col: 47}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 249, Col: 47}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 							if templ_7745c5c3_Err != nil {
@@ -1037,7 +1037,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var53 templ.SafeURL
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/feedback/" + f.ID + "/done"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 254, Col: 87}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 255, Col: 87}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 				if templ_7745c5c3_Err != nil {
@@ -1050,7 +1050,7 @@ func Maintainer(p MaintainerPage) templ.Component {
 				var templ_7745c5c3_Var54 string
 				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.ResolveAttributeValue(boolValue(!f.Done))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 255, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 256, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var54)
 				if templ_7745c5c3_Err != nil {
@@ -1076,38 +1076,87 @@ func Maintainer(p MaintainerPage) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, " onchange=\"this.form.submit()\" aria-label=\"Dealt with\"> Dealt with</label><noscript><button class=\"button is-small\" type=\"submit\">Change</button></noscript></form></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, " onchange=\"this.form.submit()\" aria-label=\"Dealt with\"> Dealt with</label><noscript><button class=\"button is-small\" type=\"submit\">Change</button></noscript></form>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Var55 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+					if !templ_7745c5c3_IsBuffer {
+						defer func() {
+							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+							if templ_7745c5c3_Err == nil {
+								templ_7745c5c3_Err = templ_7745c5c3_BufErr
+							}
+						}()
+					}
+					ctx = templ.InitializeContext(ctx)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "<form method=\"post\" action=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var56 templ.SafeURL
+					templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(p.Base + "/feedback/" + f.ID + "/delete"))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 267, Col: 90}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "\"><p class=\"is-size-7 mb-2\">Delete this feedback, with its reply-to, picture and copy of the page, for good?</p>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					if p.All {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<input type=\"hidden\" name=\"all\" value=\"1\"> ")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "<button class=\"button is-small is-danger\" type=\"submit\">Delete it</button></form>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					return nil
+				})
+				templ_7745c5c3_Err = opens("", "", "Delete", false).Render(templ.WithChildren(ctx, templ_7745c5c3_Var55), templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "</div><link rel=\"stylesheet\" href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "</div><link rel=\"stylesheet\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var55 templ.SafeURL
-			templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinURLErrs(static.URL("css/feedback.css"))
+			var templ_7745c5c3_Var57 templ.SafeURL
+			templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinURLErrs(static.URL("css/feedback.css"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 268, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 278, Col: 62}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "\"><script defer src=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var56 string
-			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/maintainer.js"))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 269, Col: 52}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\"><script defer src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "\"></script>")
+			var templ_7745c5c3_Var58 string
+			templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.ResolveAttributeValue(static.URL("js/maintainer.js"))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/feedback.templ`, Line: 279, Col: 52}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\"></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
