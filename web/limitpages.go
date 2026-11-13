@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"tariffCalculator/store"
 	"tariffCalculator/views"
@@ -95,9 +96,38 @@ func waitingWord(place int) string {
 	return strconv.Itoa(place) + suffix
 }
 
-// waitingText says an entry is on its event's waiting list, "" if it's in.
-func waitingText(e store.Entry) string {
+// cameOffWaitingListFor is how long its page says an entry came off a waiting
+// list.
+const cameOffWaitingListFor = 7 * 24 * time.Hour
+
+// cameOffWaitingList are the history's lines of entries let in from a
+// waiting list in the last week; none if the competition has no limits.
+func (p *competitionPages) cameOffWaitingList(ctx context.Context, c store.Competition, now time.Time) []store.Change {
+	if !limited(c.Limits) {
+		return nil
+	}
+	got, err := p.st.CameOffWaitingList(ctx, c.ID, now.Add(-cameOffWaitingListFor))
+	if err != nil {
+		return nil
+	}
+	return got
+}
+
+// waitingText says an entry is on its event's waiting list, "" if it's in; or
+// if it came off one in the last week (came, the history's lines for that),
+// that it did, and why: "Was on the waiting list; a place came free on 12
+// Feb."
+func waitingText(e store.Entry, came []store.Change, now time.Time) string {
 	if e.Waiting == 0 {
+		if e.Withdrawn || e.Removal != "" {
+			return ""
+		}
+		prefix := cameInPrefix(e)
+		for _, c := range came { // latest first
+			if why, ok := strings.CutPrefix(c.What, prefix); ok && now.Sub(c.At) < cameOffWaitingListFor {
+				return fmt.Sprintf("Was on the waiting list; %s on %s.", why, c.At.In(local).Format("2 Jan"))
+			}
+		}
 		return ""
 	}
 	return fmt.Sprintf("On the waiting list for %s: %s. It moves up when a place frees; the organiser can also let it in.", e.Entry.Event(), waitingWord(e.Waiting))
@@ -161,10 +191,12 @@ func (p *competitionPages) setLimits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.notify.changing(r.Context(), c)
+	came := p.notify.watching(r.Context(), c, cameFree)
 	if err := p.st.SetLimits(r.Context(), c.ID, limits); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	if entries, err = p.entriesOf(r.Context(), c.ID); err != nil {
 		failed(w, r, err)
 		return
@@ -243,10 +275,12 @@ func (p *competitionPages) letIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.notify.changing(r.Context(), c)
+	came := p.notify.watching(r.Context(), c, "the organiser let you in")
 	if err := p.st.LetIn(r.Context(), c.ID, r.PathValue("id"), on); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	notice := "Let in from the waiting list."
 	if !on {
 		notice = "Back to the waiting list, in its place."

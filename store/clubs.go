@@ -631,6 +631,7 @@ func (s *Store) Send(ctx context.Context, clubID, competitionID string, memberID
 				ON CONFLICT (competition_id, member_id, discipline) DO UPDATE
 				SET entry = excluded.entry, gymnast = excluded.gymnast, club_name = excluded.club_name, sent_at = excluded.sent_at,
 					entered_at = CASE WHEN json_extract(entries.entry, '$.level') = json_extract(excluded.entry, '$.level') THEN entries.entered_at ELSE excluded.entered_at END,
+					let_in = CASE WHEN json_extract(entries.entry, '$.level') = json_extract(excluded.entry, '$.level') THEN entries.let_in ELSE FALSE END,
 					signed_at = excluded.signed_at, signed_by = excluded.signed_by, sign_note = excluded.sign_note, signed_coach = excluded.signed_coach,
 					signoff_again = excluded.signoff_again, partner_gone = excluded.partner_gone,
 					resent = entries.resent OR (entries.removal = 'held' AND entries.entry <> excluded.entry),

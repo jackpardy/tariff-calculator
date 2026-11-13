@@ -82,6 +82,10 @@ func (p *competitionPages) enter(w http.ResponseWriter, r *http.Request) {
 		again(problems)
 		return
 	}
+	if !p.enterLimiter.allow(clientIP(r), p.now()) {
+		message(w, r, http.StatusTooManyRequests, "Too many entries", "This address has made many entries in the last hour. Please try again later.")
+		return
+	}
 	// As the person whose page's link was given, or someone new, with a
 	// personal link of their own (ADR 0010); asked for late, once new
 	// entries have closed.
@@ -198,7 +202,7 @@ func (p *competitionPages) entryView(r *http.Request, e store.Entry, c store.Com
 		Competition: summary(c, p.now()),
 		Sent:        e.SentAt.In(local).Format("Monday 2 January, 15:04"), Card: shown, Checked: e.Checked(), Note: e.Note,
 		Placement:   placement(c, e.ID),
-		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID)),
+		Waiting:     waitingText(p.waitingOf(r.Context(), c.ID, e.ID), p.cameOffWaitingList(r.Context(), c, p.now()), p.now()),
 		Late:        p.lateStatusOf(r.Context(), c, e.ID),
 		Day:         path + "/day",
 		VideoReview: e.VideoReview, VideoNote: e.VideoNote,
@@ -275,10 +279,13 @@ func (p *competitionPages) replaceEntry(w http.ResponseWriter, r *http.Request) 
 		p.renderOwn(w, r, e, c, changed, problems)
 		return
 	}
+	// Changing the level puts it last in the new event and frees its place.
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.ReplaceIndividualEntry(r.Context(), r.PathValue("token"), changed); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	http.Redirect(w, r, "/competitions/entry/"+r.PathValue("token")+"?saved=1", http.StatusSeeOther)
 }
 
@@ -291,22 +298,28 @@ func (p *competitionPages) withdraw(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/competitions/entry/"+r.PathValue("token"), http.StatusSeeOther)
 		return
 	}
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.WithdrawIndividualEntry(r.Context(), r.PathValue("token")); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	seeOther(w, r, "/competitions/entry/"+r.PathValue("token"), "Withdrawn from "+c.Name+".")
 }
 
 // restore puts back an entry its gymnast withdrew.
 func (p *competitionPages) restore(w http.ResponseWriter, r *http.Request) {
-	if _, _, ok := p.own(w, r); !ok {
+	_, c, ok := p.own(w, r)
+	if !ok {
 		return
 	}
+	// Put back, it goes last in its event: it, or those behind it, move.
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.RestoreIndividualEntry(r.Context(), r.PathValue("token")); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	seeOther(w, r, "/competitions/entry/"+r.PathValue("token"), "Put back: you're entered again.")
 }
 

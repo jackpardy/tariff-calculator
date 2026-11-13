@@ -602,7 +602,10 @@ entries each event takes (empty: no limit), showing how many have entered
 (roadmap 2026-10-08). Once an event is full, later entries wait, in the
 order they first came in (`entered_at`: kept when an entry is sent or
 changed again, reset if its level changes, so switching from a quiet
-level doesn't jump the queue). `Store.Entries` marks each entry's place
+level doesn't jump the queue, and an entry the organiser let in over one
+event's limit isn't let in over another's: `let_in` is cleared wherever
+`entered_at` is reset for a new level, in `ReplaceIndividualEntry`, `Send`
+and `AcceptLateChange`). `Store.Entries` marks each entry's place
 (`Waiting`, from `markWaiting`); withdrawn entries take no place. A waiting
 entry isn't counted, charged, printed, exported or timetabled (`live`,
 `splitWaiting`). When one is withdrawn or removed, or the limit is raised,
@@ -611,7 +614,26 @@ without moving anyone else. The dashboard shows "88 of 90 places" beside a
 limited event and a **Waiting lists** box; the comp sec sees "Sent ·
 waiting list, 3rd", and a member or individual "On the waiting list for
 BUCS L1: 3rd". Notifications (cards) say when an entry goes on or comes
-off a waiting list, when the organiser's change does it. New limits that
+off a waiting list (BUCS L3: "in, off the waiting list", or "on the waiting
+list (1st)"), whoever's action does it: every action that changes who is
+live at a limited event opens the notification window first
+(`notifier.moving`, or `changing` with `watching` for the organiser's own):
+a gymnast's or a club's withdrawal (`WithdrawMemberEntry`, from the member
+or the comp sec; `WithdrawIndividualEntry`), a gymnast putting one back
+(`RestoreIndividualEntry`, which goes to the back), a club sending
+(`Send`, which can change levels or take back entries), taking a member out
+of a competition, removing a member, deleting a club (each competition it
+was in), an individual changing their entry's level, and the organiser's
+removing, holding, restoring, letting in, raising or lowering limits, and
+accepting a late change. The person moved in, their comp sec and their
+coach are told as for any change to a card, once, after the grace period; a
+withdrawal put back within it tells no one. A gymnast's own withdrawing, or
+putting it back, isn't told to them as "removed" or "back in". With limits
+set, each entry let in this way is also added to the history as "Waiting
+list: Ann Ryan · BUCS L3: in off the waiting list, a place came free"
+(`Store.CameOffWaitingList`), and for a week after, their own page (a
+member's, an individual's) says "Was on the waiting list; a place came free
+on 12 Feb." (`waitingText`). New limits that
 let entries in from a waiting list, or move entries in onto one, ask first
 on **Before you change it** (`askBefore`, `views.AskFirst`), naming each
 (`store.WithLimits` works out the places the new limits would give); the
@@ -627,6 +649,11 @@ Each page words it for its reader. So a checked entry on a waiting list
 reads as waiting everywhere: a member's status line says "Sent by your
 club", not "checked by the organiser". The demo limits
 BUCS L1 to 12 and DMT Advanced to 17.
+
+The public individual link takes at most 20 entries an hour from one
+address (`enterLimiter`, asking to enter late included; a form with
+mistakes uses none up); the 21st gets "Too many entries" (429). The
+competition's 2,000 entries are the only other cap.
 
 ## Entry fees
 
@@ -1267,7 +1294,15 @@ are then filled flight by flight.
   area, half a minute less competing per competitor, shorter changeovers,
   bigger flights, rest only preferred, events running across breaks, or an
   event capped at the most entries that fit, a flight's worth fewer at a
-  time) and says which would fit everything.
+  time) and says which would fit everything. Where an event's run (all its
+  men's, or all its women's, flights, which one panel judges on one day)
+  is longer than any day's hours, no panel or quicker turn can place it:
+  the report says so ("Novice takes 10h 50m in one run: the longest day is
+  9h 00m") and also tries **men and women in separate flights for the
+  event** (where they fly together) and **a longer day** (the longest, to as
+  long as the run needs, to 23:59 at most). Two blocks of blocked time with
+  the same name on one day are refused when the setup is checked, as a
+  placed block is found again by its name and day.
 - **Adjusting:** **Move event** moves all of a flight's event to another day
   or area, after what's there (clear of breaks unless events can run across
   them); **Earlier** swaps a flight with the one before it in its event;
@@ -3145,7 +3180,9 @@ made before).
   club, as it goes to any address typed in: it says "a competition on
   tariff.pardy.ie", and the page its link opens names the competition.
 - Before the organiser publishes or unpublishes the timetable, checks a
-  card or changes its note, or removes, holds or restores an entry, what's
+  card or changes its note, or removes, holds or restores an entry, or
+  anyone does what moves an entry on or off a waiting list (see Limits and
+  waiting lists: a withdrawal, a club sending or removing, a limit), what's
   live is kept as a **baseline** (unless changes are already waiting), due
   **10 minutes** later. The dashboard says when, with **Notify now**; **No
   wait on the competition's days** (Settings page) makes them due at
@@ -3154,7 +3191,8 @@ made before).
   (`changes`): each entry's flight, area and warm-up time, each person's
   duties, and each card. Running orders, and anything changed and put back,
   tell no one. Each address gets **one email** for all of it, grouped by
-  gymnast ("Ann Ryan" then "- BUCS L5 Women · flight 2 of 3: now warm-up
+  gymnast (the email says "There are changes at Student Open you asked to
+  hear about", as not all are the organiser's; "Ann Ryan" then "- BUCS L5 Women · flight 2 of 3: now warm-up
   Saturday 10:20, Panel 2 (was Saturday 09:40, Panel 1)"), saying to open
   their page from the link they saved, with a link to Competitions
   (`/competitions`, which lists the links saved in that browser), and a

@@ -72,14 +72,17 @@ the view screen held either way
    capture switched from Full to Light
    ([feedback](features/competition-entries.md#feedback-about-the-app)). From
    the audit; not built.
-3. **Tell someone let in from a waiting list** when another withdraws. Not
-   built ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-4. **Small audit items**: an entry let in over a limit stays let in after it
-   moves level; the public individual-entry link has no rate limit; a second
-   block with the same name on a day is dropped without a word; an event
-   longer than a day is offered only a cap; no copy of the database before a
-   migration; privacy notes behind the features; ADRs for site feedback and
-   for messages; missing indexes.
+3. **Tell someone let in from a waiting list** when another withdraws.
+   Built 2026-11-13: every action that moves entries on or off a waiting
+   list opens the notification window, and their page says so for a week
+   ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
+4. **Small audit items**: no copy of the database before a migration;
+   privacy notes behind the features; ADRs for site feedback and for
+   messages; missing indexes. (Built 2026-11-13: an entry let in over a limit
+   no longer stays let in after it moves level; the public individual-entry
+   link is limited per address; two blocks with the same name on a day are
+   refused; an event longer than a day is offered men and women apart and a
+   longer day.)
 5. **Know when it breaks**: an outside uptime check, an email on errors and
    panics, and a restore drill.
 6. **A lost organiser or club admin link**: a command that issues a new one.

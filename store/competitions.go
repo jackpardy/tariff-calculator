@@ -536,6 +536,35 @@ func (s *Store) LetIn(ctx context.Context, competitionID, id string, on bool) er
 	return affected(s.db.ExecContext(ctx, `UPDATE entries SET let_in = $1 WHERE competition_id = $2 AND id = $3`, on, competitionID, id))
 }
 
+// WaitingListWho is who the history says an entry came off a waiting list
+// (CameOffWaitingList), for the pages to tell its people for a week after.
+const WaitingListWho = "Waiting list"
+
+// CameOffWaitingList reads the history's lines of entries let in from a
+// waiting list since a time, latest first: each What is "Ann Ryan · BUCS L3:
+// in off the waiting list, " and why.
+func (s *Store) CameOffWaitingList(ctx context.Context, competitionID string, since time.Time) ([]Change, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT at, what FROM competition_log WHERE competition_id = $1 AND who = $2 ORDER BY id DESC LIMIT 500`,
+		competitionID, WaitingListWho)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Change
+	for rows.Next() {
+		var c Change
+		var at string
+		if err := rows.Scan(&at, &c.What); err != nil {
+			return nil, err
+		}
+		if c.At = parseTime(at); !c.At.Before(since) {
+			c.Who = WaitingListWho
+			out = append(out, c)
+		}
+	}
+	return out, rows.Err()
+}
+
 // entriesWhere are the entries meeting a condition, by club then gymnast.
 func (s *Store) entriesWhere(ctx context.Context, where string, args ...any) ([]Entry, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, competition_id, COALESCE(club_id, ''), club_name, COALESCE(member_id, ''), individual, entry, sent_at, COALESCE(checked_at, ''), note, video_review, video_note,
@@ -758,6 +787,7 @@ func (s *Store) ReplaceIndividualEntry(ctx context.Context, token string, e comp
 		}
 		return affected(tx.ExecContext(ctx, `UPDATE entries SET entry = $1, gymnast = $2, sent_at = $3, discipline = $5,
 			entered_at = CASE WHEN discipline = $5 AND json_extract(entry, '$.level') = json_extract($1, '$.level') THEN entered_at ELSE $3 END,
+			let_in = CASE WHEN discipline = $5 AND json_extract(entry, '$.level') = json_extract($1, '$.level') THEN let_in ELSE FALSE END,
 			resent = resent OR (removal = 'held' AND entry <> $1),
 			checked_at = CASE WHEN entry = $1 THEN checked_at ELSE NULL END,
 			video_review = CASE WHEN entry = $1 THEN video_review ELSE '' END,

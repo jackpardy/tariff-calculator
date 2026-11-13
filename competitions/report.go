@@ -14,8 +14,11 @@ type Report struct {
 	Days           []DayReport
 	Unplaced       []string // flights that fit nowhere
 	UnplacedBlocks []string
-	ShortRest      []ShortRest // people with less rest than wanted between turns
-	Broken         []string    // prefer rules the schedule breaks
+	// TooLong says of each unplaced run that no day is long enough for it,
+	// e.g. "BUCS L3 takes 10h 50m in one run: the longest day is 9h 00m".
+	TooLong   []string
+	ShortRest []ShortRest // people with less rest than wanted between turns
+	Broken    []string    // prefer rules the schedule breaks
 }
 
 // DayReport is when a day finishes against its end, and how much time is
@@ -73,6 +76,9 @@ func (s Schedule) Report(people map[string][]string) Report {
 		r.Unplaced = append(r.Unplaced, f.Name())
 	}
 	r.UnplacedBlocks = s.UnplacedBlocks
+	for _, l := range s.longRuns() {
+		r.TooLong = append(r.TooLong, fmt.Sprintf("%s takes %s in one run: the longest day is %s", l.group, hoursWord(l.minutes), hoursWord(s.longestDay())))
+	}
 
 	// Each person's turns, in order.
 	turns := map[string][]ScheduledFlight{}
@@ -142,6 +148,52 @@ func (s Schedule) eventRuleBroken(rule Rule) bool {
 	return broken
 }
 
+// longRun is an unplaced run that no day is long enough for.
+type longRun struct {
+	event, group string
+	minutes      int
+}
+
+// longestDay is the length of the longest day, in minutes.
+func (s Schedule) longestDay() int {
+	longest := 0
+	for _, d := range s.Setup.Days {
+		start, err1 := clock(d.Start)
+		end, err2 := clock(d.End)
+		if err1 == nil && err2 == nil {
+			longest = max(longest, end-start)
+		}
+	}
+	return longest
+}
+
+// longRuns are the runs left unplaced that take longer than any day's hours
+// (one run, one area, one day), so no other panel or time would help, in
+// the order they were left.
+func (s Schedule) longRuns() []longRun {
+	longest := s.longestDay()
+	var out []longRun
+	at := map[string]int{}
+	for _, f := range s.Unplaced {
+		i, ok := at[f.Group()]
+		if !ok {
+			i = len(out)
+			at[f.Group()] = i
+			out = append(out, longRun{event: f.Event, group: f.Group()})
+		}
+		out[i].minutes += s.Setup.duration(f)
+	}
+	return slices.DeleteFunc(out, func(l longRun) bool { return l.minutes <= longest })
+}
+
+// hoursWord is minutes as hours and minutes, e.g. "10h 50m".
+func hoursWord(minutes int) string {
+	if minutes < 60 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	return fmt.Sprintf("%dh %02dm", minutes/60, minutes%60)
+}
+
 // Fix is a change to the setup (or a cap on an event's entries), and whether
 // everything then fits.
 type Fix struct {
@@ -155,7 +207,8 @@ type Fix struct {
 // area of a discipline, fewer minutes competing per competitor or shorter
 // changeovers, larger flights, rest as a prefer rather than a must, events
 // running across breaks, or a cap on the entries of an event that doesn't
-// fit, at as many as would.
+// fit, at as many as would; and for an event whose run is longer than any
+// day, men and women in separate flights, or a longer day.
 func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
 	clone := func() Setup {
 		c := setup
@@ -223,6 +276,7 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		c.AcrossBreaks = true
 		tries = append(tries, Fix{Change: "events can run across breaks", Setup: c})
 	}
+	tries = append(tries, longRunFixes(entries, eventOrder, setup, seed)...)
 	tries = append(tries, caps(entries, eventOrder, setup, seed)...)
 	for i := range tries {
 		with := entries
@@ -233,6 +287,48 @@ func Fixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) 
 		tries[i].Fits = len(s.Unplaced) == 0 && len(s.UnplacedBlocks) == 0
 	}
 	return tries
+}
+
+// longRunFixes are the fixes for an event whose run is longer than any day:
+// where it flies men and women together, flying them separately (each is its
+// own run, so each can go on a day of its own); and a longer day, the
+// longest made as long as the longest run needs, up to the end of the day.
+func longRunFixes(entries []SchedEntry, eventOrder []string, setup Setup, seed uint64) []Fix {
+	planned := PlanSchedule(entries, eventOrder, setup, seed)
+	runs := planned.longRuns()
+	if len(runs) == 0 {
+		return nil
+	}
+	var out []Fix
+	for _, ev := range eventOrder {
+		if !slices.ContainsFunc(runs, func(l longRun) bool { return l.event == ev }) || setup.Separate.Splits(ev) {
+			continue
+		}
+		c := setup
+		c.Separate = Split{Mode: SplitSome, Levels: append(slices.Clone(setup.Separate.Levels), ev)}
+		out = append(out, Fix{Change: "men and women in separate flights for " + ev, Setup: c})
+	}
+	need := 0
+	for _, l := range runs {
+		need = max(need, l.minutes)
+	}
+	longest, at := 0, -1
+	for i, d := range setup.Days {
+		start, err1 := clock(d.Start)
+		end, err2 := clock(d.End)
+		if err1 == nil && err2 == nil && end-start > longest {
+			longest, at = end-start, i
+		}
+	}
+	if at >= 0 {
+		start, _ := clock(setup.Days[at].Start)
+		end := min(start+(need+14)/15*15, 24*60-1)
+		c := setup
+		c.Days = slices.Clone(setup.Days)
+		c.Days[at].End = Clock(end)
+		out = append(out, Fix{Change: fmt.Sprintf("a longer day: %s to %s, not %s", setup.Days[at].Name, Clock(end), setup.Days[at].End), Setup: c})
+	}
+	return out
 }
 
 // caps are the fixes that cap an event that doesn't fit at the most entries

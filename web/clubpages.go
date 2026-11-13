@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -783,11 +784,13 @@ func (p *competitionPages) send(w http.ResponseWriter, r *http.Request) {
 		failed(w, r, err)
 		return
 	}
+	came := p.notify.movingIn(r.Context(), compID, cameFree)
 	result, err := p.st.Send(r.Context(), club.ID, compID, members)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	// Their other entries go again with them, as they are: the notice counts
 	// the new and changed, as the button did, of what Send did.
 	counted := func(of []store.SentEntry) int {
@@ -967,10 +970,12 @@ func (p *competitionPages) withdrawForMember(w http.ResponseWriter, r *http.Requ
 		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID, r.FormValue("discipline")); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	seeOther(w, r, back, "Withdrew "+m.Name+"'s entry. If it was sent, it stays with the competition until you send again.")
 }
 
@@ -1057,9 +1062,23 @@ func (p *competitionPages) removeMember(w http.ResponseWriter, r *http.Request) 
 	}) {
 		return
 	}
+	// Every competition holding a copy of their entries has a place free.
+	var came []func(context.Context)
+	if sent, err := p.st.MemberSent(r.Context(), m.ID); err == nil {
+		seen := map[string]bool{}
+		for _, e := range sent {
+			if !seen[e.CompetitionID] {
+				seen[e.CompetitionID] = true
+				came = append(came, p.notify.movingIn(r.Context(), e.CompetitionID, cameFree))
+			}
+		}
+	}
 	if err := p.st.RemoveMember(r.Context(), club.ID, m.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
+	}
+	for _, done := range came {
+		done(r.Context())
 	}
 	seeOther(w, r, clubMembersPath(r.PathValue("token")), "Removed "+m.Name+".")
 }
@@ -1093,9 +1112,19 @@ func (p *competitionPages) deleteClub(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, clubSettingsPath(r.PathValue("token"))+"?notice="+url.QueryEscape("Type delete in the box to delete the club; nothing was deleted."), http.StatusSeeOther)
 		return
 	}
+	// Every competition the club entered has places free.
+	var came []func(context.Context)
+	if comps, err := p.st.ClubCompetitions(r.Context(), club.ID); err == nil {
+		for _, c := range comps {
+			came = append(came, p.notify.moving(r.Context(), c, cameFree))
+		}
+	}
 	if err := p.st.DeleteClub(r.Context(), club.ID, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
+	}
+	for _, done := range came {
+		done(r.Context())
 	}
 	message(w, r, http.StatusOK, "Club deleted", club.Name+", its members and their entries have been deleted. Entries and coaches already sent stay with each competition's organiser, marked removed by the club.")
 }
@@ -1161,10 +1190,12 @@ func (p *competitionPages) takeOut(w http.ResponseWriter, r *http.Request) {
 		}))
 		return
 	}
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.TakeOut(r.Context(), club.ID, m.ID, c.ID, entries, offer, clubLinkOf(r).Who()); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	notice := map[string]string{"entries": "Took " + m.Name + "'s entries out of " + c.Name + ".", "offer": "Took " + m.Name + "'s offer to judge or help out of " + c.Name + ".",
 		"both": "Took " + m.Name + "'s entries and offer to judge or help out of " + c.Name + "."}[what]
 	seeOther(w, r, back, notice)
@@ -1505,6 +1536,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 	ctx := r.Context()
 	path := memberPath(r.PathValue("token"))
 	now := p.now()
+	came := p.cameOffWaitingList(ctx, c, now)
 	removals, err := p.st.MemberRemovals(ctx, m.ID)
 	if err != nil {
 		return views.MemberCompetition{}, err
@@ -1547,7 +1579,7 @@ func (p *competitionPages) memberCompetitionView(r *http.Request, m store.Member
 			copyID, place := "", 0
 			for _, s := range sent {
 				if s.MemberID == m.ID && s.Entry.Discipline == d {
-					ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s)
+					ev.Placement, copyID, ev.Waiting = placement(c, s.ID), s.ID, waitingText(s, came, now)
 					place = s.Waiting
 					ev.Late = p.lateStatusOf(ctx, c, s.ID)
 					if lateOpen(c, now) || ev.Late.Text != "" {
@@ -1677,10 +1709,14 @@ func (p *competitionPages) saveOwnMemberEntry(w http.ResponseWriter, r *http.Req
 	if club, err := p.st.ClubByID(r.Context(), m.ClubID); err == nil {
 		ms, sent := memberSends(club, c), existing != nil && existing.Sent()
 		if (!sent && ms.Entries || sent && ms.Changes) && c.ChangesOpen(p.now()) {
-			if result, err := p.st.Send(r.Context(), club.ID, c.ID, []string{m.ID}); err != nil {
+			came := p.notify.moving(r.Context(), c, cameFree)
+			result, err := p.st.Send(r.Context(), club.ID, c.ID, []string{m.ID})
+			if err != nil {
 				failed(w, r, err)
 				return
-			} else if slices.Contains(result.Sent, store.SentEntry{MemberID: m.ID, Discipline: e.Discipline}) {
+			}
+			came(r.Context())
+			if slices.Contains(result.Sent, store.SentEntry{MemberID: m.ID, Discipline: e.Discipline}) {
 				notice = "Entry saved and sent to " + c.Name + "."
 				what := "Sent their entry to " + c.Name + ": " + e.Gymnasts() + " · " + e.Event()
 				if sent {
@@ -1709,10 +1745,12 @@ func (p *competitionPages) withdrawMemberEntry(w http.ResponseWriter, r *http.Re
 		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
+	came := p.notify.moving(r.Context(), c, cameFree)
 	if err := p.st.WithdrawMemberEntry(r.Context(), m.ID, c.ID, r.FormValue("discipline")); err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	notice := "Withdrawn from " + c.Name + ". If your club already sent it, it stays with the competition until the club sends again."
 	seeOther(w, r, back+"?discipline="+url.QueryEscape(r.FormValue("discipline")), notice)
 }

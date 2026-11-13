@@ -199,6 +199,11 @@ pair's one routine), checked as the Routine Builder checks them.
   is withdrawn or removed, or you raise the limit; **Let in** takes someone
   in over the limit. Clubs and gymnasts see their place ("waiting list,
   3rd"); waiting entries aren't counted, charged, printed or timetabled.
+  When a place comes free by anyone's withdrawal, not only yours, the next
+  gymnast, their club's comp sec and their coach are told if they asked to
+  hear about changes (after the usual 10-minute wait, so a withdrawal put
+  right tells no one), and the gymnast's page says "Was on the waiting list;
+  a place came free on 12 Feb" for a week.
   A change of limits that lets entries in from a waiting list, or moves
   entries already in onto one, asks first, naming who.
 - **Fees:** tap **Fees** to set what you charge (euro or sterling, an
@@ -415,7 +420,10 @@ a **Change** button to open it.
    flights, anything that doesn't fit, anyone with too
    little rest, names that look like one person entered twice, and changes
    that would make it all fit (including capping an event's entries, or
-   letting events run across breaks).
+   letting events run across breaks). An event that takes longer in one go
+   than any day has hours is said so, and offered men and women in separate
+   flights, or a longer day. Two blocks of blocked time on one day can't
+   share a name.
    Coaches aren't checked: where a coach's gymnasts are is for the coach and
    club to manage.
    Someone who is a member and also enters on their own (one person, with
@@ -944,7 +952,7 @@ two of these, they're in one menu, **Timetables and calendars**.
 
 **Tell me about changes** tells you when the organiser changes something
 for you: when or where you compete, what you officiate, or your card
-(checked, a note, removed or on hold). Tick what to hear about, then:
+(checked, a note, removed or on hold, or in off a waiting list). Tick what to hear about, then:
 
 - **On this phone**: tap **Turn on notifications** and allow them. On an
   iPhone or iPad, first add the page to your home screen (Share, then **Add
