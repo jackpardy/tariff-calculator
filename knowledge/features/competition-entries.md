@@ -1432,6 +1432,64 @@ are then filled flight by flight.
   redraws, seats and a kept "what if" keep IDs, so they drop only what the
   change itself takes away. A page that only asks isn't recorded in History.
 
+## Copying a competition
+
+Built 2026-11-13 (migration 57). On **Settings**, **Copying**: the row
+**Copy this competition** says "Its set-up, for another competition" and,
+while the competition's days aren't over, "or with its entries, for a
+rehearsal". **Copy** opens two buttons, **Copy its set-up** and **Make a
+rehearsal copy**, each going to a page of its own (`GET .../copy?as=setup`,
+`?as=rehearsal`) that lists what is and isn't copied and asks for the copy's
+name ("ISTO 2027 (copy)", or "(rehearsal)") and first day (a year on for a
+copy, today for a rehearsal); a competition over several days runs as many
+from then. Only the organiser's admin link and an everything link copy; the
+history says "Copied this competition's set-up to ..." or "Made a rehearsal
+copy". Copying counts against the same limit as making a competition, and
+the maintainer's **Competitions made** list and email say "Copy of ..." or
+"Rehearsal copy of ...".
+
+**A copy** (`store.CopyCompetition`, one transaction) is a new competition
+with its own admin link, shown once as when one is made: the levels and
+events with their settings, fees, late requests, who sends, officials'
+settings and the timetable's Setup (days renamed for the new date's
+weekdays where they were named for theirs; rules about an official
+dropped). It holds nobody, starts private and has no deadlines ("Entries
+close: not set yet"); going live waits for one.
+
+**A rehearsal copy** has the people too: entries as the organiser has them,
+the clubs, members, coaches and individuals the competition sees, coaches
+sent and their approvals, officials and offers, judges' and coaches'
+qualifications, both timetables, the what-ifs and payments. Not copied:
+helper links, the history, messages and concerns, late requests, what was
+marked on the day, notifications and feedback. Its people are rows of its
+own (`clubs.rehearsal_id`, `individuals.rehearsal_id`, deleted with it),
+every id new (one replacement over every copied value, person keys and the
+timetables' JSON included), every link hash one no link has and every token
+new, so no club, member, coach or individual link opens it and it's on none
+of their pages. Its club and individual links open nothing, it can't go
+live, and its admin link can't be added to someone's own page. Nothing is
+emailed or pushed from it: the sender drops any delivery about it
+(`notifier.notRehearsals`). Every page of it says "Rehearsal copy of ISTO
+2027, made 13 November: nobody can see it but you, nothing is sent, and
+it's deleted on 13 December." It's deleted 30 days after it's made
+(`store.RehearsalDays`); Settings' **Rehearsal copy** row keeps it 30 days
+longer, once, and **Delete the rehearsal copy** (typing delete) deletes it
+sooner. A copy of the demo (671 entries, 25 clubs) takes about 0.16 s.
+
+**A kept set-up.** At 120 days after its date a competition's entries and
+everything about its people go (entries, clubs' copies, offers, officials,
+coaches sent, links, history, messages, late requests, payments, the day's
+marks, subscriptions), with its flights, what-ifs, the payment instructions
+and the note to officials (free text, which could name someone), its club
+and individual links, and the admin link on anyone's own page
+(`store.keepSetups`). Its admin link then opens only a page saying "ISTO
+2027 was on 3 to 5 April 2027. Its entries and everything about the people
+in it were deleted on 3 August 2027; its set-up is kept for you to copy.",
+with **Copy this set-up** and **Delete it**; any other page goes there. It's
+deleted 3 years after the competition's date (`store.SetupKeptYears`).
+Rehearsal copies and the sandbox's competitions are never kept: they go
+whole.
+
 ## Flight times (roadmap 15)
 
 Built 2026-11-11. A flight is its **changeover** (clearing the area), then
@@ -2432,7 +2490,8 @@ months after it was last used (`store.ClubRetentionMonths`, `KeptUntil`), so
 a summer break doesn't lose it. Opening a page through the club's admin or
 join link, a member's or a coach's link marks it used, at most once a day
 (`markUsed`), so page loads rarely write; anything changed marks it at once
-(`touch`). Competitions keep their own retention (120 days after their date),
+(`touch`). Competitions keep their own retention (120 days after their date,
+then their set-up alone: [copying a competition](#copying-a-competition)),
 and so do individuals.
 
 On Members, **More**, **Make a coach too** beside a member (and on Coaches, a member to

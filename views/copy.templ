@@ -94,7 +94,7 @@ templ CopyCompetition(p CopyPage) {
 		<div class="columns">
 			<div class="column">
 				<h2 class="title is-6 mb-2">Copied</h2>
-				<ul class="comp-copy-list mb-4">
+				<div class="content is-small mb-4"><ul>
 					<li>Its levels and events, with their settings: men and women, synchro pairings, limits, video proof, coach sign-off and approving coaches, with the qualification asked for</li>
 					<li>Fees, with late fees and the fee for removed entries, and what can be asked for late</li>
 					<li>Whether clubs alone send their members' entries</li>
@@ -107,11 +107,11 @@ templ CopyCompetition(p CopyPage) {
 						<li>The draft and published timetable, and your what-ifs</li>
 						<li>Payments</li>
 					}
-				</ul>
+				</ul></div>
 			</div>
 			<div class="column">
 				<h2 class="title is-6 mb-2">Not copied</h2>
-				<ul class="comp-copy-list mb-4">
+				<div class="content is-small mb-4"><ul>
 					if p.Rehearsal {
 						<li>Helper links: make new ones on the copy for helpers who rehearse too</li>
 						<li>What was marked on the day: check-ins, flights started and finished, who's up, desk messages</li>
@@ -122,7 +122,7 @@ templ CopyCompetition(p CopyPage) {
 						<li>What was marked on the day, messages, concerns, feedback, the history, payments, and who asked to hear about changes</li>
 					}
 					<li>Deadlines and when it goes live: none are set on the copy</li>
-				</ul>
+				</ul></div>
 			</div>
 		</div>
 		<div class="notification is-info is-light">

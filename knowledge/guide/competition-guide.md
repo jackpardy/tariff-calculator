@@ -271,8 +271,29 @@ timetabled, and are listed at the end under **Removed and on hold**, to
 **Restore**.
 
 An entry marked **Withdrawn** was withdrawn after the club sent it. It isn't
-counted or printed, and goes when the club sends again. A competition and its
-entries are deleted 120 days after the competition date.
+counted or printed, and goes when the club sends again. A competition's
+entries, and everything about the people in it, are deleted 120 days after
+the competition date. Its set-up is kept for 3 years, for you to copy: its
+admin link then opens a page with **Copy this set-up** and **Delete it**.
+
+## Copying a competition
+
+On **Settings**, under **Copying**, **Copy this competition** opens two
+choices. **Copy its set-up** makes a new competition with the same levels,
+events, fees, late requests, officials' settings and timetable Setup, and
+nobody in it. **Make a rehearsal copy** (until the competition's days are
+over) copies the entries, clubs, officials and timetables too, to practise
+the day. Either asks first on a page saying what is and isn't copied, with
+the copy's name and first day. The copy has its own admin link, shown once:
+save it.
+
+A copy starts private, with no deadlines: set when entries close on its
+Settings before going live. A rehearsal copy never goes live. Nobody can see
+it but you (and helper links you make on it): clubs' and gymnasts' links
+keep opening the real competition, and nothing is emailed or pushed from
+it. Every page of it says so. It's deleted 30 days after it's made; you can
+keep it 30 days longer once, or delete it sooner. Nothing you do in it
+changes the real competition.
 
 ## People
 

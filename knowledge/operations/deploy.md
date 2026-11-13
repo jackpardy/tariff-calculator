@@ -230,7 +230,7 @@ a new competition with new names; the links it prints are the only way in.
 Locally: `DATA_DIR=$(mktemp -d) go run . demo`, then serve the same
 `DATA_DIR`. On the server, only when the maintainer asks (it puts made-up
 people in the live database, deleted 120 days after the competition's date
-like any other): `docker compose exec tariff /app/tariffCalculator demo` from
+like any other, its set-up then kept 3 years): `docker compose exec tariff /app/tariffCalculator demo` from
 the server's compose directory, then open the printed paths on
 `https://tariff.pardy.ie`.
 

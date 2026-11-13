@@ -301,7 +301,7 @@ func CopyCompetition(p CopyPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " <div class=\"columns\"><div class=\"column\"><h2 class=\"title is-6 mb-2\">Copied</h2><ul class=\"comp-copy-list mb-4\"><li>Its levels and events, with their settings: men and women, synchro pairings, limits, video proof, coach sign-off and approving coaches, with the qualification asked for</li><li>Fees, with late fees and the fee for removed entries, and what can be asked for late</li><li>Whether clubs alone send their members' entries</li><li>Officials' settings: panels, who can judge what, your note to them</li><li>The timetable's Setup: days, areas, timings (events' own too), blocked time, rules, rest, men's and women's flights</li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " <div class=\"columns\"><div class=\"column\"><h2 class=\"title is-6 mb-2\">Copied</h2><div class=\"content is-small mb-4\"><ul><li>Its levels and events, with their settings: men and women, synchro pairings, limits, video proof, coach sign-off and approving coaches, with the qualification asked for</li><li>Fees, with late fees and the fee for removed entries, and what can be asked for late</li><li>Whether clubs alone send their members' entries</li><li>Officials' settings: panels, who can judge what, your note to them</li><li>The timetable's Setup: days, areas, timings (events' own too), blocked time, rules, rest, men's and women's flights</li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -311,7 +311,7 @@ func CopyCompetition(p CopyPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</ul></div><div class=\"column\"><h2 class=\"title is-6 mb-2\">Not copied</h2><ul class=\"comp-copy-list mb-4\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</ul></div></div><div class=\"column\"><h2 class=\"title is-6 mb-2\">Not copied</h2><div class=\"content is-small mb-4\"><ul>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -326,7 +326,7 @@ func CopyCompetition(p CopyPage) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<li>Deadlines and when it goes live: none are set on the copy</li></ul></div></div><div class=\"notification is-info is-light\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<li>Deadlines and when it goes live: none are set on the copy</li></ul></div></div></div><div class=\"notification is-info is-light\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
