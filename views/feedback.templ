@@ -107,6 +107,18 @@ type MaintainerPage struct {
 	Sandbox  *SandboxPanel // the sandbox's buttons, in the sandbox only
 	Site     string        // where this is: "on the live site" or "in the sandbox"
 	Made     []MadeItem    // the competitions made, newest first
+	// Problems are what went wrong lately, newest first, kept in memory
+	// only; MailTrouble is how many emails failed in the last hour, when
+	// that's trouble with the mail server, else 0.
+	Problems    []ProblemItem
+	MailTrouble int
+}
+
+// ProblemItem is a problem seen: a panic, an unexpected error or a failed
+// job, never a link or anything personal.
+type ProblemItem struct {
+	At, Kind, What, Where, Method, Stack string
+	Count                                int // times seen
 }
 
 // MadeItem is a competition made: its name, its (first) day, when it was
@@ -193,6 +205,43 @@ templ Maintainer(p MaintainerPage) {
 							}
 						</tbody>
 					</table>
+				}
+			}
+		</div>
+		<div class="box mb-5 comp-problems">
+			if p.MailTrouble > 0 {
+				<p class="notification is-warning is-light is-size-7">
+					Emails are failing: { Count(p.MailTrouble, "email", "emails") } couldn't be sent in the last hour, which usually means the mail server. This can't be emailed to you.
+				</p>
+			}
+			@opens("Problems lately ("+strconv.Itoa(len(p.Problems))+")", problemsLine(p.Problems), "See them", false) {
+				if len(p.Problems) == 0 {
+					@emptyLine("None since the app started.")
+				} else {
+					<table class="table is-narrow is-size-7">
+						<thead><tr><th>Last seen</th><th>What</th><th>Where</th><th>Times</th></tr></thead>
+						<tbody>
+							for _, q := range p.Problems {
+								<tr>
+									<td>{ q.At }</td>
+									<td>
+										{ q.Kind }: { q.What }
+										if q.Stack != "" {
+											<pre class="is-size-7">{ q.Stack }</pre>
+										}
+									</td>
+									<td>
+										{ q.Where }
+										if q.Method != "" {
+											<br/><span class="has-text-grey">{ q.Method }</span>
+										}
+									</td>
+									<td>{ strconv.Itoa(q.Count) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+					<p class="is-size-7 has-text-grey">The last 20, kept until the app restarts; the log has the rest.</p>
 				}
 			}
 		</div>
@@ -293,6 +342,14 @@ func madeLine(made []MadeItem) string {
 		return "none yet"
 	}
 	return Count(len(made), "competition", "competitions") + "; the newest, " + made[0].Name + ", made " + made[0].At
+}
+
+// problemsLine sums up the problems lately: the newest.
+func problemsLine(problems []ProblemItem) string {
+	if len(problems) == 0 {
+		return "none"
+	}
+	return "the newest, " + problems[0].Kind + " in " + problems[0].Where + ", " + problems[0].At
 }
 
 func keptLine(n int, size string) string {

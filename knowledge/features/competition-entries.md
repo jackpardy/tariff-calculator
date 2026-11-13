@@ -466,6 +466,16 @@ and the site's address. Nothing about who made it, and never a link. The
 sandbox emails nothing ([ADR 0016](../../docs/adr/0016-sandbox.md)), so what's
 made there is only on its own maintainer's page.
 
+**Problems lately** (2026-11-13, `web/problems.go`): the maintainer's page
+also has **Problems lately (3)**, which opens a list of the last 20 things
+that broke since the app started, newest first: a panic, a page answered
+500 for an unexpected error, a background job that failed. Each has what,
+where (the route's pattern, never the address), when it was last seen and
+how many times, and a panic its first stack lines. Error text has secret
+links and email addresses taken out. The same things are emailed to the
+maintainer, grouped and capped ([deploy](../operations/deploy.md#knowing-when-it-breaks)).
+When emails are failing, a warning at the top says so.
+
 ## When entries, changes and sign-offs close
 
 Three times (roadmap 2026-10-08), set on the Settings page: **entries

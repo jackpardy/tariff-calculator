@@ -200,6 +200,7 @@ func (s *sender) work() {
 		d, ok, err := s.n.st.TakeDelivery(ctx)
 		if err != nil {
 			log.Printf("Sending: %v", err)
+			s.n.problems.job("the sender", err)
 		}
 		if ok {
 			s.deliver(ctx, d)
@@ -241,6 +242,7 @@ func (s *sender) deliver(ctx context.Context, d store.Delivery) {
 	if err == nil {
 		if err := s.n.st.Delivered(ctx, d); err != nil {
 			log.Printf("Sending: %v", err)
+			s.n.problems.job("the sender", err)
 		}
 		return
 	}
@@ -257,8 +259,12 @@ func (s *sender) deliver(ctx context.Context, d store.Delivery) {
 		why = fmt.Sprintf("tried %d times: %s", d.Tries, why)
 	}
 	log.Printf("%s (try %d): %v", d.About, d.Tries, err)
+	if d.Kind == store.DeliverEmail {
+		s.n.problems.mailFailed()
+	}
 	if err := s.n.st.DeliveryFailed(ctx, d, why, retry); err != nil {
 		log.Printf("Sending: %v", err)
+		s.n.problems.job("the sender", err)
 	}
 }
 
