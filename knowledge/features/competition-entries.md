@@ -3283,6 +3283,29 @@ screen (iOS 16.4+): the page says to add it first (Share, Add to Home
 Screen); the web manifest has no `start_url`, so the home screen opens the
 person's own page.
 
+## What's kept and for how long
+
+One public page, `/privacy` ("What's kept and for how long", `views/privacy.templ`),
+has the whole table: for each kind of thing (a gymnast's entries, a gymnast
+on their own, a club, entries and coaches a club has removed, a competition,
+a rehearsal copy, messages and late requests, email addresses and phone
+notifications, feedback, backups and logs, the sandbox) what's kept, who can
+see it, and when it's deleted. It needs no link and no storage, and it's
+linked from the foot of the home page and `/competitions`. Each page that
+takes names or an address has a short note of two or three lines ending in a
+link to it ([ADR 0004](../../docs/adr/0004-server-storage-secret-links.md)
+Decision 6): making a competition, making a club, joining a club, a club's
+Settings, entering on your own (a gymnast's page too), asking a coach for a
+certificate, Tell me about changes (email and phone), the Feedback form and
+the sandbox's banner. The times are the code's: a competition's people 120
+days after its first day (its set-up, with no names, 3 years), a club 13
+months after anyone last used it, a rehearsal copy 30 days, feedback 90 days,
+a failed delivery's record 7 days. Where the code keeps something longer than
+a note might suggest, the page says so (an email address nobody confirms
+stays until the competition goes; the emailed copy of feedback; backups).
+Change a note and the page together; `web/privacy_test.go` checks the key
+phrases.
+
 ## Offline
 
 Venue wifi is often poor, so a person's own pages still open, as last seen,

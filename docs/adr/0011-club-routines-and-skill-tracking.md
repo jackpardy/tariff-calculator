@@ -5,7 +5,8 @@
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 2 (a club lasts beyond a season), Decision 5
   (routines are kept with a member, not only in an entry) and Decision 6
-  (what a club keeps and when it's deleted)
+  (what a club keeps and when it's deleted); ADR 0003 (an eleventh rule
+  type, `track`, for a skill a club level tracks)
 
 ## Context
 

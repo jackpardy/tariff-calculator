@@ -6,6 +6,9 @@
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 3 (secret links: a competition has more
   than one admin link)
+- **Amended by:** ADR 0019 (messages to the organiser and late requests,
+  2026-10-21 and 2026-11-11): the concerns table also holds messages, which
+  only links that may resolve concerns are shown
 
 ## Context
 

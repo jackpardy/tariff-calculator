@@ -34,8 +34,12 @@ maintainer's page.
   changes** (no email or push form; a post saves nothing), the desk's help
   and its notice after sending (and a Notify from On the day), and the notice
   after receiving, replying to or resolving a message.
-- **Every page has a banner**, "Sandbox: made-up people. It's reset from time
-  to time; nothing here is kept.", with a link to the start page: the
+- **Every page has a banner**, "Sandbox: made-up people. Use made-up names
+  here. Its practice copy is reset from time to time; anything else you add,
+  and any feedback, is kept as on the live site." (only the seeded copy is
+  reset: clubs, competitions and feedback visitors make stay for the normal
+  times), with links to [What's kept](competition-entries.md#whats-kept-and-for-how-long)
+  and to the start page: the
   competition and club pages, the calculator's pages, the venue screen and
   the printouts (on screen only). It comes from the request's context
   (`views.WithSandbox`), set for every request in sandbox mode.

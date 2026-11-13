@@ -77,9 +77,15 @@ the view screen held either way
    Built 2026-11-13: every action that moves entries on or off a waiting
    list opens the notification window, and their page says so for a week
    ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-3. **Small audit items**: no copy of the database before a migration;
-   privacy notes behind the features; ADRs for site feedback and for
-   messages; missing indexes. (Built 2026-11-13: an entry let in over a limit
+3. **Small audit items**: no copy of the database before a migration (still
+   to do: deploy only keeps the nightly backup). (Built 2026-11-13: the
+   [privacy notes](features/competition-entries.md#whats-kept-and-for-how-long)
+   brought up to what the app keeps, with one public page, What's kept and
+   for how long; [ADR 0018](../docs/adr/0018-site-feedback.md) for feedback
+   and [ADR 0019](../docs/adr/0019-messages-and-late-requests.md) for
+   messages and late requests; indexes on the columns pages and deletes look
+   rows up by (migration 59); the Feedback picture no longer shows a
+   `<noscript>`'s raw tags; an entry let in over a limit
    no longer stays let in after it moves level; the public individual-entry
    link is limited per address; two blocks with the same name on a day are
    refused; an event longer than a day is offered men and women apart and a
@@ -147,8 +153,9 @@ See [open questions](open-questions.md) for the detail.
 - **Email**: Amazon SES, with DKIM, SPF and DMARC
   ([steps](operations/deploy.md#notifications)); the owner said on
   2026-11-13 they will do it this weekend, 14 to 15 November 2026.
-- **The stop timeout** set to 40 seconds, so requests under way finish on a
-  deploy.
+- **The stop timeout** set to 40 seconds, so the emails and pushes being
+  sent are written down and the database closes cleanly on a deploy (the app
+  itself waits at most 35 seconds: 15 for requests, 20 for the sending).
 - **The access log keeps secret links for 90 days**: a log filter, needing
   the owner's go-ahead.
 - **A load-test run on the server** ([load test](operations/deploy.md#load-test)).

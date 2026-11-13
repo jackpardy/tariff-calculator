@@ -10,7 +10,16 @@
 - **Amended by:** ADR 0007 (approved coaches, 2026-10-08), for Decisions 6,
   7 and 11; ADR 0008 (notifications, 2026-10-08), for Decision 6; ADR 0009 (helpers' links,
   2026-10-08), for Decision 3; ADR 0011 (club routines and skill tracking,
-  2026-10-15), for Decisions 2, 5 and 6
+  2026-10-15), for Decisions 2, 5 and 6; ADR 0010 (one link for several
+  roles, 2026-10-14), for Decision 3; ADR 0013 (requirements kept with the
+  person, 2026-10-15), for Decisions 5 and 6; ADR 0014 (judges'
+  qualifications, 2026-10-16), for Decision 6; ADR 0015 (club roles,
+  2026-10-21), for Decision 3; ADR 0018 (feedback about the app, built
+  2026-10-20) and ADR 0019 (messages to the organiser and late requests,
+  built 2026-10-21 and 2026-11-11), for Decision 6, which each add what's
+  kept about a person; and the 2026-11-13 notes under Decisions 2, 3 and 6
+  (removed entries kept, which links are stored plain, copying a
+  competition)
 
 ## Context
 
@@ -96,6 +105,8 @@ Constraints:
    | Member (personal) | One member | Add, replace or withdraw their own entries | SHA-256 hash |
    | Coach | One of a club's coaches | Sign off the entries of the members they see (Decision 11) | SHA-256 hash |
    | Sign-off | An individual's coach | Sign off that one individual entry (Decision 11) | plain (shared) |
+   | Synchro partner | The other half of a pair | Confirm being that entry's partner | plain (shared) |
+   | Stop emails | One person who asked for emails | Stop them (ADR 0008) | plain |
 
    **Why members need a personal link:** the join link is shared with the
    whole club, so on its own anyone in the club chat could change anyone's
@@ -108,10 +119,24 @@ Constraints:
      again), and the comp sec can edit an entry on a member's behalf;
    - a member who loses their link can be removed and re-join.
 
-   Secret tokens are 128 bits from `crypto/rand`, written as base64url. Only
-   their hashes are stored, so a copied database doesn't give anyone access.
-   Hashes are compared in constant time. A wrong token gets **404**, exactly as
-   a missing one does. A new admin link is shown once, with "save this link" and
+   Secret tokens are 128 bits from `crypto/rand`, written as base64url. A
+   link is found by its SHA-256 hash (an indexed lookup: nothing compares
+   hashes in code, in constant time or not). A wrong token gets **404**,
+   exactly as a missing one does.
+   *Corrected 2026-11-13:* only the links marked "SHA-256 hash" above are
+   kept as hashes alone. The shared ones are also kept in plain text,
+   because they're shown again: the club entry and individual entry links
+   (`competitions.club_token`, `individual_token`), the join link
+   (`clubs.join_token`), a sign-off link (`entries.signoff_token`), a
+   synchro partner's link (`entries.partner_token`,
+   `member_entries.partner_token`) and a person's stop-emails link
+   (`notify_subscriptions.token`). So a copy of `tariff.db`, or of a nightly
+   backup, lets whoever holds it join any club, attach a club to a
+   competition, sign off an individual's entry as their coach, confirm as a
+   synchro partner or stop someone's emails. It gives no organiser, comp
+   sec, member, coach, helper or role link. Backups hold these secrets, so
+   they stay private on the server and are kept only a short time.
+   A new admin link is shown once, with "save this link" and
    a copy button, and its holder can replace it, which ends the old one.
    *Noted 2026-10-15:* nothing else may keep a token either. Notifications
    had kept the path of each person's page, which holds their link
@@ -148,6 +173,15 @@ Constraints:
    used** (13 months since ADR 0011 Decision 7); the comp sec can delete the
    club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
+   *Noted 2026-11-13:* the notes had fallen behind what the app keeps
+   (certificates, skill marks, messages, offers to judge, the history of
+   changes, feedback). Each page that takes names now has a short note, and
+   all link to one public page, `/privacy`, "What's kept and for how long",
+   with the whole table: what's kept, who sees it, when it's deleted. It
+   says what the code does (feedback goes after 90 days: ADR 0018; the
+   people on a competition after 120; a club 13 months after last use; a
+   rehearsal copy after 30 days; a failed email's record after 7), and that
+   a backup may hold something a little longer.
 
    *Note, 2026-11-13 (copying a competition):* at 120 days a competition's
    entries and everything about its people are deleted as before (entries,

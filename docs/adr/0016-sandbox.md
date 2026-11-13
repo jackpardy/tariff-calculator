@@ -46,7 +46,11 @@ small step.
      changes, the desk's and replies' "sending to") says "Notifications
      don't work in the sandbox";
    - **every page has a banner**: "Sandbox: made-up people. It's reset from
-     time to time; nothing here is kept.";
+     time to time; nothing here is kept." (*Corrected 2026-11-13:* only the
+     seeded copy is reset; what visitors add stays for the normal times, so
+     it now says "Sandbox: made-up people. Use made-up names here. Its
+     practice copy is reset from time to time; anything else you add, and
+     any feedback, is kept as on the live site.", linking to What's kept);
    - feedback goes to the sandbox's own maintainer page (its own
      `maintainer-link`), apart from the live site's, in Full. It isn't
      emailed: no email leaves the sandbox, `FEEDBACK_EMAIL` included (the

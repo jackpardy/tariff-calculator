@@ -92,8 +92,9 @@ migration once it has shipped.
 - **The usual things to make.** `bucsEntry(name)` is the BUCS L3 entry form (an individual's with a name, a member's without); `aClub(t, h, admin, name, entered, members...)` is a club entered in a competition, its members joined, or entered and sent.
 - **Named readers, not words on the page.** `screenCards`, `dayPageAreas`, `myCompetitionOf`, `feeAccounts`, `invoiceOf`, `deskPeople`, `historyHas` and `rowOf` parse a page (golang.org/x/net/html) into the cards, areas, flights and rows a test checks, so a check fails when the feature breaks rather than passing on a word found elsewhere. `unescape` undoes HTML escaping.
 
-The Docker build runs `go test ./...` too, so an image can't be built from
-failing code.
+The Docker build doesn't run the tests (since 2026-10-23): CI does, and its
+image job builds the image beside them, so an image can't be deployed from
+failing code ([deploy](../operations/deploy.md#ci)).
 
 # Browser tests: how to wait
 

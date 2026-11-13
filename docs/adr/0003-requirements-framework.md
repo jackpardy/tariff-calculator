@@ -1,10 +1,14 @@
 # ADR 0003 — A flexible framework for routine requirements
 
-- **Status:** Accepted; built (ten rule types in `requirements/requirements.go`)
+- **Status:** Accepted; built (eleven rule types in `requirements/requirements.go`: `track` was added by ADR 0011)
 - **Date:** 2026-10-04
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0001 §5 (requirements engine) and its roadmap items for standard and
   customisable requirement sets
+- **Amended by:** ADR 0011 (club routines and skill tracking, 2026-10-15),
+  which added the eleventh rule type, `track`; ADR 0013 (requirements kept
+  with the person, 2026-10-15), which keeps a person's own requirements and
+  levels on the server, not only in the browser
 
 ## Context
 
