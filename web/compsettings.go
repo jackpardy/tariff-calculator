@@ -235,6 +235,12 @@ func (p *competitionPages) live(w http.ResponseWriter, r *http.Request) {
 		seeOther(w, r, to, notice)
 	}
 	at, problem := postedLiveAt(r, p.now())
+	switch {
+	case c.Rehearsal() && !at.IsZero():
+		problem = "A rehearsal copy stays private: nobody else can see it."
+	case c.Deadline.IsZero() && !at.IsZero():
+		problem = "Set when entries close first: a copy starts without deadlines."
+	}
 	if problem != "" {
 		noteRefused(w)
 		back(problem)
@@ -380,14 +386,25 @@ func (p *competitionPages) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !deleteTyped(r) {
-		backToSettings(w, r, "Type delete in the box to delete the competition; nothing was deleted.")
+		to := settingsPath(r.PathValue("token")) + "#admin-link"
+		if c.SetupKept() {
+			to = adminPath(r.PathValue("token"))
+		}
+		refuse(w, r, to, "Type delete in the box to delete it; nothing was deleted.")
 		return
 	}
 	if err := p.st.DeleteCompetition(r.Context(), c.ID); err != nil {
 		failed(w, r, err)
 		return
 	}
-	render(w, r, views.DeadLink("Competition deleted", c.Name+" and all its entries have been deleted."))
+	switch {
+	case c.SetupKept():
+		render(w, r, views.DeadLink("Set-up deleted", c.Name+"'s kept set-up has been deleted."))
+	case c.Rehearsal():
+		render(w, r, views.DeadLink("Rehearsal copy deleted", "The rehearsal copy "+c.Name+" has been deleted. "+c.CopiedFrom+" isn't changed."))
+	default:
+		render(w, r, views.DeadLink("Competition deleted", c.Name+" and all its entries have been deleted."))
+	}
 }
 
 // postedEvents reads the synchro levels ticked (synchroLevel), which to pair

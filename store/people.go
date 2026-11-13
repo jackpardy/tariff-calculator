@@ -356,12 +356,12 @@ func (s *Store) Tie(ctx context.Context, token, kind, pasted string) (Role, erro
 			}
 			return s.addShared(ctx, tx, own, role.Kind, role.ID, hash(pasted))
 		case RoleOrganiser:
-			err := tx.QueryRowContext(ctx, `SELECT id, name FROM competitions WHERE admin_hash = $1`, hash(pasted)).Scan(&role.ID, &role.Place)
+			err := tx.QueryRowContext(ctx, `SELECT id, name FROM competitions WHERE admin_hash = $1 AND made_as <> 'rehearsal' AND setup_kept_at = ''`, hash(pasted)).Scan(&role.ID, &role.Place)
 			role.Kind = RoleOrganiser
 			if errors.Is(err, sql.ErrNoRows) {
 				role.Kind = RoleHelper
 				err = tx.QueryRowContext(ctx, `SELECT l.id, l.name, c.name FROM competition_links l JOIN competitions c ON c.id = l.competition_id
-					WHERE l.token_hash = $1`, hash(pasted)).Scan(&role.ID, &role.Name, &role.Place)
+					WHERE l.token_hash = $1 AND c.made_as <> 'rehearsal'`, hash(pasted)).Scan(&role.ID, &role.Name, &role.Place)
 			}
 			if err != nil {
 				return notFound(err)

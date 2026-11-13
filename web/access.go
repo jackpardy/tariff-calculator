@@ -123,7 +123,19 @@ func (p *competitionPages) gate(pattern string, h http.HandlerFunc) http.Handler
 			message(w, r, http.StatusForbidden, "Not with this link", "This link can't do that. Ask the organiser.")
 			return
 		}
+		// A kept set-up's link opens only its page, to copy or delete it.
+		if c.SetupKept() && !keptRoutes[pattern] {
+			if r.Method == http.MethodGet {
+				http.Redirect(w, r, adminPath(r.PathValue("token")), http.StatusFound)
+			} else {
+				message(w, r, http.StatusConflict, "Only its set-up is kept", "The entries and everything about the people in this competition were deleted. Its set-up can be copied or deleted.")
+			}
+			return
+		}
 		r = r.WithContext(context.WithValue(r.Context(), linkKey{}, link))
+		if c.Rehearsal() {
+			r = r.WithContext(views.WithRehearsal(r.Context(), rehearsalLine(c)))
+		}
 		feedbackAbout(r, c)
 		if r.Method != http.MethodPost {
 			h(w, r)
@@ -210,6 +222,13 @@ func (p *competitionPages) describe(r *http.Request, c store.Competition, patter
 		return "Removed a link"
 	case "/replace-link":
 		return "Replaced the admin link"
+	case "/copy":
+		if f("as") == "rehearsal" {
+			return "Made a rehearsal copy"
+		}
+		return "Copied this competition's set-up to " + strings.Join(strings.Fields(f("name")), " ")
+	case "/keep-longer":
+		return "Kept the rehearsal copy 30 days longer"
 	case "/concerns":
 		if id := f("entry"); id != "" {
 			if e, err := p.st.CompetitionEntry(r.Context(), c.ID, id); err == nil {

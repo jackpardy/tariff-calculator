@@ -303,6 +303,10 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if c.SetupKept() {
+		p.keptSetup(w, r, c)
+		return
+	}
 	all, err := p.entriesOf(r.Context(), c.ID)
 	if err != nil {
 		failed(w, r, err)

@@ -38,6 +38,12 @@ type SettingsPage struct {
 	Events         EventsForm
 	LevelOrder     []LevelOrder
 	Carry          *CarryAsk // levels just renamed that judges' offers name
+	Copy           CopyRow   // copying it
+	// Rehearsal is a rehearsal copy's: when it's deleted, and whether it's
+	// been kept longer already.
+	Rehearsal         bool
+	RehearsalDeletes  string
+	RehearsalExtended bool
 }
 
 // settingsGroup is a heading on the settings page, with the id its jump link
@@ -78,6 +84,9 @@ templ CompetitionSettings(p SettingsPage) {
 			}
 			<a href="#individuals">Entering on their own</a> ·
 			<a href="#messages">Messages to you</a>
+			if p.Copy.Show {
+				· <a href="#copy">Copying</a>
+			}
 			if p.Access.Organiser {
 				· <a href="#admin-link">Admin link and deleting</a>
 			}
@@ -87,10 +96,12 @@ templ CompetitionSettings(p SettingsPage) {
 			@linksBox(p.Base, p.LinkList)
 			@tiesBox(p.Base+"/ties/remove", p.Ties, "Someone who adds the admin link or a helper's link to their own page (a club member's, say) opens these pages from there, with a tab for each.")
 		}
-		if p.Links.Club != "" {
+		if p.Rehearsal {
+			<p class="mb-3">A rehearsal copy has no club link or link for entering on their own: nobody enters it.</p>
+		} else if p.Links.Club != "" {
 			@linkBox("Club link", p.Links.Club, "Give it to clubs' competition secretaries: they enter their club and send its members' entries.")
 		}
-		if p.Competition.Individuals {
+		if p.Competition.Individuals && !p.Rehearsal {
 			@linkBox("Link for entering on their own", p.Links.Individual, "Anyone with it can enter on their own, without a club.")
 		}
 		@settingsGroup("deadlines", "Entries and deadlines")
@@ -175,7 +186,9 @@ templ CompetitionSettings(p SettingsPage) {
 			</form>
 		}
 		@settingsGroup("live", "Going live")
-		if p.Competition.Live {
+		if p.Rehearsal {
+			<p class="mb-3">A rehearsal copy stays private: nobody else can see it.</p>
+		} else if p.Competition.Live {
 			@changeLine("Live", "clubs and gymnasts can enter, while entries are open", false) {
 				<form method="post" action={ templ.SafeURL(p.Base + "/live") } class="mb-3">
 					<input type="hidden" name="opens" value="private"/>
@@ -239,6 +252,10 @@ templ CompetitionSettings(p SettingsPage) {
 				<p class="help">A <strong>Tell the organiser</strong> form on their pages for the competition, with their name and club, and the entry it's about if they choose. Messages come to your dashboard's <a href={ templ.SafeURL(p.Base + "#concerns") }>Messages and concerns</a>. Feedback about the app itself goes to the people who make it, not to you.</p>
 			</form>
 		}
+		@copyRow(p.Base, p.Copy)
+		if p.Rehearsal {
+			@rehearsalRow(p.Base, p.RehearsalDeletes, p.RehearsalExtended)
+		}
 		if p.Access.Organiser {
 			@settingsGroup("admin-link", "Admin link and deleting")
 			@opens("Replace the admin link", "if it's been shared too widely: the old one stops working", "Replace", false) {
@@ -248,8 +265,14 @@ templ CompetitionSettings(p SettingsPage) {
 			}
 			// Deleting the whole competition looks unlike any other remove.
 			<div class="comp-danger-zone">
-				@opens("Delete the competition", "and every entry, for good", "Delete", false) {
-					@typeToDelete(p.Base+"/delete", "delete-competition", "the competition and every entry, for good", "Delete the competition")
+				if p.Rehearsal {
+					@opens("Delete the rehearsal copy", "now, rather than on "+p.RehearsalDeletes, "Delete", false) {
+						@typeToDelete(p.Base+"/delete", "delete-competition", "the rehearsal copy, for good", "Delete the rehearsal copy")
+					}
+				} else {
+					@opens("Delete the competition", "and every entry, for good", "Delete", false) {
+						@typeToDelete(p.Base+"/delete", "delete-competition", "the competition and every entry, for good", "Delete the competition")
+					}
 				}
 			</div>
 		}

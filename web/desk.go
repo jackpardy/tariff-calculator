@@ -108,10 +108,10 @@ func (n *notifier) tellDesk(ctx context.Context, c store.Competition, m store.De
 				continue
 			}
 			subject, body, headers := n.deskEmail(c, m, told)
-			ds = append(ds, delivery{about: "Desk: emailing about " + c.ID, email: &email{told[0].Address, subject, body, headers}, tally: t})
+			ds = append(ds, delivery{competition: c.ID, about: "Desk: emailing about " + c.ID, email: &email{told[0].Address, subject, body, headers}, tally: t})
 			t.emails++
 		case store.ByPush:
-			ds = append(ds, delivery{about: "Desk: pushing about " + c.ID, sub: told[0], drop: told, tally: t,
+			ds = append(ds, delivery{competition: c.ID, about: "Desk: pushing about " + c.ID, sub: told[0], drop: told, tally: t,
 				push: pushMessage{Title: c.Name, Body: m.Full(), URL: n.savedLinks()}})
 			t.pushes++
 		}

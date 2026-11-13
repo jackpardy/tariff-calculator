@@ -281,6 +281,7 @@ templ printedCardsPage(p CardsPage) {
 		</head>
 		<body>
 			@sandboxBanner()
+			@rehearsalBanner()
 			<div class="toolbar screen-only">
 				<a href={ templ.SafeURL(p.Back) }>← Entries</a>
 				if p.LevelsHref != "" {

@@ -1,0 +1,235 @@
+package views
+
+import "context"
+
+// Copying a competition (2026-11-13): the row on Settings, the page asking
+// first, the line on every page of a rehearsal copy and the page a kept
+// set-up's admin link opens.
+
+type rehearsalKey struct{}
+
+// WithRehearsal marks a request as a rehearsal copy's, with the line its
+// pages show (rehearsalBanner).
+func WithRehearsal(ctx context.Context, line string) context.Context {
+	return context.WithValue(ctx, rehearsalKey{}, line)
+}
+
+// RehearsalOf is the line a rehearsal copy's pages show, "" for any other
+// competition's.
+func RehearsalOf(ctx context.Context) string {
+	line, _ := ctx.Value(rehearsalKey{}).(string)
+	return line
+}
+
+// rehearsalBanner is the line at the top of every page of a rehearsal copy,
+// printed too, so a sheet from it isn't taken for the real one's.
+templ rehearsalBanner() {
+	if line := RehearsalOf(ctx); line != "" {
+		<div class="rehearsal-banner" role="note" style="background:#e8e0ff;color:#3b2a80;padding:0.4rem 1rem;font-size:0.875rem;text-align:center;">
+			{ line }
+		</div>
+	}
+}
+
+// CopyRow is the Settings row copying the competition: its set-up, and
+// while it isn't over, with its entries for a rehearsal.
+type CopyRow struct {
+	Show      bool // the link may copy
+	Rehearsal bool // a rehearsal copy can be made of it
+}
+
+// copyRow is the row.
+templ copyRow(base string, r CopyRow) {
+	if r.Show {
+		@settingsGroup("copy", "Copying")
+		@opens("Copy this competition", copyNow(r), "Copy", false) {
+			<div class="buttons mb-3">
+				<a class="button is-small" href={ templ.SafeURL(base + "/copy?as=setup") }>Copy its set-up</a>
+				if r.Rehearsal {
+					<a class="button is-small" href={ templ.SafeURL(base + "/copy?as=rehearsal") }>Make a rehearsal copy</a>
+				}
+			</div>
+			<p class="help mb-3">You're shown what's copied, and give the copy's name and date, before anything is made.</p>
+		}
+	}
+}
+
+// copyNow is what the row says.
+func copyNow(r CopyRow) string {
+	if r.Rehearsal {
+		return "Its set-up, for another competition, or with its entries, for a rehearsal"
+	}
+	return "Its set-up, for another competition"
+}
+
+// CopyPage asks before copying: what's copied and what isn't, with the
+// copy's name and first day.
+type CopyPage struct {
+	Base        string
+	Competition CompetitionSummary
+	Menu        []MenuSection
+	Rehearsal   bool   // with its entries, for a rehearsal
+	Name, Date  string // the copy's, as the form has them
+	Days        int    // the competition's days
+	Deletes     string // when a rehearsal copy made now is deleted, e.g. "Sunday 12 December 2026"
+	Problems    []string
+	Kept        bool // copying a kept set-up
+}
+
+// CopyCompetition is the page.
+templ CopyCompetition(p CopyPage) {
+	@competitionLayout(copyTitle(p) + " · " + p.Competition.Name) {
+		<h1 class="title is-4">{ copyTitle(p) }</h1>
+		<p class="subtitle is-6">{ p.Competition.Name }</p>
+		if !p.Kept {
+			@pageMenu(p.Menu)
+		}
+		if len(p.Problems) > 0 {
+			<div class="notification is-danger is-light" role="alert">
+				for _, problem := range p.Problems {
+					<p>{ problem }</p>
+				}
+			</div>
+		}
+		<div class="columns">
+			<div class="column">
+				<h2 class="title is-6 mb-2">Copied</h2>
+				<ul class="comp-copy-list mb-4">
+					<li>Its levels and events, with their settings: men and women, synchro pairings, limits, video proof, coach sign-off and approving coaches, with the qualification asked for</li>
+					<li>Fees, with late fees and the fee for removed entries, and what can be asked for late</li>
+					<li>Whether clubs alone send their members' entries</li>
+					<li>Officials' settings: panels, who can judge what, your note to them</li>
+					<li>The timetable's Setup: days, areas, timings (events' own too), blocked time, rules, rest, men's and women's flights</li>
+					if p.Rehearsal {
+						<li>Its entries as you have them, with their states, sign-offs and checks</li>
+						<li>Its clubs and gymnasts as this competition sees them, and the coaches sent, with your approvals</li>
+						<li>Officials and their offers</li>
+						<li>The draft and published timetable, and your what-ifs</li>
+						<li>Payments</li>
+					}
+				</ul>
+			</div>
+			<div class="column">
+				<h2 class="title is-6 mb-2">Not copied</h2>
+				<ul class="comp-copy-list mb-4">
+					if p.Rehearsal {
+						<li>Helper links: make new ones on the copy for helpers who rehearse too</li>
+						<li>What was marked on the day: check-ins, flights started and finished, who's up, desk messages</li>
+						<li>Messages, concerns, late requests, feedback, the history, and who asked to hear about changes</li>
+					} else {
+						<li>Entries, clubs, coaches sent, officials and their offers</li>
+						<li>Helper links, and the timetable's flights, draft and published</li>
+						<li>What was marked on the day, messages, concerns, feedback, the history, payments, and who asked to hear about changes</li>
+					}
+					<li>Deadlines and when it goes live: none are set on the copy</li>
+				</ul>
+			</div>
+		</div>
+		<div class="notification is-info is-light">
+			if p.Rehearsal {
+				<p class="mb-2"><strong>Nobody can see it but you.</strong> Clubs' and gymnasts' links keep opening this competition; the copy is on none of their pages, and none of their links opens it. Nothing is emailed or pushed from it.</p>
+				<p>Use it as you would this one: the timetable, what-ifs, On the day, the venue screen and printing. Nothing you do in it changes this competition. It's deleted 30 days after it's made (on { p.Deletes }), or sooner if you delete it; you can keep it 30 days longer, once.</p>
+			} else {
+				<p>The copy is a new competition, private until you go live, with deadlines for you to set on its Settings.</p>
+			}
+			<p class="mt-2">It has its own admin link, shown once when it's made.{ copyHelpers(p) }</p>
+		</div>
+		<form method="post" action={ templ.SafeURL(p.Base + "/copy") } class="box">
+			if p.Rehearsal {
+				<input type="hidden" name="as" value="rehearsal"/>
+			} else {
+				<input type="hidden" name="as" value="setup"/>
+			}
+			<div class="field">
+				<label class="label is-small" for="copy-name">The copy's name</label>
+				<input class="input is-small" id="copy-name" name="name" type="text" required maxlength="80" value={ p.Name }/>
+			</div>
+			<div class="field">
+				<label class="label is-small" for="copy-date">Its first day</label>
+				<input class="input is-small comp-date" id="copy-date" name="date" type="date" required value={ p.Date }/>
+				if p.Days > 1 {
+					<p class="help">It runs { Count(p.Days, "day", "days") } from then, as this one does.</p>
+				}
+			</div>
+			<div class="buttons">
+				<button class="button is-small is-primary" type="submit">{ copyButton(p) }</button>
+				<a class="button is-small is-text" href={ templ.SafeURL(copyBack(p)) }>Cancel</a>
+			</div>
+		</form>
+	}
+}
+
+func copyTitle(p CopyPage) string {
+	if p.Rehearsal {
+		return "Make a rehearsal copy"
+	}
+	return "Copy the set-up"
+}
+
+func copyButton(p CopyPage) string {
+	if p.Rehearsal {
+		return "Make the rehearsal copy"
+	}
+	return "Make the copy"
+}
+
+func copyHelpers(p CopyPage) string {
+	if p.Rehearsal {
+		return " Only that link, and helper links you make on it, open it."
+	}
+	return ""
+}
+
+func copyBack(p CopyPage) string {
+	if p.Kept {
+		return p.Base
+	}
+	return p.Base + "/settings#copy"
+}
+
+// KeptSetupPage is what a kept set-up's admin link opens: what it is, to
+// copy or delete.
+type KeptSetupPage struct {
+	Base    string
+	Name    string
+	Says    string // e.g. "ISTO 2027 was on 3 to 5 April 2027. Its entries … were deleted on 3 August 2027; its set-up is kept for you to copy."
+	Deletes string // when it's deleted, e.g. "5 April 2030"
+	Notice  string
+}
+
+// KeptSetup is the page.
+templ KeptSetup(p KeptSetupPage) {
+	@competitionLayout("Kept set-up · " + p.Name) {
+		<h1 class="title is-4">{ p.Name }</h1>
+		<p class="subtitle is-6">Kept set-up</p>
+		if p.Notice != "" {
+			@stickyNotice(p.Notice)
+		}
+		<p class="mb-3">{ p.Says }</p>
+		<p class="mb-4 is-size-7">Its set-up is its levels and events with their settings, fees, what can be asked for late, officials' settings and the timetable's Setup. Nothing about anyone is kept. It's deleted on { p.Deletes }, or sooner if you delete it.</p>
+		<div class="buttons mb-4">
+			<a class="button is-small is-primary" href={ templ.SafeURL(p.Base + "/copy?as=setup") }>Copy this set-up</a>
+		</div>
+		<div class="comp-danger-zone">
+			@opens("Delete it", "the kept set-up, for good", "Delete", false) {
+				@typeToDelete(p.Base+"/delete", "delete-kept", "the kept set-up, for good", "Delete it")
+			}
+		</div>
+	}
+}
+
+// RehearsalRow is the Settings row of a rehearsal copy: when it's deleted,
+// and keeping it longer, once.
+templ rehearsalRow(base, deletes string, extended bool) {
+	@settingsGroup("rehearsal", "Rehearsal copy")
+	if extended {
+		<p class="mb-3">It's deleted on { deletes }. It has been kept 30 days longer already, so this is the last day.</p>
+	} else {
+		@opens("Deleted on "+deletes, "30 days after it was made", "Keep longer", false) {
+			<form method="post" action={ templ.SafeURL(base + "/keep-longer") } class="mb-3">
+				<button class="button is-small" type="submit">Keep it 30 days longer</button>
+				<p class="help">Once only.</p>
+			</form>
+		}
+	}
+}

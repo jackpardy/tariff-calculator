@@ -465,9 +465,9 @@ func (n *notifier) tellCompetition(ctx context.Context, d store.Due) error {
 				continue
 			}
 			subject, body, headers := n.changesEmail(c, groups, t.subs)
-			ds = append(ds, delivery{about: "Notifications: emailing about " + c.ID, email: &email{t.subs[0].Address, subject, body, headers}})
+			ds = append(ds, delivery{competition: c.ID, about: "Notifications: emailing about " + c.ID, email: &email{t.subs[0].Address, subject, body, headers}})
 		case store.ByPush:
-			ds = append(ds, delivery{about: "Notifications: pushing about " + c.ID, sub: t.subs[0], drop: t.subs,
+			ds = append(ds, delivery{competition: c.ID, about: "Notifications: pushing about " + c.ID, sub: t.subs[0], drop: t.subs,
 				push: pushMessage{Title: c.Name, Body: pushSummary(groups), URL: n.savedLinks()}})
 		}
 	}
