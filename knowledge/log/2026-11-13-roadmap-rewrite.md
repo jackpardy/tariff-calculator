@@ -1,0 +1,1 @@
+* **Update**: The [roadmap](roadmap.md) rewritten short: where it stands, the dates, what is left before the dry run, before ISTO's entries open and before the day, what waits on others and on the server, what is not planned, the decisions that still hold, and one line for each thing built.

@@ -14,7 +14,7 @@ built and how it is deployed. Start with the [overview](overview.md).
 * [Routine builder guide](guide/routine-guide.md) - Step by step: build a routine, check it against a competition, work on a level, write requirements, share, view and print. Also as a [PDF](guide/routine-guide.pdf).
 * [Competitions guide](guide/competition-guide.md) - Step by step: run a competition, run a club, enter, and sign off routines. Also as a [PDF](guide/competition-guide.pdf).
 * [Glossary](glossary.md) - Trampolining and app terms, including why requirement lists are never called "sets".
-* [Roadmap](roadmap.md) - Where the project could go next: tools for competition organisers and attendees, and for clubs, and what to build first.
+* [Roadmap](roadmap.md) - Where the project stands: what is left before the dry run and ISTO 2027, what waits on others, what is not planned, standing decisions and what is built.
 * [Open questions](open-questions.md) - Rules, documents and checks still waiting on someone.
 
 # Sections
