@@ -1,8 +1,12 @@
 // Package store keeps competitions, clubs, members and their entries in one
 // SQLite file (ADR 0004). Access is by secret links, not accounts: each role's
-// token is 128 random bits, and only its SHA-256 hash is used to find it, so a
-// copied database gives nobody access. Queries are plain database/sql, in SQL
-// that Postgres also accepts.
+// token is 128 random bits, and a link is found by its SHA-256 hash. The
+// links an organiser, comp sec, member, coach or helper holds are kept as
+// hashes only; the shared ones (the club and individual entry links, a join
+// link, sign-off and synchro partner links, a person's stop-emails link) are
+// kept in plain text too, so a copy of the database or a backup lets someone
+// use those. Queries are plain database/sql, in SQL that Postgres also
+// accepts.
 package store
 
 import (
@@ -1056,6 +1060,21 @@ var migrations = []string{
 		failed         INTEGER NOT NULL DEFAULT 0
 	);
 	CREATE INDEX delivery_rounds_competition ON delivery_rounds (competition_id, kind, made_at);`,
+	// 59: indexes on the columns pages and deletes look rows up by, which
+	// were scanned whole (2026-11-13): a member's removed entries, a
+	// synchro partner's entries (a person's or an entry's), and the foreign
+	// keys that deleting a member, coach, club, entry or competition
+	// searches. Each is a column a query's plan showed as SCAN.
+	`CREATE INDEX IF NOT EXISTS entries_member ON entries (member_id);
+	CREATE INDEX IF NOT EXISTS entries_partner_entry ON entries (partner_entry);
+	CREATE INDEX IF NOT EXISTS entries_partner_member ON entries (partner_member);
+	CREATE INDEX IF NOT EXISTS member_entries_partner_member ON member_entries (partner_member);
+	CREATE INDEX IF NOT EXISTS member_entries_partner_entry ON member_entries (partner_entry);
+	CREATE INDEX IF NOT EXISTS members_coach ON members (coach_id);
+	CREATE INDEX IF NOT EXISTS officials_member ON officials (member_id);
+	CREATE INDEX IF NOT EXISTS officials_entry ON officials (entry_id);
+	CREATE INDEX IF NOT EXISTS officials_club ON officials (club_id);
+	CREATE INDEX IF NOT EXISTS member_offers_competition ON member_offers (competition_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run
