@@ -64,10 +64,7 @@ the view screen held either way
 
 # Next: before ISTO's entries open
 
-1. **Notifications and emails kept across a restart**: a table of deliveries
-   still to send, so a deploy doesn't drop them, and time limits on sending an
-   email. From the November audit; not built.
-2. **Feedback made safe for real entries**: built 2026-11-13: a capture no
+1. **Feedback made safe for real entries**: built 2026-11-13: a capture no
    longer keeps other people's working links (`data-private` blurred and
    blanked, secret-link paths cleaned, on the server too), a copy can't load
    from elsewhere, feedback is deleted at 90 days with a Delete for each, and
@@ -76,29 +73,29 @@ the view screen held either way
    to the owner: **switch capture from Full to Light** on the maintainer's page
    before real entries open
    ([deploy](operations/deploy.md#notifications)).
-3. **Tell someone let in from a waiting list** when another withdraws.
+2. **Tell someone let in from a waiting list** when another withdraws.
    Built 2026-11-13: every action that moves entries on or off a waiting
    list opens the notification window, and their page says so for a week
    ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-4. **Small audit items**: no copy of the database before a migration;
+3. **Small audit items**: no copy of the database before a migration;
    privacy notes behind the features; ADRs for site feedback and for
    messages; missing indexes. (Built 2026-11-13: an entry let in over a limit
    no longer stays let in after it moves level; the public individual-entry
    link is limited per address; two blocks with the same name on a day are
    refused; an event longer than a day is offered men and women apart and a
    longer day.)
-5. **Know when it breaks**: an outside uptime check, an email on errors and
+4. **Know when it breaks**: an outside uptime check, an email on errors and
    panics, and a restore drill.
-6. **A lost organiser or club admin link**: a command that issues a new one.
-7. **Link the Routine Builder to the competition pages**: still nothing
+5. **A lost organiser or club admin link**: a command that issues a new one.
+6. **Link the Routine Builder to the competition pages**: still nothing
    leads from it to `/competitions`.
-8. **ISTO's 2027 routines**, swapped in when the document arrives, saying
+7. **ISTO's 2027 routines**, swapped in when the document arrives, saying
    what happens to routines already checked against 2025's.
-9. **Hand-off to scoring: to be decided.** Clubs used to enter by hand on
+8. **Hand-off to scoring: to be decided.** Clubs used to enter by hand on
    TrampOnline and ISTO exported a CSV of the entries; TrampOnline has a bulk
    upload tool, but how it works isn't known yet (the owner, 2026-11-13).
    Waiting on a sample of that format.
-10. **Timings learnt from the day**: the Warm-up over tap measures warm-up
+9. **Timings learnt from the day**: the Warm-up over tap measures warm-up
     and competing apart and **Real times today** sets them beside Setup's
     ([flight times](features/competition-entries.md#flight-times-roadmap-15));
     better defaults for tumbling, DMT and rest between turns follow from the
@@ -269,7 +266,7 @@ Dates are when built, where known.
 
 - [Notifications](features/competition-entries.md#notifications-adr-0008) by push and email ([ADR 0008](../docs/adr/0008-notifications.md), 2026-10-08); email waits on SES.
 - [Messages from the organisers' desk](features/competition-entries.md#messages-from-the-organisers-desk) (2026-10-09).
-- Sending in the background ([ADR 0012](../docs/adr/0012-sending-in-the-background.md), 2026-10-15).
+- Sending in the background ([ADR 0012](../docs/adr/0012-sending-in-the-background.md), 2026-10-15); emails and pushes kept in the database until sent, tried again for an hour, with time limits and counts on the dashboard (2026-11-13).
 - [Feedback about the app](features/competition-entries.md#feedback-about-the-app) (2026-10-15; split from messages 2026-10-20; competitions made 2026-10-22).
 - [Messages to the organiser](features/competition-entries.md#messages-to-the-organiser) with threads (2026-10-21); shown only to the organiser's links (2026-11-11).
 

@@ -23,7 +23,7 @@ The `Dockerfile` builds in two stages:
    caches kept between builds. It doesn't run the tests: CI has (until
    2026-10-23 it did, so a deploy ran them three times).
 2. `alpine:3.20` gets that one binary, running as non-root `app` (uid 1000) on
-   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app stops taking requests and waits for those under way to finish (up to 15 seconds), waits up to 20 seconds for emails and pushes still queued, and only then closes the database. A page whose handler panics answers "Something went wrong" (500) rather than dropping the connection, and the log has the route's pattern (never its path, which can hold a secret link), the panic and a stack.
+   `PORT=8080`, with a `HEALTHCHECK` that runs `wget` against `/healthz`. That answers 200 while the app is fit to serve, and 503 when `DATA_DIR` is set but competition storage didn't open or isn't answering (a migration that failed on deploy, say). The calculator still works then, as ADR 0004 Decision 8 has it, but the container shows as unhealthy and the deploy job fails. On SIGTERM the app stops taking requests and waits for those under way to finish (up to 15 seconds), stops sending and waits up to 20 seconds for the emails and pushes being sent at that moment, and only then closes the database. The rest stay in the database and are sent when it starts again. A page whose handler panics answers "Something went wrong" (500) rather than dropping the connection, and the log has the route's pattern (never its path, which can hold a secret link), the panic and a stack.
 
 Templates and assets are compiled or embedded into the binary, so nothing else
 is copied ([static assets](../architecture/static-assets.md)). The calculator
@@ -150,13 +150,27 @@ send email by SMTP with STARTTLS (ADR 0008 Decision 7), set by:
 - `MAIL_PER_SECOND`, the most emails sent a second (default 14, SES's
   production rate; set `1` while SES is in its sandbox).
 
-Desk messages and change notifications are sent in the background, four at
-a time, emails no faster than that. On SIGTERM the app waits up to 20
-seconds more for what's queued, then logs how many were left unsent, so
-with the 15 seconds for requests a stop can take 35 seconds: give the
-`tariff` service a `stop_grace_period` of at least `40s` in the server's
-Compose file (Docker's default of 10 seconds kills it before the database is
-closed cleanly).
+Every email and push (desk messages, change notifications, replies,
+confirmations, feedback) is kept in the `deliveries` table until it's sent,
+and sent in the background, four at a time, emails no faster than that. Each
+email has 30 seconds to go and each push 15; one that fails for a reason that
+may pass is tried again for about an hour (seven tries), then kept as failed.
+
+**What's kept, and for how long.** A delivery is deleted the moment it's sent
+(it holds names and the message). One that couldn't be sent is kept, without
+its text, for 7 days, so the organiser can see who wasn't told and why; the
+counts of a round of change notifications are kept as long. The counts of a
+desk message are kept with the message. Deleting a competition deletes its
+deliveries. The expiry job, every 6 hours, does the deleting.
+
+**Stopping.** On SIGTERM the app stops taking new deliveries and waits up to
+20 seconds for those being sent at that moment, then logs how many were cut
+off. Nothing waiting is lost: it's sent when the app starts again, and one
+cut off part way may be sent twice. With the 15 seconds for requests a stop
+can still take 35 seconds, so give the `tariff` service a
+`stop_grace_period` of at least `40s` in the server's Compose file: not to
+save the queue any more, but so the database is closed cleanly (Docker's
+default of 10 seconds kills it first) and fewer emails go twice.
 
 [Feedback about the app](../features/competition-entries.md#feedback-about-the-app)
 goes to the maintainer's own page. Make its link on the server, once and

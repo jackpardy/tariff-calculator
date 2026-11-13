@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"slices"
@@ -608,8 +609,10 @@ func (p *competitionPages) emailFeedback(f store.SiteFeedback, d feedbackDetails
 	// The background sender, with the desk's messages and the
 	// notifications: the request doesn't wait for it, and it keeps to the
 	// cap on emails a second.
-	p.notify.send.send([]delivery{{about: "Emailing feedback about the app",
-		email: &email{to: p.feedbackTo, subject: subject, body: body, headers: headers}}})
+	if err := p.notify.send.add(context.Background(), store.Round{}, []delivery{{about: "Emailing feedback about the app", who: "The maintainer",
+		email: &email{to: p.feedbackTo, subject: subject, body: body, headers: headers}}}); err != nil {
+		log.Printf("Feedback: %v", err)
+	}
 }
 
 // feedbackEmail is the email of a piece of feedback: what was said, who by

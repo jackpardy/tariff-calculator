@@ -19,6 +19,7 @@ type Dashboard struct {
 	LiveDate     string // when it's due to go live, for changing it
 	LiveTime     string
 	NotifyAt     string // when the changes waiting are told, e.g. "14:32"; "" for none
+	Told         *ToldRound // how the latest changes told went; nil for none
 	Access       Access // what the link it was opened by can do (ADR 0009)
 	Concerns     []ConcernView
 	OpenConcerns int
@@ -151,6 +152,9 @@ templ CompetitionDashboard(d Dashboard) {
 				Your changes go to everyone who asked to hear about them at { d.NotifyAt }, after a wait in case anything is put back.
 				<button class="button is-small ml-2" type="submit">Notify now</button>
 			</form>
+		}
+		if d.Told != nil && d.Access.NotifyNow {
+			@toldRound(*d.Told)
 		}
 		// The entries come first; open messages and concerns are a line here,
 		// listed below them.
@@ -365,6 +369,46 @@ func hasIndividuals(d Dashboard) bool {
 // LinkedLine is a line of text that links somewhere.
 type LinkedLine struct {
 	Text, Href string
+}
+
+// ToldRound is how the latest changes told went: when, how many were sent,
+// are still sending and couldn't be sent, and who those were and why.
+type ToldRound struct {
+	At       string // e.g. "Sat 14 Mar, 14:42"
+	Sent     int
+	Sending  int
+	Failed   int
+	Failures []ToldFailure
+}
+
+// ToldFailure is someone a change couldn't be sent to: whose subscription
+// it was (never the address) and why, in plain words.
+type ToldFailure struct {
+	Who, Why string
+}
+
+templ toldRound(t ToldRound) {
+	<div class="mb-3" id="told">
+		<p class="is-size-7">
+			Your last changes went out { t.At }: { strconv.Itoa(t.Sent) } sent
+			if t.Sending > 0 {
+				· still sending to { strconv.Itoa(t.Sending) }
+			}
+			if t.Failed == 0 {
+				.
+			}
+		</p>
+		if t.Failed > 0 {
+			<details class="is-size-7">
+				<summary>{ strconv.Itoa(t.Failed) } couldn't be sent</summary>
+				<ul class="mt-1">
+					for _, f := range t.Failures {
+						<li>{ f.Who }: { f.Why }</li>
+					}
+				</ul>
+			</details>
+		}
+	</div>
 }
 
 templ count(n int, label string) {

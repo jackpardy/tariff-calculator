@@ -898,6 +898,9 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 			AND NOT EXISTS (SELECT 1 FROM entries WHERE individual_id = individuals.id)`, now.AddDate(0, 0, -competitions.RetentionDays).Format(timeLayout)); err != nil {
 			return err
 		}
+		if err := dropOldDeliveries(ctx, tx, now); err != nil {
+			return err
+		}
 		return dropLeftovers(ctx, tx)
 	})
 	return comps, clubs, err

@@ -15,7 +15,7 @@ import (
 // those it does). A new table goes in one or the other.
 var notWatched = []string{
 	"checkins", "club_levels", "club_links", "club_log", "club_roles", "club_skills", "clubs", "coach_qualifications", "competition_links",
-	"competition_log", "concern_posts", "concerns", "desk_messages", "flight_times", "judge_qualifications",
+	"competition_log", "concern_posts", "concerns", "deliveries", "delivery_rounds", "desk_messages", "flight_times", "judge_qualifications",
 	"late_requests", "member_offers", "member_routines", "migrations", "notify_subscriptions",
 	"official_checkins", "payments", "person_requirements", "sandbox_copies", "sandbox_items", "scratch_clears", "screen_notices", "settings",
 	"shared_ties", "site_feedback", "site_feedback_captures", "skill_marks", "up_now",

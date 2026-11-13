@@ -331,6 +331,12 @@ func (p *competitionPages) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	d.Waiting = waitingLists(c, waiting, d.Base)
 	d.Access = access(r)
+	if d.Access.NotifyNow {
+		if d.Told, err = p.toldRound(r.Context(), c.ID); err != nil {
+			failed(w, r, err)
+			return
+		}
+	}
 	// With no entries yet, the next step: the links to send.
 	if len(all) == 0 && d.Access.Settings {
 		d.Links.Club = origin(r) + "/competitions/club/" + c.ClubLink

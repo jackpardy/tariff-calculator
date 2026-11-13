@@ -141,6 +141,19 @@ expired competitions.
 - A person in two roles (a member who is also a coach) can be told twice,
   once as each; each notification is about what that page shows.
 
+## Update 2026-11-13
+
+Changes are now cleared only in the transaction that keeps the emails and
+pushes telling them (`store.ToldChanges`, migration 58), so a crash or a
+failed read between working them out and sending tells nobody twice and
+forgets nobody; the sending itself is kept in the database and retried
+([ADR 0012](0012-sending-in-the-background.md#update-2026-11-13-kept-in-the-database)).
+The organiser's dashboard says how the latest round went: sent, still
+sending, and who couldn't be told and why. A push too long to send is
+trimmed, not taken as the phone being gone; only a 404 or 410, or keys no
+browser can have made, drops it. Emails go quoted-printable, so no line is
+longer than SMTP allows.
+
 ## Alternatives considered
 
 - **One subscription for everything a club or member does.** Fewer taps,

@@ -2277,26 +2277,37 @@ browser) and the off link; push has the competition's name as the title,
 the text as the body and Competitions as the link. A push service that says the phone is gone
 drops it. A mailer that is off simply sends none.
 
-**Sent in the background** (built 2026-10-15): the request works out who is
-told, one delivery per address, hands them to the sender (`web/sender.go`)
-and answers at once: "Sent to UCD. Sending to 214 people: 180 by email, 34
-by push. Everyone sees it on their own page." (or "No one it reaches has
-asked to hear by push or email."). Four deliveries go at once, emails no
-faster than `MAIL_PER_SECOND` (default 14, Amazon SES's production rate;
+**Sent in the background** (built 2026-10-15; kept in the database since
+2026-11-13): the request works out who is told, one delivery per address,
+keeps them in the `deliveries` table (migration 58, `store/deliveries.go`)
+as the message's round, and answers at once: "Sent to UCD. Sending to 214
+people: 180 by email, 34 by push. Everyone sees it on their own page." (or
+"No one it reaches has asked to hear by push or email."). If who to tell
+can't be read or kept (a busy database, say), it says "Telling people by push
+or email failed, so nobody was pushed or emailed." instead; the message is
+still saved and on people's pages. The sender's four workers
+(`web/sender.go`) take deliveries from the table, emails no faster than
+`MAIL_PER_SECOND` (default 14, Amazon SES's production rate;
 [deploy](../operations/deploy.md#notifications)); pushes aren't capped.
-A failed email is tried once more after 5 seconds, then counted as failed
-and logged (the competition's id and the error, never the address's token or
-a page path). Change notifications go through the same sender. Under each
+Each email has 30 seconds, from dialling the mail server to its last answer,
+and each push 15. A failure that may pass (no answer in time, the server
+can't be reached, the mail server's "try later" 4xx answers, a push
+service's 429 or 5xx) is tried again after 1, 2, 5, 10, 15 and 30 minutes:
+seven tries over about an hour. One that won't pass (the address refused, a
+push service's other 4xx, a phone that's gone, email not set up) fails at
+once. Each failure is logged (the competition's id, the try and the error,
+never the address's token or a page path). Change notifications, replies,
+feedback and the confirmation email go through the same table. Under each
 message the desk page shows "told 34 by push, 178 by email", then "· still
-sending to 2" while it's going and "· 2 failed" for those that couldn't be
-told (a gone phone counts as failed); reloading the page updates it. While
-sending, the counts are in memory; once a message's deliveries are all done,
-they're kept with it (`pushed`, `emailed` and `failed`, migration 41). The
-queue is in memory too: when the app stops it waits up to 20 seconds for
-what's queued, then logs how many were left unsent and keeps those as
-failed. The confirmation email when someone asks to hear by email is still
-sent in their request, outside the cap, so a failure can say so on the
-form.
+sending to 2" while any are waiting or being tried again, and "· 2 failed"
+for those that couldn't be told (a gone phone counts as failed); reloading
+the page updates it. The counts come from the table: what went is counted on
+the message's round (`delivery_rounds`, kept with the message), so they
+survive a restart; messages sent before 2026-11-13 keep the counts stored
+with them (migration 41). A delivery sent is deleted at once (it holds
+names); one that failed is kept, without its text, for 7 days. When the app
+stops it lets what's being sent finish, for up to 20 seconds, and sends the
+rest when it next starts; one cut off part way may be sent twice.
 
 **On recipients' pages** (up to the latest 10, newest first, with when it was
 sent and, within the last day, how long ago, e.g. "Sat 27 Feb, 10:42 · 12
@@ -3201,9 +3212,12 @@ that entry leaves them hearing about their others (migration 35 moved those
 made before).
 
 - An email is sent a link to confirm it first; nothing else is sent until
-  it's tapped (a button, so link checkers don't). At most 10 confirmation
-  emails an hour from one address, and 50 a day for one competition (kept
-  in memory, so a restart forgets them). The email names no competition or
+  it's tapped (a button, so link checkers don't). The confirmation goes
+  through the background sender like any other email (since 2026-11-13),
+  within the cap; the form says "We've emailed ..." once it's kept to send,
+  and "The email couldn't be sent" only if it couldn't be kept. At most 10
+  confirmation emails an hour from one address, and 50 a day for one
+  competition (kept in memory, so a restart forgets them). The email names no competition or
   club, as it goes to any address typed in: it says "a competition on
   tariff.pardy.ie", and the page its link opens names the competition.
 - Before the organiser publishes or unpublishes the timetable, checks a
@@ -3229,7 +3243,23 @@ made before).
   path: it holds their secret link (ADR 0004; migration 33 cleared those
   kept before 2026-10-15). The emails and pushes go through the same
   background sender as [desk messages](#messages-from-the-organisers-desk),
-  sharing its four workers and its cap on emails a second.
+  sharing its table, its four workers, its retries and its cap on emails a
+  second. A competition's changes are cleared only in the transaction that
+  keeps that round's deliveries (`store.ToldChanges`): if working them out
+  fails (a busy database, say), nothing is cleared and the next half-minute
+  tries again; if the app stops after, the deliveries are still in the table
+  and sent when it starts. Nobody is told twice and nobody is forgotten.
+- Under the Notify now line, the dashboard (for the links that can use Notify
+  now) says how the latest round went: "Your last changes went out Sat 14
+  Mar, 14:42: 30 sent · still sending to 2", and "3 couldn't be sent", which
+  opens who (whose subscription it was and how, e.g. "Ann Ryan, by email",
+  "UCD's comp sec, by push"; never the address) and why in plain words ("the
+  address was refused", "tried 7 times: the mail server didn't answer in
+  time", "their phone no longer takes notifications from this site"). A
+  round's counts are kept 7 days.
+- Emails are sent quoted-printable, so a paragraph typed as one long line
+  never makes a line longer than SMTP's 998 bytes; a name in `MAIL_FROM` and
+  the subject may have accents.
 
 Email goes by SMTP when `SMTP_HOST` and `MAIL_FROM` are set
 ([deploy](../operations/deploy.md#notifications)); without them only push
@@ -3245,8 +3275,10 @@ services' addresses are taken (Google, Mozilla, Apple, Microsoft), so the
 server posts nowhere else. A batch's push says the one change, or "3
 changes for Ann Ryan and Bea Kelly. Tap to see them.", and opens
 Competitions; it's encrypted for the browser (RFC 8291, `aes128gcm`) and signed
-(RFC 8292, ES256), on the standard library. A push service answering 404
-or 410 drops the phone. On an iPhone or iPad, push works only from the home
+(RFC 8292, ES256), on the standard library. A push too long for one message
+(about 4 KB) has its text trimmed to fit, ending "…". A push service
+answering 404 or 410, or keys no browser can have made, drops the phone; any
+other failure leaves it (tried again or counted as failed, as above). On an iPhone or iPad, push works only from the home
 screen (iOS 16.4+): the page says to add it first (Share, Add to Home
 Screen); the web manifest has no `start_url`, so the home screen opens the
 person's own page.

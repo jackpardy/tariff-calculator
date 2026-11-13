@@ -80,6 +80,8 @@ func newTestServer(t *testing.T, opts ...serverOption) *testServer {
 	}
 	t.Cleanup(func() { st.Close() })
 	s := &testServer{p: newCompetitionPages(st), st: st}
+	// No cap on emails a second unless a test sets one (TestSendRateCap).
+	s.p.notify.send.perSecond = 1e6
 	for _, o := range opts {
 		o(s)
 	}

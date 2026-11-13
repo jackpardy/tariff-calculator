@@ -33,23 +33,26 @@ func (a *App) Handler() http.Handler {
 }
 
 // Notify starts the notifier in the background, which sends the notifications
-// that fall due as time passes. It returns at once, and does nothing when
-// storage is off. Call it once.
+// that fall due as time passes, and the sender, which sends the emails and
+// pushes kept, those left from before a restart first. It returns at once,
+// and does nothing when storage is off. Call it once.
 func (a *App) Notify() {
 	if a.pages.notify != nil {
+		a.pages.notify.send.begin()
 		go a.pages.notify.run()
 	}
 }
 
-// Finish waits up to wait for the emails and pushes still being sent, then
-// stops sending, logging how many were left unsent. Call it once the server
-// has stopped taking requests, before the store is closed.
+// Finish stops sending and waits up to wait for the emails and pushes being
+// sent to finish. What isn't sent is kept and sent when the app next
+// starts; one cut off part way may go twice. Call it once the server has
+// stopped taking requests, before the store is closed.
 func (a *App) Finish(wait time.Duration) {
 	if a.pages.notify == nil {
 		return
 	}
 	if left := a.pages.notify.send.stop(wait); left > 0 {
-		log.Printf("Stopping: %d emails and pushes left unsent", left)
+		log.Printf("Stopping: %d emails and pushes cut off, sent again at the next start", left)
 	}
 }
 

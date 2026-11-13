@@ -270,39 +270,6 @@ type Due struct {
 	Baseline      []byte
 }
 
-// ClaimDue takes the competitions whose changes are due at now, clearing
-// their baselines so changes made from now on start a new wait.
-func (s *Store) ClaimDue(ctx context.Context) ([]Due, error) {
-	var out []Due
-	err := s.tx(ctx, func(tx *sql.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT id, notify_baseline FROM competitions WHERE notify_due <> '' AND notify_due <= $1`, s.stamp())
-		if err != nil {
-			return err
-		}
-		for rows.Next() {
-			var d Due
-			var baseline string
-			if err := rows.Scan(&d.CompetitionID, &baseline); err != nil {
-				rows.Close()
-				return err
-			}
-			d.Baseline = []byte(baseline)
-			out = append(out, d)
-		}
-		rows.Close()
-		if err := rows.Err(); err != nil {
-			return err
-		}
-		for _, d := range out {
-			if _, err := tx.ExecContext(ctx, `UPDATE competitions SET notify_baseline = '', notify_due = '' WHERE id = $1`, d.CompetitionID); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return out, err
-}
-
 // Setting is one of the app's own settings, made by make the first time it's
 // asked for and kept from then on, even if two ask at once.
 func (s *Store) Setting(ctx context.Context, key string, make func() (string, error)) (string, error) {

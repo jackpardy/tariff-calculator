@@ -159,16 +159,19 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 			}
 			body := line + "\n\n" + yours(k) + ":\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
 				"\nTo stop these emails:\n" + n.offLink(told[0].Token) + "\n"
-			ds = append(ds, delivery{competition: c.ID, about: "Replies: emailing about " + c.ID, email: &email{told[0].Address, subject, body, map[string]string{
+			ds = append(ds, delivery{competition: c.ID, about: "Replies: emailing about " + c.ID, who: n.who(ctx, told[0]), email: &email{told[0].Address, subject, body, map[string]string{
 				"List-Unsubscribe":      "<" + n.offLink(told[0].Token) + ">",
 				"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 			}}})
 		case store.ByPush:
-			ds = append(ds, delivery{competition: c.ID, about: "Replies: pushing about " + c.ID, sub: told[0], drop: told,
+			ds = append(ds, delivery{competition: c.ID, about: "Replies: pushing about " + c.ID, who: n.who(ctx, told[0]), sub: told[0], drop: told,
 				push: pushMessage{Title: c.Name, Body: line, URL: n.savedLinks()}})
 		}
 	}
-	n.send.send(ds)
+	if err := n.send.add(ctx, store.Round{}, ds); err != nil {
+		log.Printf("Replies: %s: %v", c.ID, err)
+		return "They see it on their page, but telling them by push or email failed."
+	}
 	switch len(ds) {
 	case 0:
 		return "They see it on their page."

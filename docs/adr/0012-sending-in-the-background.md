@@ -59,6 +59,26 @@ This is for the late-2026 dry run (about 20 people) and ISTO in April 2027
   answering when done). Rejected: 300 emails at 14 a second is still over
   20 seconds, past the write timeout.
 
+## Update 2026-11-13: kept in the database
+
+The November audit found the in-memory queue lost what was due when the app
+stopped or was killed, and that change notifications were cleared before
+they were queued, so a crash or a failed read in between forgot them for
+good; a stuck mail server could hold all four workers for ever. The
+rejected alternative, a queue in the database, is now built: every email
+and push is a row in `deliveries` (migration 58), written when it's decided
+(for change notifications, in the same transaction that clears the
+competition's waiting changes), taken by the workers, deleted when sent,
+and kept as failed for 7 days after its last try. Failures that may pass
+are tried again after 1, 2, 5, 10, 15 and 30 minutes; others fail at once.
+Each email has 30 seconds and each push 15. The confirmation email goes
+through it too. The desk's counts, and the dashboard's for the latest round
+of change notifications, come from the table and survive a restart.
+Shutdown now only lets what's in flight finish (still up to 20 seconds); the
+rest is sent at the next start, so the consequences below about losing
+deliveries no longer hold. The extra write per email has not shown on the
+day's pages at these sizes.
+
 ## Consequences
 
 - The organiser's page answers in well under a second whatever the size of

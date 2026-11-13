@@ -344,6 +344,9 @@ func TestSandboxSendsNothing(t *testing.T) {
 	if len(mail.sent) > 0 || len(pushes.got) > 0 {
 		t.Errorf("sent %d emails and pushed to %d phones", len(mail.sent), len(pushes.got))
 	}
+	if _, waiting, _ := s.st.NextDelivery(ctx); waiting {
+		t.Error("nothing is kept to send in the sandbox")
+	}
 }
 
 // Every page says it's the sandbox, in the sandbox only.
