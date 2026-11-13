@@ -71,8 +71,8 @@ func TestLimitsAndWaitingLists(t *testing.T) {
 	if to := redirected(t, h, links[1]+"/withdraw", url.Values{"confirm": {"1"}}); !strings.Contains(noticeOf(t, to), "Withdrawn") {
 		t.Fatal("Bea withdraws")
 	}
-	if got := do(t, h, http.MethodGet, links[2], nil).Body.String(); strings.Contains(got, "waiting list") {
-		t.Error("Cat moves up when Bea withdraws")
+	if got := do(t, h, http.MethodGet, links[2], nil).Body.String(); strings.Contains(got, "On the waiting list") || !strings.Contains(got, "Was on the waiting list; a place came free on ") {
+		t.Error("Cat moves up when Bea withdraws, and her page says so")
 	}
 	if page := do(t, h, http.MethodGet, admin, nil).Body.String(); strings.Contains(page, "Waiting lists") || !strings.Contains(page, `aria-label="Tick Cat Doyle"`) {
 		t.Error("Cat is in the table now")

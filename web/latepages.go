@@ -1026,7 +1026,11 @@ func (p *competitionPages) acceptLate(w http.ResponseWriter, r *http.Request) {
 	}
 	note := limitNote(strings.TrimSpace(r.FormValue("note")))
 	p.notify.changing(ctx, c)
+	came := p.notify.watching(ctx, c, cameFree)
 	accepted, err := p.st.AcceptLateChange(ctx, c.ID, req.ID, note, linkOf(r).Name, c.Late.Rule(req.Kind).Fee)
+	if err == nil {
+		came(ctx)
+	}
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		refuse(w, r, back, "That request has been decided already, or its entry was withdrawn; nothing was changed.")

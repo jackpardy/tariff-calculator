@@ -964,11 +964,13 @@ func (p *competitionPages) removeEntries(w http.ResponseWriter, r *http.Request)
 		to = store.ToBoth
 	}
 	p.notify.changing(r.Context(), c)
+	came := p.notify.watching(r.Context(), c, cameFree)
 	n, err := p.st.RemoveEntries(r.Context(), c.ID, r.Form["entry"], removal, limitNote(r.FormValue("note")), to)
 	if err != nil {
 		failed(w, r, err)
 		return
 	}
+	came(r.Context())
 	notice := "Tick the entries to remove or hold first; nothing was changed."
 	if n == 0 {
 		noteRefused(w)

@@ -22,6 +22,9 @@ import (
 // worker compares it with what's live then and tells each subscriber whose
 // people changed, once per address, summarising every change.
 
+// cameFree is why an entry came off a waiting list, as its page says.
+const cameFree = "a place came free"
+
 // notifyGrace is how long changes wait before they're told, so a mistake
 // published and put right tells no one (ADR 0008 Decision 5).
 const notifyGrace = 10 * time.Minute
@@ -78,7 +81,10 @@ type entryState struct {
 	Note      string `json:"note,omitempty"`    // the organiser's note
 	Removal   string `json:"removal,omitempty"` // store.Removed or store.Held
 	Waiting   int    `json:"waiting,omitempty"` // its place on a waiting list
-	Late      string `json:"late,omitempty"`    // its latest late change: id, status and reason
+	// Withdrawn is a club's entry its member withdrew, or the club took out:
+	// out of the competition, so off any waiting list without a place freed.
+	Withdrawn bool   `json:"withdrawn,omitempty"`
+	Late      string `json:"late,omitempty"` // its latest late change: id, status and reason
 	// Again is why the organiser asked for another coach's sign-off, until
 	// one gives it.
 	Again string `json:"again,omitempty"`
@@ -100,7 +106,7 @@ func (n *notifier) state(ctx context.Context, c store.Competition) (notifyState,
 	for _, e := range all {
 		es := entryState{
 			Gymnasts: e.Entry.Gymnasts(), Event: e.Entry.Level, Keys: keys[e.ID], Club: e.ClubID,
-			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal, Waiting: e.Waiting, Again: e.SignoffAgain,
+			Checked: !e.CheckedAt.IsZero(), Note: e.Note, Removal: e.Removal, Waiting: e.Waiting, Withdrawn: e.Withdrawn, Again: e.SignoffAgain,
 		}
 		if t := c.Published; t != nil {
 			if i, ok := t.Find(e.ID); ok {
@@ -172,6 +178,89 @@ func (n *notifier) changing(ctx context.Context, c store.Competition) {
 	if err := n.st.MarkChanged(ctx, c.ID, baseline, due); err != nil {
 		log.Printf("Notifications: %s: %v", c.ID, err)
 	}
+}
+
+// moving is called before an action that can move entries on or off a
+// waiting list: a withdrawal, a club's removing or sending, an organiser's
+// removing or restoring, a limit changed. It opens the notification window
+// (changing), so the people who move are told once the grace period is up,
+// and returns what to call after the action: for each entry it let in from a
+// waiting list it adds a line to the history, for the entry's own page to
+// say so for a week (how: "a place came free", or whatever let them in). A
+// competition with no limits has no waiting lists, so nothing happens.
+func (n *notifier) moving(ctx context.Context, c store.Competition, how string) func(context.Context) {
+	if n == nil || !limited(c.Limits) {
+		return func(context.Context) {}
+	}
+	n.changing(ctx, c)
+	return n.watching(ctx, c, how)
+}
+
+// limited says whether any event has a limit.
+func limited(limits map[string]int) bool {
+	for _, n := range limits {
+		if n > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// movingIn is moving for a competition known by its id, when the caller
+// hasn't read it: it does nothing if it can't be read.
+func (n *notifier) movingIn(ctx context.Context, competitionID, how string) func(context.Context) {
+	if n == nil {
+		return func(context.Context) {}
+	}
+	c, err := n.st.Competition(ctx, competitionID)
+	if err != nil {
+		return func(context.Context) {}
+	}
+	return n.moving(ctx, c, how)
+}
+
+// watching keeps who is on a waiting list now, and returns what to call
+// once an action is done: it records each of them now in (not withdrawn,
+// removed or held) in the competition's history.
+func (n *notifier) watching(ctx context.Context, c store.Competition, how string) func(context.Context) {
+	if n == nil {
+		return func(context.Context) {}
+	}
+	entries, err := n.st.Entries(ctx, c.ID)
+	if err != nil {
+		log.Printf("Notifications: %s: %v", c.ID, err)
+		return func(context.Context) {}
+	}
+	waiting := map[string]bool{}
+	for _, e := range entries {
+		if e.Waiting > 0 {
+			waiting[e.ID] = true
+		}
+	}
+	if len(waiting) == 0 {
+		return func(context.Context) {}
+	}
+	return func(ctx context.Context) {
+		ctx = context.WithoutCancel(ctx)
+		now, err := n.st.Entries(ctx, c.ID)
+		if err != nil {
+			log.Printf("Notifications: %s: %v", c.ID, err)
+			return
+		}
+		for _, e := range now {
+			if waiting[e.ID] && e.Waiting == 0 && !e.Withdrawn {
+				if err := n.st.Record(ctx, c.ID, store.WaitingListWho, cameInPrefix(e)+how); err != nil {
+					log.Printf("Notifications: %s: %v", c.ID, err)
+				}
+			}
+		}
+	}
+}
+
+// cameInPrefix starts the history's line for an entry let in from a waiting
+// list, e.g. "Ann Ryan · BUCS L3: in off the waiting list, ".
+func cameInPrefix(e store.Entry) string {
+	return e.Entry.Gymnasts() + " · " + e.Entry.Event() + ": in off the waiting list, "
 }
 
 // competitionDay says whether now is one of the competition's days, in
@@ -246,10 +335,12 @@ func changes(was, now notifyState) []change {
 			add(store.AboutCards, e.Event+": needs another coach's sign-off. "+e.Again)
 		}
 		switch {
-		case b.Waiting > 0 && e.Waiting == 0 && e.Removal == "":
+		case b.Waiting > 0 && e.Waiting == 0 && e.Removal == "" && !e.Withdrawn:
 			add(store.AboutCards, e.Event+": in, off the waiting list")
 		case b.Waiting == 0 && e.Waiting > 0 && e.Removal == "":
 			add(store.AboutCards, e.Event+": on the waiting list ("+waitingWord(e.Waiting)+")")
+		case e.Removal == store.Withdrew || b.Removal == store.Withdrew:
+			// A gymnast's own withdrawing, or putting it back: they know.
 		case e.Removal != b.Removal && e.Removal == store.Removed:
 			add(store.AboutCards, e.Event+": removed by the organiser")
 		case e.Removal != b.Removal && e.Removal == store.Held:
@@ -538,7 +629,7 @@ func (n *notifier) changesEmail(c store.Competition, groups []changeGroup, subs 
 		subject = "A change at " + c.Name
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "The organiser of %s has made changes you asked to hear about.\n\n", c.Name)
+	fmt.Fprintf(&b, "There are changes at %s you asked to hear about.\n\n", c.Name)
 	for _, g := range groups {
 		fmt.Fprintf(&b, "%s\n", g.Who)
 		for _, l := range g.Lines {
