@@ -36,6 +36,14 @@ type Competition struct {
 	// only as their club sends them (migration 55): a member's own save or
 	// ask waits for the club, whatever the club lets its members send.
 	ClubsSend bool
+	// MadeAs is how it was made (MadeNew, MadeCopy or MadeRehearsal), and
+	// CopiedFrom the name of the competition it was copied from.
+	MadeAs, CopiedFrom string
+	// SetupKeptAt is when its people were deleted, keeping its set-up to
+	// copy (zero while it has them); DeletesAt when it's deleted, or its
+	// people are; Extended a rehearsal copy kept 30 days longer.
+	SetupKeptAt, DeletesAt time.Time
+	Extended               bool
 }
 
 // CreateCompetition stores a validated competition and returns it with its
@@ -78,12 +86,16 @@ type MadeCompetition struct {
 	Name      string
 	Date      string // as competitions.DateLayout
 	CreatedAt time.Time
+	// MadeAs is how it was made (MadeNew, MadeCopy or MadeRehearsal), and
+	// CopiedFrom the name copied; SetupKept a kept set-up.
+	MadeAs, CopiedFrom string
+	SetupKept          bool
 }
 
 // MadeCompetitions are the competitions there are, newest first, for the
 // maintainer's page: all but a sandbox copy's, which its seed made.
 func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, date, created_at FROM competitions
+	rows, err := s.db.QueryContext(ctx, `SELECT id, name, date, created_at, made_as, copied_from, setup_kept_at <> '' FROM competitions
 		WHERE id NOT IN (SELECT id FROM sandbox_items WHERE kind = 'competition')
 		ORDER BY created_at DESC, rowid DESC`)
 	if err != nil {
@@ -94,7 +106,7 @@ func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error)
 	for rows.Next() {
 		var c MadeCompetition
 		var created string
-		if err := rows.Scan(&c.ID, &c.Name, &c.Date, &created); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Date, &created, &c.MadeAs, &c.CopiedFrom, &c.SetupKept); err != nil {
 			return nil, err
 		}
 		c.CreatedAt = parseTime(created)
@@ -103,15 +115,15 @@ func (s *Store) MadeCompetitions(ctx context.Context) ([]MadeCompetition, error)
 	return out, rows.Err()
 }
 
-const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages, clubs_send`
+const competitionColumns = `id,club_token, individual_token, name, date, deadline, individuals, levels, created_at, video, signoff, split, timetable, events, officials, levels_ordered, approve_coaches, coach_levels, published_timetable, live_at, notify_due, notify_no_wait, fees, limits, late, changes_until, signoffs_until, messages, clubs_send, made_as, copied_from, setup_kept_at, delete_after, extended`
 
 // scanCompetition reads a row of competitionColumns.
 func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	var c Competition
-	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil string
+	var deadline, levels, created, video, liveAt, notifyDue, fees, limits, late, changesUntil, signoffsUntil, kept, deletes string
 	var split, timetable, events, officials, coachLevels, publishedTimetable string
 	var ordered bool
-	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages, &c.ClubsSend); err != nil {
+	if err := row.Scan(&c.ID, &c.ClubLink, &c.IndividualLink, &c.Name, &c.Date, &deadline, &c.Individuals, &levels, &created, &video, &c.Signoff, &split, &timetable, &events, &officials, &ordered, &c.ApproveCoaches, &coachLevels, &publishedTimetable, &liveAt, &notifyDue, &c.NoWait, &fees, &limits, &late, &changesUntil, &signoffsUntil, &c.Messages, &c.ClubsSend, &c.MadeAs, &c.CopiedFrom, &kept, &deletes, &c.Extended); err != nil {
 		return Competition{}, notFound(err)
 	}
 	if publishedTimetable != "" {
@@ -160,6 +172,7 @@ func scanCompetition(row interface{ Scan(...any) error }) (Competition, error) {
 	}
 	c.Deadline, c.CreatedAt, c.LiveAt, c.NotifyDue = parseTime(deadline), parseTime(created), parseTime(liveAt), parseTime(notifyDue)
 	c.ChangesUntil, c.SignoffsUntil = parseTime(changesUntil), parseTime(signoffsUntil)
+	c.SetupKeptAt, c.DeletesAt = parseTime(kept), parseTime(deletes)
 	return c, nil
 }
 
@@ -169,6 +182,13 @@ func (s *Store) competitionBy(ctx context.Context, column, token string) (Compet
 		`SELECT `+competitionColumns+` FROM competitions WHERE `+column+` = $1`, hash(token)))
 }
 
+// sharedLink finds a competition by its club or individual link: never a
+// rehearsal copy or a kept set-up, which nobody enters.
+func (s *Store) sharedLink(ctx context.Context, column, token string) (Competition, error) {
+	return scanCompetition(s.db.QueryRowContext(ctx,
+		`SELECT `+competitionColumns+` FROM competitions WHERE `+column+` = $1 AND made_as <> 'rehearsal' AND setup_kept_at = ''`, hash(token)))
+}
+
 // CompetitionByAdmin is the competition an admin link opens.
 func (s *Store) CompetitionByAdmin(ctx context.Context, token string) (Competition, error) {
 	return s.competitionBy(ctx, "admin_hash", token)
@@ -176,13 +196,13 @@ func (s *Store) CompetitionByAdmin(ctx context.Context, token string) (Competiti
 
 // CompetitionByClubLink is the competition a club link enters.
 func (s *Store) CompetitionByClubLink(ctx context.Context, token string) (Competition, error) {
-	return s.competitionBy(ctx, "club_hash", token)
+	return s.sharedLink(ctx, "club_hash", token)
 }
 
 // CompetitionByIndividualLink is the competition an individual link enters,
 // while it takes individual entries.
 func (s *Store) CompetitionByIndividualLink(ctx context.Context, token string) (Competition, error) {
-	c, err := s.competitionBy(ctx, "individual_hash", token)
+	c, err := s.sharedLink(ctx, "individual_hash", token)
 	if err == nil && !c.Individuals {
 		return Competition{}, ErrNotFound
 	}
@@ -809,21 +829,31 @@ func (s *Store) RestoreIndividualEntry(ctx context.Context, token string) error 
 	})
 }
 
-// DeleteExpired deletes competitions past their retention date, clubs unused
+// DeleteExpired deletes the people of competitions past their retention
+// date, keeping their set-up (keepSetups), and deletes rehearsal copies and
+// kept set-ups past theirs, clubs unused
 // for ClubRetentionMonths (ADR 0011 Decision 7), with everything they hold,
 // and individuals with no entries left who were made
-// competitions.RetentionDays ago. It returns how many competitions and clubs
-// it deleted.
+// competitions.RetentionDays ago. It returns how many competitions (or
+// their people) and clubs it deleted.
 func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err error) {
 	now := s.now()
 	err = s.tx(ctx, func(tx *sql.Tx) error {
-		res, err := tx.ExecContext(ctx, `DELETE FROM competitions WHERE delete_after <= $1`, now.Format(timeLayout))
+		// A rehearsal copy, a kept set-up and the sandbox's competitions go
+		// whole; any other keeps its set-up, its people deleted.
+		res, err := tx.ExecContext(ctx, `DELETE FROM competitions WHERE delete_after <= $1
+			AND (made_as = 'rehearsal' OR setup_kept_at <> '' OR id IN (SELECT id FROM sandbox_items WHERE kind = 'competition'))`, now.Format(timeLayout))
 		if err != nil {
 			return err
 		}
 		if comps, err = res.RowsAffected(); err != nil {
 			return err
 		}
+		kept, err := s.keepSetups(ctx, tx, `delete_after <= $1 AND setup_kept_at = ''`, now.Format(timeLayout))
+		if err != nil {
+			return err
+		}
+		comps += kept
 		unusedClubs := now.AddDate(0, -ClubRetentionMonths, 0).Format(timeLayout)
 		if err := keepClubs(ctx, tx, s.stamp(), "", `last_used <= $3`, unusedClubs); err != nil {
 			return err

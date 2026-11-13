@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"tariffCalculator/demo"
 )
@@ -124,4 +125,20 @@ func TestDemoSeed(t *testing.T) {
 		}
 	}
 	t.Logf("%d clubs, %d entries (%d waiting), %d flights, %d of %d seats filled", len(clubs), len(entries), waiting, len(c.Published.Flights), filled, seats)
+
+	// A rehearsal copy of it, in well under two seconds: every entry, in
+	// as many flights.
+	start := time.Now()
+	r, _, err := s.st.CopyCompetition(ctx, c.ID, c.Name+" (rehearsal)", c.Date, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	took := time.Since(start)
+	if copied, _ := s.st.Entries(ctx, r.ID); len(copied) != len(all) || r.Published == nil || len(r.Published.Flights) != len(c.Published.Flights) {
+		t.Errorf("the rehearsal copy has %d entries, want %d", len(copied), len(all))
+	}
+	if took > 2*time.Second {
+		t.Errorf("a rehearsal copy took %s", took)
+	}
+	t.Logf("a rehearsal copy in %s", took.Round(time.Millisecond))
 }

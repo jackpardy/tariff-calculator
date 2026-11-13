@@ -100,6 +100,7 @@ func (p *competitionPages) register(mux *http.ServeMux) {
 	p.registerDay(handle)
 	p.registerScreen(handle)
 	p.registerScreenNotices(handle)
+	p.registerCopy(handle)
 	handle("GET /competitions/new", p.newForm)
 	handle("POST /competitions", p.create)
 	handle("GET /competitions/admin/{token}", p.dashboard)
@@ -204,10 +205,13 @@ func timeField(t, deadline time.Time) string {
 func summary(sc store.Competition, now time.Time) views.CompetitionSummary {
 	c := sc.Competition
 	out := views.CompetitionSummary{
-		Name: c.Name, Date: c.Date, Deadline: c.Deadline.In(local).Format("Monday 2 January 2006, 15:04"),
+		Name: c.Name, Date: c.Date, Deadline: "not set yet",
 		DeleteAfter: c.DeleteAfter().Format("2 January 2006"), Open: c.Open(now), Individuals: c.Individuals,
 		ChangesOpen: c.ChangesOpen(now), SignoffsOpen: c.SignoffsOpen(now),
 		Video: c.Video.Describe(), Signoff: c.Signoff, Live: c.Live(now),
+	}
+	if !c.Deadline.IsZero() {
+		out.Deadline = c.Deadline.In(local).Format("Monday 2 January 2006, 15:04")
 	}
 	if !c.LiveAt.IsZero() && !out.Live {
 		out.Opens = c.LiveAt.In(local).Format("Monday 2 January 2006, 15:04")

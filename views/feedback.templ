@@ -108,9 +108,9 @@ type MaintainerPage struct {
 	Made     []MadeItem    // the competitions made, newest first
 }
 
-// MadeItem is a competition made: its name, its (first) day and when it
-// was made.
-type MadeItem struct{ Name, Day, At string }
+// MadeItem is a competition made: its name, its (first) day, when it was
+// made and how, if not new (e.g. "Rehearsal copy of ISTO 2027").
+type MadeItem struct{ Name, Day, At, How string }
 
 // SiteFeedbackItem is one piece of feedback.
 type SiteFeedbackItem struct {
@@ -179,7 +179,16 @@ templ Maintainer(p MaintainerPage) {
 						<thead><tr><th>Competition</th><th>Its day</th><th>Made</th></tr></thead>
 						<tbody>
 							for _, c := range p.Made {
-								<tr><td>{ c.Name }</td><td>{ c.Day }</td><td>{ c.At }</td></tr>
+								<tr>
+									<td>
+										{ c.Name }
+										if c.How != "" {
+											<br/><span class="has-text-grey">{ c.How }</span>
+										}
+									</td>
+									<td>{ c.Day }</td>
+									<td>{ c.At }</td>
+								</tr>
 							}
 						</tbody>
 					</table>

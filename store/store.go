@@ -995,6 +995,22 @@ var migrations = []string{
 	DROP TABLE competition_coaches;
 	ALTER TABLE competition_coaches_new RENAME TO competition_coaches;
 	CREATE INDEX competition_coaches_club ON competition_coaches (club_id, competition_id);`,
+	// 57: copying a competition (2026-11-13). made_as says how it was
+	// made: '' new, 'copy' from another's set-up, 'rehearsal' a copy with
+	// its entries that only its own admin link opens, deleted 30 days after
+	// it's made (extended once: extended); copied_from is the name copied.
+	// setup_kept_at is when a finished competition's people were deleted
+	// and its set-up kept, '' while it has them. A rehearsal's clubs and
+	// individuals are rows of its own (rehearsal_id), with no working
+	// links, deleted with it.
+	`ALTER TABLE competitions ADD COLUMN made_as TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN copied_from TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN setup_kept_at TEXT NOT NULL DEFAULT '';
+	ALTER TABLE competitions ADD COLUMN extended BOOLEAN NOT NULL DEFAULT FALSE;
+	ALTER TABLE clubs ADD COLUMN rehearsal_id TEXT REFERENCES competitions (id) ON DELETE CASCADE;
+	ALTER TABLE individuals ADD COLUMN rehearsal_id TEXT REFERENCES competitions (id) ON DELETE CASCADE;
+	CREATE INDEX clubs_rehearsal ON clubs (rehearsal_id);
+	CREATE INDEX individuals_rehearsal ON individuals (rehearsal_id);`,
 }
 
 // migrationSteps are the parts of migrations that need Go, by version: run

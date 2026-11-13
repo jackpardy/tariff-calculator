@@ -81,6 +81,11 @@ func (p *competitionPages) renderSettings(w http.ResponseWriter, r *http.Request
 		NotifyOn: p.notifyLink("/") != "", NoWait: c.NoWait, Messages: c.Messages, ClubsSend: c.ClubsSend,
 		Limits: limitFields(c, entries), Video: videoForm(c.Video), Split: splitForm(c.Split, c.EventNames()),
 		Events: eventsForm(c.Competition), LevelOrder: levelOrderForm(c.Competition),
+		Copy:      views.CopyRow{Show: can(r, "POST", "/copy"), Rehearsal: canRehearse(c, p.now())},
+		Rehearsal: c.Rehearsal(), RehearsalDeletes: c.DeletesAt.In(local).Format("Monday 2 January 2006"), RehearsalExtended: c.Extended,
+	}
+	if c.Deadline.IsZero() {
+		page.DeadlineDate, page.DeadlineTime = "", "23:59"
 	}
 	if page.New != "" && !store.IsVia(r.PathValue("token")) {
 		page.Links.Admin = origin(r) + adminPath(r.PathValue("token"))

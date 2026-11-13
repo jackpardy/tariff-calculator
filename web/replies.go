@@ -159,12 +159,12 @@ func (n *notifier) tellSender(ctx context.Context, c store.Competition, k store.
 			}
 			body := line + "\n\n" + yours(k) + ":\n" + quoted(k.Text) + "\n\n" + n.seeYourPage("To see it") +
 				"\nTo stop these emails:\n" + n.offLink(told[0].Token) + "\n"
-			ds = append(ds, delivery{about: "Replies: emailing about " + c.ID, email: &email{told[0].Address, subject, body, map[string]string{
+			ds = append(ds, delivery{competition: c.ID, about: "Replies: emailing about " + c.ID, email: &email{told[0].Address, subject, body, map[string]string{
 				"List-Unsubscribe":      "<" + n.offLink(told[0].Token) + ">",
 				"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 			}}})
 		case store.ByPush:
-			ds = append(ds, delivery{about: "Replies: pushing about " + c.ID, sub: told[0], drop: told,
+			ds = append(ds, delivery{competition: c.ID, about: "Replies: pushing about " + c.ID, sub: told[0], drop: told,
 				push: pushMessage{Title: c.Name, Body: line, URL: n.savedLinks()}})
 		}
 	}

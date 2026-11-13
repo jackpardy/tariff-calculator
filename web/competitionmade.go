@@ -33,9 +33,25 @@ func (p *competitionPages) madeItems(ctx context.Context) ([]views.MadeItem, err
 	}
 	out := make([]views.MadeItem, len(made))
 	for i, c := range made {
-		out[i] = views.MadeItem{Name: c.Name, Day: madeDay(c.Date), At: c.CreatedAt.In(local).Format("Mon 2 Jan, 15:04")}
+		out[i] = views.MadeItem{Name: c.Name, Day: madeDay(c.Date), At: c.CreatedAt.In(local).Format("Mon 2 Jan, 15:04"), How: madeHow(c.MadeAs, c.CopiedFrom)}
+		if c.SetupKept {
+			out[i].How = strings.TrimPrefix(out[i].How+"; its set-up kept, its people deleted", "; ")
+		}
 	}
 	return out, nil
+}
+
+// madeHow says how a competition was made, if not new: "Copy of ISTO
+// 2027" or "Rehearsal copy of ISTO 2027".
+func madeHow(madeAs, from string) string {
+	from = strings.Join(strings.Fields(from), " ")
+	switch madeAs {
+	case store.MadeCopy:
+		return "Copy of " + from
+	case store.MadeRehearsal:
+		return "Rehearsal copy of " + from
+	}
+	return ""
 }
 
 // madeDay is a competition's (first) day, e.g. "Sat 6 Mar 2027".
@@ -65,9 +81,16 @@ func madeEmail(c store.Competition, site, base string) (subject, body string) {
 	var b strings.Builder
 	b.WriteString("Someone made a competition " + site + ".\n\n")
 	b.WriteString("Competition: " + name + "\n")
+	if how := madeHow(c.MadeAs, c.CopiedFrom); how != "" {
+		b.WriteString("Made as: " + how + "\n")
+	}
 	b.WriteString("Its day: " + madeDay(c.Date) + "\n")
 	b.WriteString("Made: " + c.CreatedAt.In(local).Format("Mon 2 January 2006, 15:04") + "\n")
 	b.WriteString("Site: " + strings.TrimPrefix(strings.TrimPrefix(base, "https://"), "http://") + "\n")
 	b.WriteString("\nIt's listed on your feedback page, under Competitions made.\n")
-	return "Competition made: " + name, b.String()
+	subject = "Competition made: " + name
+	if c.Rehearsal() {
+		subject = "Rehearsal copy made: " + name
+	}
+	return subject, b.String()
 }

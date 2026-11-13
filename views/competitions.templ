@@ -82,6 +82,7 @@ templ competitionLayout(title string) {
 		</head>
 		<body>
 			@sandboxBanner()
+			@rehearsalBanner()
 			<section class="section comp-page">
 				<div class="container">
 					<div class="notification is-warning is-light comp-offline" hidden><span data-offline-down>You're offline: this is the page as it was when last opened (<span data-offline-when></span>).</span><span data-offline-slow hidden>This is taking a while to load, so here's the page as it was at <span data-offline-when></span>. If you just sent something, it may still be on its way: <a href="">Try again</a> to see.</span></div>
@@ -248,10 +249,15 @@ templ newAdminLink(c CompetitionSummary, link, which string) {
 	<div class="notification is-warning is-light">
 		<p class="mb-2">
 			<strong>
-				if which == "replaced" {
-					Your new admin link.
-				} else {
-					Competition created.
+				switch which {
+					case "replaced":
+						Your new admin link.
+					case "copied":
+						Copy made.
+					case "rehearsal":
+						Rehearsal copy made.
+					default:
+						Competition created.
 				}
 			</strong>
 			Save this page's link, the admin link: it's the only way back to the entries, and anyone who has it can manage the competition.

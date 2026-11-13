@@ -149,6 +149,19 @@ Constraints:
    club or remove a member at any time.
    The submit page says what is stored, who can see it and when it's deleted.
 
+   *Note, 2026-11-13 (copying a competition):* at 120 days a competition's
+   entries and everything about its people are deleted as before (entries,
+   clubs' copies, coaches, officials, offers, links, history, messages,
+   payments, timetables' flights, the day's marks, subscriptions), but its
+   set-up stays as a *kept set-up* the organiser can copy, opened only by its
+   admin link, until 3 years after the competition's date or until they
+   delete it. Nothing personal is kept: every column kept was checked, the
+   timetable keeps only its Setup without rules about officials, and the two
+   free-text settings that could name someone (payment instructions, the note
+   to officials) are blanked. A rehearsal copy (a competition copied with its
+   entries, seen only through its own links) is deleted whole 30 days after
+   it's made (once 60), never kept; the sandbox's competitions go whole too.
+
 7. **Abuse limits**, as in charades: a cap on competitions and clubs created per
    IP per hour, a cap on members per club, a cap on entries per competition, and the existing 64 KB body limit.
    Behind Caddy the client IP is the rightmost `X-Forwarded-For` value.

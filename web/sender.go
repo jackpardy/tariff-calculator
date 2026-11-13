@@ -38,13 +38,16 @@ type email struct {
 
 // delivery is one email or push to one address.
 type delivery struct {
-	about string // what a failure is logged as, e.g. "Desk: emailing about <competition id>"
-	email *email // nil for a push
-	sub   store.Subscription
-	push  pushMessage
-	drop  []store.Subscription // dropped if the push service says it's gone
-	tally *tally               // nil when nobody's counting
-	retry bool                 // this is an email's retry
+	// competition is the competition it's about, "" for none: nothing is
+	// sent about a rehearsal copy.
+	competition string
+	about       string // what a failure is logged as, e.g. "Desk: emailing about <competition id>"
+	email       *email // nil for a push
+	sub         store.Subscription
+	push        pushMessage
+	drop        []store.Subscription // dropped if the push service says it's gone
+	tally       *tally               // nil when nobody's counting
+	retry       bool                 // this is an email's retry
 }
 
 // tally is how a desk message's deliveries are going.
@@ -92,7 +95,11 @@ func mailPerSecond() float64 {
 // send queues deliveries, counting a desk message's on its tally, and
 // returns at once.
 func (s *sender) send(ds []delivery) {
-	if len(ds) == 0 || s.n.sandbox {
+	if s.n.sandbox {
+		return
+	}
+	ds = s.n.notRehearsals(ds)
+	if len(ds) == 0 {
 		return
 	}
 	s.start.Do(func() {
@@ -113,6 +120,28 @@ func (s *sender) send(ds []delivery) {
 	}
 	s.queue = append(s.queue, ds...)
 	s.changed.Broadcast()
+}
+
+// notRehearsals are the deliveries not about a rehearsal copy: it emails
+// and pushes no one, whatever's asked.
+func (n *notifier) notRehearsals(ds []delivery) []delivery {
+	quiet := map[string]bool{}
+	out := ds[:0:0]
+	for _, d := range ds {
+		if d.competition != "" {
+			q, seen := quiet[d.competition]
+			if !seen {
+				c, err := n.st.Competition(context.Background(), d.competition)
+				q = err == nil && c.Rehearsal()
+				quiet[d.competition] = q
+			}
+			if q {
+				continue
+			}
+		}
+		out = append(out, d)
+	}
+	return out
 }
 
 // work sends what's queued, one at a time, until the sender stops.

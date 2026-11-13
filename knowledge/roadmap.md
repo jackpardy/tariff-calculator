@@ -46,7 +46,9 @@ phone first, plainly worded and built on one engine, so rules live only in Go
 | March 2027 | A full rehearsal of the day (date not confirmed) |
 | Last two weeks before ISTO | Fixes only |
 | Early April 2027 | ISTO (exact date not confirmed) |
-| 120 days after its date | A competition and its set-up are deleted (sooner if the organiser chooses) |
+| 120 days after its date | A competition's entries and everything about its people are deleted; its set-up is kept to copy (sooner if the organiser chooses) |
+| 3 years after its date | A kept set-up is deleted (sooner if the organiser chooses) |
+| 30 days after it's made | A rehearsal copy is deleted (once 30 days more; sooner if the organiser chooses) |
 
 # Now: before the dry run
 
@@ -89,9 +91,7 @@ the view screen held either way
    TrampOnline and ISTO exported a CSV of the entries; TrampOnline has a bulk
    upload tool, but how it works isn't known yet (the owner, 2026-11-13).
    Waiting on a sample of that format.
-10. **Copying a competition**, with or without its entries, and keeping a
-    set-up past 120 days: **to be decided**. Needed for the March rehearsal.
-11. **Timings learnt from the day**: the Warm-up over tap measures warm-up
+10. **Timings learnt from the day**: the Warm-up over tap measures warm-up
     and competing apart and **Real times today** sets them beside Setup's
     ([flight times](features/competition-entries.md#flight-times-roadmap-15));
     better defaults for tumbling, DMT and rest between turns follow from the
@@ -99,8 +99,8 @@ the view screen held either way
 
 # Then: before the rehearsal and ISTO
 
-- **The March rehearsal** on a copy of the real competition with its
-  entries, at the venue if possible, a script standing in for the crowd, and
+- **The March rehearsal** on a [rehearsal copy](features/competition-entries.md#copying-a-competition)
+  of the real competition with its entries (built 2026-11-13), at the venue if possible, a script standing in for the crowd, and
   15 minutes with the app switched off to practise the paper fallback.
 - **A page for the day's runbook**: restart, restore, roll back, hold
   deploys.
@@ -228,6 +228,7 @@ Dates are when built, where known.
 - Joining with several people on one phone: the join page lists the phone's pages at the club, a known name asks first (2026-11-11).
 - Who sends: four club settings for members sending their own, and the organiser taking only what clubs send ([late changes](features/competition-entries.md#late-changes), 2026-11-11).
 - [Removed by the club](features/competition-entries.md#removed-by-the-club): removed members and coaches stay visible to the organiser, sign-offs can be asked for again, a pair whose partner has gone is flagged, a member can be taken out of one competition (entries, offer to judge, or both), and fees for removal after entries close (2026-11-13).
+- [Copying a competition](features/competition-entries.md#copying-a-competition): its set-up for another, or with its entries as a private rehearsal copy that sends nothing and is deleted after 30 days; a finished competition's set-up kept for 3 years (2026-11-13).
 
 ## Fees, limits, late requests
 
