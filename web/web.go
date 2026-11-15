@@ -83,7 +83,9 @@ func Routes(st *store.Store) http.Handler {
 }
 
 // DeleteExpired deletes the competitions and clubs past their keeping time,
-// now and every six hours after. It never returns: run it in a goroutine.
-func DeleteExpired(st *store.Store) {
-	deleteExpired(st)
+// and the copies of the database made before migrating, now and every six
+// hours after; a failure is told to the maintainer. It never returns: run
+// it in a goroutine, once the storage is open.
+func (a *App) DeleteExpired() {
+	deleteExpired(a.pages.st, a.pages.problems)
 }

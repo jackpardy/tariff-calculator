@@ -39,6 +39,11 @@ func main() {
 		var err error
 		if st, err = store.Open(context.Background(), dir); err != nil {
 			log.Printf("COMPETITION STORAGE IS OFF: %v", err)
+			// The store is what's down, so the maintainer is emailed
+			// directly (if email is set up), not through its deliveries.
+			if len(os.Args) == 1 {
+				web.ReportStartup(err, sandbox)
+			}
 		}
 	}
 	// "demo" fills the storage with a made-up competition to show off, then stops.
@@ -99,11 +104,11 @@ func main() {
 		fmt.Printf("Reset the sandbox in %s.\n", took.Round(time.Second))
 		return
 	}
+	app := web.New(st)
 	// Only when serving: the one-off commands above close the store straight away.
 	if st != nil {
-		go web.DeleteExpired(st)
+		go app.DeleteExpired()
 	}
-	app := web.New(st)
 	// SANDBOX=1 makes this the sandbox, a second instance with its own
 	// DATA_DIR and address (ADR 0016): nothing is emailed or pushed, and
 	// every page says so.

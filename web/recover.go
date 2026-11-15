@@ -21,7 +21,9 @@ func withRecover(next http.Handler) http.Handler {
 				panic(v) // net/http's own way to stop a response: leave it to net/http
 			}
 			// The route's pattern, not its path, which holds the secret link.
-			log.Printf("Panic in %s: %v\n%s", r.Pattern, v, debug.Stack())
+			stack := debug.Stack()
+			log.Printf("Panic in %s: %v\n%s", r.Pattern, v, stack)
+			problemsOf(r.Context()).panicked(r, v, stack)
 			if !rw.started {
 				message(rw, r, http.StatusInternalServerError, "Something went wrong", "That didn't work. Please try again in a minute.")
 			}

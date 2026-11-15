@@ -45,6 +45,8 @@ type notifier struct {
 	confirms *limiter
 	// sandbox is the sandbox's (ADR 0016): nothing is emailed or pushed.
 	sandbox bool
+	// problems is told of what goes wrong in the background; nil for none.
+	problems *problems
 }
 
 func newNotifier(st *store.Store) *notifier {
@@ -475,18 +477,21 @@ func (n *notifier) tell(ctx context.Context) {
 	due, err := n.st.DueChanges(ctx)
 	if err != nil {
 		log.Printf("Notifications: %v", err)
+		n.problems.job("the notifier", err)
 		return
 	}
 	for _, d := range due {
 		ds, err := n.tellCompetition(ctx, d)
 		if err != nil {
 			log.Printf("Notifications: %s: %v", d.CompetitionID, err)
+			n.problems.job("the notifier", err)
 			continue
 		}
 		// Nothing is kept in the sandbox or about a rehearsal copy (keep).
 		kept := n.keep(ds)
 		if _, err := n.st.ToldChanges(ctx, d, kept); err != nil {
 			log.Printf("Notifications: %s: %v", d.CompetitionID, err)
+			n.problems.job("the notifier", err)
 			continue
 		}
 		if len(kept) > 0 {

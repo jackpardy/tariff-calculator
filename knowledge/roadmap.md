@@ -77,8 +77,7 @@ the view screen held either way
    Built 2026-11-13: every action that moves entries on or off a waiting
    list opens the notification window, and their page says so for a week
    ([limits and waiting lists](features/competition-entries.md#limits-and-waiting-lists)).
-3. **Small audit items**: no copy of the database before a migration (still
-   to do: deploy only keeps the nightly backup). (Built 2026-11-13: the
+3. **Small audit items**: (Built 2026-11-13: the
    [privacy notes](features/competition-entries.md#whats-kept-and-for-how-long)
    brought up to what the app keeps, with one public page, What's kept and
    for how long; [ADR 0018](../docs/adr/0018-site-feedback.md) for feedback
@@ -89,9 +88,15 @@ the view screen held either way
    no longer stays let in after it moves level; the public individual-entry
    link is limited per address; two blocks with the same name on a day are
    refused; an event longer than a day is offered men and women apart and a
-   longer day.)
-4. **Know when it breaks**: an outside uptime check, an email on errors and
-   panics, and a restore drill.
+   longer day; built 2026-11-13: a consistent copy of the database is
+   written before a migration runs, the newest two kept and deleted after
+   14 days, and a migration is refused if the copy can't be
+   [written](operations/deploy.md#a-copy-before-migrating).)
+4. **Know when it breaks**: the email on panics, unexpected 500s, failed
+   background jobs and a store that won't open, grouped and capped, with the
+   last 20 listed on the maintainer's page, is built 2026-11-13
+   ([deploy](operations/deploy.md#knowing-when-it-breaks)). Still the
+   owner's: an outside uptime check, and a restore drill.
 5. **A lost organiser or club admin link**: a command that issues a new one.
 6. **Link the Routine Builder to the competition pages**: still nothing
    leads from it to `/competitions`.

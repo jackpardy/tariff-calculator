@@ -91,7 +91,7 @@ func (p *competitionPages) maintainerPage(w http.ResponseWriter, r *http.Request
 	s := p.feedbackSettings()
 	page := views.MaintainerPage{Site: p.site(), Made: made, Base: maintainerPath(r.PathValue("token")), Notice: r.URL.Query().Get("notice"),
 		Off: s.Off, Light: s.Light, Size: megabytes(kept), All: r.URL.Query().Get("all") == "1", Total: len(all),
-		Sandbox: p.sandboxPanel(ctx, maintainerPath(r.PathValue("token")))}
+		Sandbox: p.sandboxPanel(ctx, maintainerPath(r.PathValue("token"))), Problems: p.problems.items(), MailTrouble: p.problems.mailTrouble()}
 	for _, f := range all {
 		if f.Picture || f.Snapshot {
 			page.Captures++
@@ -291,11 +291,12 @@ func (p *competitionPages) feedbackSnapshot(w http.ResponseWriter, r *http.Reque
 // deleteOldCaptures deletes the pictures and copies of pages kept longer
 // than keepCaptures, and feedback itself, with its reply-to, once it's
 // keepFeedback old, with the rest of what expires (deleteExpired).
-func deleteOldCaptures(st *store.Store, now time.Time) {
+func deleteOldCaptures(st *store.Store, rep *problems, now time.Time) {
 	n, err := st.DeleteCaptures(context.Background(), now.Add(-keepCaptures))
 	switch {
 	case err != nil:
 		log.Printf("Deleting old pictures and copies of pages sent with feedback: %v", err)
+		rep.job("the expiry job", err)
 	case n > 0:
 		log.Printf("Deleted the pictures and copies of pages sent with %d pieces of feedback", n)
 	}
@@ -303,6 +304,7 @@ func deleteOldCaptures(st *store.Store, now time.Time) {
 	switch {
 	case err != nil:
 		log.Printf("Deleting old feedback: %v", err)
+		rep.job("the expiry job", err)
 	case n > 0:
 		log.Printf("Deleted %d old pieces of feedback", n)
 	}
