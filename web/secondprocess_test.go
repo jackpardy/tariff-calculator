@@ -23,6 +23,7 @@ func TestAdminLinkReplacedFromAnotherProcess(t *testing.T) {
 	}
 	t.Cleanup(func() { running.Close() })
 	pages := newCompetitionPages(running)
+	pages.yearsAhead = 100 // the test's competition is in 2030
 	pages.notify.send.perSecond = 1e6
 	t.Cleanup(func() { pages.notify.send.stop(0) })
 	h := routesWithPages(pages)
