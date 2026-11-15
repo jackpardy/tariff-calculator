@@ -270,3 +270,6 @@ body {
 @media print {
   .view-bar { display: none; }
 }
+
+/* The quiet way to the competition and club pages, last in the Show menu. */
+.view-menu-link { color: var(--muted); font-size: 0.85rem; text-decoration: none; padding-top: 0.55rem; margin-top: 0.1rem; border-top: 1px solid var(--line); }

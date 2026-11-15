@@ -124,7 +124,7 @@ func exerciseOption(ex *requirements.Exercise) string {
 templ setSlots(e LevelEditorData, key, title string, ex requirements.Exercise) {
 	<div class="rule-card">
 		<p class="rule-card-title">{ title }</p>
-		<p class="matcher-hint mb-2">Add more than one when the gymnast chooses, e.g. option 1 or option 2. New set routines are built in the Routine Builder (More → Save as a set routine), or from a routine under Your set routines.</p>
+		<p class="matcher-hint mb-2">Add more than one when the gymnast chooses, e.g. option 1 or option 2. New set routines are built in the <a href="/">Routine Builder</a> (More → Save as a set routine), or from a routine under Your set routines.</p>
 		<input type="hidden" name={ key + ".n" } value={ strconv.Itoa(len(ex.Options)) }/>
 		for i, ref := range ex.Options {
 			<div class="level-option">

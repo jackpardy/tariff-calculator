@@ -160,7 +160,10 @@ but use the same words and the same main-action colour.
 - **The banner.** A slim banner (`toolBanner` in `views/tool.templ`, about
   45 px; one line on a phone) names the app and links **Routine Builder** and
   **Requirements**, the page's own underlined (on a phone only the other one
-  shows). On the builder the app's name is the page's `<h1>`; elsewhere it's a
+  shows), and a quieter third, **Competitions and clubs** (`competitionsLink`,
+  worded by `static/js/toollinks.js`). Under 560 px the banner is still one
+  line: "Trampoline" drops from the name, the link to the builder (the name
+  leads home) and "and clubs" from the third. On the builder the app's name is the page's `<h1>`; elsewhere it's a
   link home and the page has its own `h1.title.is-4`, as a competition page
   has. White on `#485fc7` (checked by `TestToolBannerContrast`). No hero and
   no footer.

@@ -139,7 +139,19 @@ a.tool-banner-name:hover { color: #fff; text-decoration: underline; }
 .tool-banner-nav a { color: #fff; font-size: 0.95rem; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
 .tool-banner-nav a:hover { color: #fff; border-bottom-color: rgba(255, 255, 255, 0.6); }
 .tool-banner-nav a[aria-current] { font-weight: 600; border-bottom-color: #fff; }
+/* The way to the competition and club pages: quieter than the two tools. */
+.tool-banner-nav a.tool-banner-more { font-size: 0.85rem; opacity: 1; }
 .tool-section { padding-top: 1.5rem; }
+@media screen and (max-width: 560px) {
+    /* Still one line with the third link: "Tariff Calculator", Requirements, and "Competitions" (or "Your competitions"). */
+    .tool-banner .container { flex-wrap: nowrap; align-items: baseline; gap: 0.6rem; }
+    .tool-banner-brand, .competitions-more { display: none; }
+    .tool-banner-name { white-space: nowrap; font-size: 0.95rem; }
+    .tool-banner-nav { gap: 0.75rem; white-space: nowrap; }
+    .tool-banner-nav a, .tool-banner-nav a.tool-banner-more { font-size: 0.8rem; }
+    /* The app's name leads home, so the nav needn't say "Routine Builder" as well. */
+    .tool-banner-nav a[href="/"] { display: none; }
+}
 /* The Requirements and compare pages are the competition pages' width. */
 .tool-page .container.is-narrow-tool { max-width: 60rem; }
 .tool-intro { max-width: 44rem; color: #4a4a4a; margin-bottom: 1.5rem; }

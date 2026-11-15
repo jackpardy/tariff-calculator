@@ -13,7 +13,15 @@ The builder is one of the routine tools (with the Requirements and compare
 pages), which share the competition pages' look: their text sizes, light
 buttons with colour only for the main action, notices and state chips, under
 a slim banner (`views/tool.templ`) naming the app, with **Routine Builder**
-and **Requirements** as links. **Add a skill** is above **Your routine** at
+and **Requirements** as links, and a third, quieter one to
+[`/competitions`](competition-entries.md): **Competitions and clubs**, which
+reads **Your competitions and clubs** once this browser has saved links
+(`static/js/toollinks.js` reads the same six saved lists the hub shows; no
+count). The Requirements and compare pages have the same banner; on the view
+screen it's the last line of the **Show** menu, and on the tariff sheet a link
+in the toolbar. On a phone the banner stays one line by showing **Tariff
+Calculator**, **Requirements** and **Competitions** (or **Your competitions**).
+**Add a skill** is above **Your routine** at
 every width, as before the look-and-feel pass (the owner kept that layout,
 2026-10-22; the layout is being redesigned separately). The page uses
 Bulma's container width (1,152 px at 1,216 px, 1,344 px at 1,408 px); the
