@@ -368,7 +368,7 @@ func setSlots(e LevelEditorData, key, title string, ex requirements.Exercise) te
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</p><p class=\"matcher-hint mb-2\">Add more than one when the gymnast chooses, e.g. option 1 or option 2. New set routines are built in the Routine Builder (More → Save as a set routine), or from a routine under Your set routines.</p><input type=\"hidden\" name=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</p><p class=\"matcher-hint mb-2\">Add more than one when the gymnast chooses, e.g. option 1 or option 2. New set routines are built in the <a href=\"/\">Routine Builder</a> (More → Save as a set routine), or from a routine under Your set routines.</p><input type=\"hidden\" name=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

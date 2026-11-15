@@ -487,8 +487,8 @@ func TestIndexRendersThePage(t *testing.T) {
 	}
 	// Every asset is linked by a versioned URL that the server actually serves.
 	links := regexp.MustCompile(`(?:href|src)="(/static/[^"]+)"`).FindAllStringSubmatch(html, -1)
-	if len(links) != 13 {
-		t.Errorf("found %d asset links, want 13 (2 CSS, 11 JS)", len(links))
+	if len(links) != 14 {
+		t.Errorf("found %d asset links, want 14 (2 CSS, 12 JS)", len(links))
 	}
 	for _, l := range links {
 		u := strings.ReplaceAll(l[1], "&amp;", "&")

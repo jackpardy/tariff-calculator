@@ -1,13 +1,15 @@
 // Runs competitions.js on a fake page and phone storage, to check which saved
 // links a member's page replaces, how two of one name are told apart, and what
 // a club's join page offers (web/joinagain_test.go runs it with node, if there
-// is one): node linkstest.mjs path/to/competitions.js
+// is one), and the routine tools' link to the competition pages (toollinks.js):
+// node linkstest.mjs path/to/competitions.js path/to/toollinks.js
 import fs from 'node:fs';
 import vm from 'node:vm';
 
 let fails = 0;
 const check = (what, cond) => { if (!cond) { fails++; console.log('FAIL', what); } else console.log('ok', what); };
 const source = fs.readFileSync(process.argv[2], 'utf8');
+const toolLinks = process.argv[3] ? fs.readFileSync(process.argv[3], 'utf8') : '';
 
 // elem is a fake element; data is its dataset, flags its boolean attributes.
 const elem = (data = {}, flags = []) => ({
@@ -21,12 +23,12 @@ const elem = (data = {}, flags = []) => ({
 
 // open runs the script on a page that has these elements (by selector), over
 // the phone's storage, and returns the storage and the elements.
-function open(selectors, stored = {}, path = '/') {
+function open(selectors, stored = {}, path = '/', src = source, lists = {}) {
     const store = new Map(Object.entries(stored).map(([k, v]) => [k, JSON.stringify(v)]));
     const listeners = {};
     const document = {
         querySelector: (s) => selectors[s] ?? null,
-        querySelectorAll: () => [],
+        querySelectorAll: (s) => lists[s] ?? [],
         getElementById: () => null,
         createElement: () => elem(),
         addEventListener: (e, f) => { listeners[e] = f; },
@@ -41,7 +43,7 @@ function open(selectors, stored = {}, path = '/') {
     };
     ctx.window = ctx;
     vm.createContext(ctx);
-    vm.runInContext(source, ctx);
+    vm.runInContext(src, ctx);
     listeners.DOMContentLoaded();
     return { saved: (k) => JSON.parse(store.get(k) || '[]') };
 }
@@ -105,5 +107,24 @@ j = join('club3', saved);
 check('another club shows nothing', j.box.hidden && j.list.children.length === 0);
 j = join('club1', []);
 check('no saved links shows nothing', j.box.hidden);
+
+// The routine tools' link to the competition pages reads "Competitions and
+// clubs", and "Your competitions and clubs" once any list of links is saved.
+function toolLink(stored) {
+    const head = elem();
+    head.textContent = 'Competitions';
+    const link = elem();
+    link.inner = { '[data-competitions-head]': head };
+    open({}, stored, '/', toolLinks, { '[data-competitions-link]': [link] });
+    return head.textContent;
+}
+if (toolLinks) {
+    check('no saved links: Competitions', toolLink({}) === 'Competitions');
+    check('an empty list: Competitions', toolLink({ trampolineCompetitions: [] }) === 'Competitions');
+    check('junk in storage: Competitions', toolLink({ trampolineClubs: 'oops', trampolineCoachLinks: [null, {}] }) === 'Competitions');
+    for (const k of ['trampolineCompetitions', 'trampolineClubs', 'trampolineMemberLinks', 'trampolineCoachLinks', 'trampolineGymnastLinks', 'trampolineEntryLinks']) {
+        check('a saved link under ' + k + ': Your competitions', toolLink({ [k]: [{ name: 'A', url: '/x' }] }) === 'Your competitions');
+    }
+}
 
 process.exit(fails ? 1 : 0);

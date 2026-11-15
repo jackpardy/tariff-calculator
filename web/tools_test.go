@@ -27,12 +27,27 @@ func TestRoutineToolsHaveTheBanner(t *testing.T) {
 			}
 		}
 	}
-	if page := getPage(t, "/"); !strings.Contains(page, `<h1 class="tool-banner-name">Trampoline Tariff Calculator</h1>`) {
+	if page := getPage(t, "/"); !strings.Contains(page, `<h1 class="tool-banner-name"><span class="tool-banner-brand">Trampoline </span>Tariff Calculator</h1>`) {
 		t.Errorf("the builder's banner should be its heading")
 	}
 	// The built-in requirements aren't carried on every load: a copy comes from the server.
 	if page := getPage(t, "/requirements"); strings.Contains(page, `id="builtin-sets"`) || len(page) > 150_000 {
 		t.Errorf("the requirements page carries its built-in sets again (%d bytes)", len(page))
+	}
+}
+
+// Every routine tool has the one quiet link to the competition and club
+// pages, and the small script that words it for a browser with saved links
+// (static/js/toollinks.js; testdata/linkstest.mjs runs it).
+func TestRoutineToolsLinkToTheCompetitionPages(t *testing.T) {
+	for _, path := range []string{"/", "/requirements", "/compare", "/view", "/tariff-sheet"} {
+		page := getPage(t, path)
+		if !strings.Contains(page, `href="/competitions" data-competitions-link><span data-competitions-head>Competitions</span><span class="competitions-more"> and clubs</span></a>`) {
+			t.Errorf("%s has no link to the competition and club pages", path)
+		}
+		if strings.Count(page, "data-competitions-link") != 1 || !strings.Contains(page, `js/toollinks.js`) {
+			t.Errorf("%s should have the link once, and the script that words it", path)
+		}
 	}
 }
 

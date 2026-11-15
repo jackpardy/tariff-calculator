@@ -96,3 +96,6 @@ th.element { text-align: center; border-bottom: 1px solid #000; }
     .card-page { break-after: page; }
     .card-page + .card-page { margin-top: 0; }
 }
+
+/* The quiet way to the competition and club pages (views/tool.templ). */
+.toolbar-link { margin-left: auto; color: #444; font-size: 0.85rem; white-space: nowrap; }
