@@ -151,8 +151,10 @@ func (s *Store) RemoveCoach(ctx context.Context, clubID, coachID, who string) er
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM coaches WHERE id = $1 AND club_id = $2`, coachID, clubID)); err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID)
-		return err
+		if _, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, coachID); err != nil {
+			return err
+		}
+		return dropSubscriptions(ctx, tx, s.now())
 	})
 }
 

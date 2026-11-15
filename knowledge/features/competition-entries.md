@@ -3311,8 +3311,14 @@ the sandbox's banner. The times are the code's: a competition's people 120
 days after its first day (its set-up, with no names, 3 years), a club 13
 months after anyone last used it, a rehearsal copy 30 days, feedback 90 days,
 a failed delivery's record 7 days. Where the code keeps something longer than
-a note might suggest, the page says so (an email address nobody confirms
-stays until the competition goes; the emailed copy of feedback; backups).
+a note might suggest, the page says so (the emailed copy of feedback; backups,
+about a week, and the copy made before an update, 14 days; the server's log,
+90 days, with each page's address). A person's email and push subscriptions
+go when they're removed from the club (or the club is deleted), and an email
+nobody confirmed goes after 7 days (`dropSubscriptions`, in the expiry job
+and in the removals). A competition can't be made or copied with a first day
+more than two years ahead (`competitions.CheckDateAhead`), so 120 days after
+it can't be decades away.
 Change a note and the page together; `web/privacy_test.go` checks the key
 phrases.
 

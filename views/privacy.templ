@@ -71,7 +71,7 @@ templ PrivacyPage() {
 					<tr>
 						<td><strong>Email addresses and phone notifications.</strong> The address you give for emails, only if you ask to hear about changes (and tick that you're 18 or over, or it's a parent's). For a phone, the address its browser gives for notifications.</td>
 						<td>Only you, on your own page. Nobody else sees an address, and it's used only to send you what you asked for.</td>
-						<td>When you stop them, or 120 days after the competition's first day. An email address you don't confirm is never emailed, but stays until then. An email waiting to be sent is deleted when it goes; one that couldn't be sent is kept without its words for 7 days, so the organiser can see who wasn't told.</td>
+						<td>When you stop them, when you're removed from your club, or 120 days after the competition's first day. An email address you don't confirm is deleted after 7 days. An email waiting to be sent is deleted when it goes; one that couldn't be sent is kept without its words for 7 days, so the organiser can see who wasn't told.</td>
 					</tr>
 					<tr>
 						<td><strong>Feedback about the app.</strong> The words, any name or email left for a reply, the kind of link it was sent from, the page it was sent from, which competition, details of your browser and, if you send them, a picture of the screen and a copy of the page (links and emails left out).</td>
@@ -79,9 +79,9 @@ templ PrivacyPage() {
 						<td>90 days after it's sent, or sooner if they delete it.</td>
 					</tr>
 					<tr>
-						<td><strong>Backups and logs.</strong> A nightly backup of the whole database, and the server's log of pages opened and the address they were opened from.</td>
+						<td><strong>Backups and logs.</strong> A nightly backup of the whole database; a copy of it taken before an update that changes it; and the server's log of pages opened.</td>
 						<td>The person who runs the server.</td>
-						<td>Backups are kept for a short time, so something deleted here can sit in one for a while longer. The server's log is kept up to 90 days.</td>
+						<td>Backups are kept for about a week, and the copy before an update for at most 14 days, so something deleted here can sit in one for a while longer. The server's log of pages opened is kept up to 90 days; it includes the address of each page, so treat a link as secret for that long after it's replaced.</td>
 					</tr>
 					<tr>
 						<td><strong>The sandbox.</strong> A separate copy of the app for trying things out, full of made-up people.</td>

@@ -901,7 +901,7 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 		if err := dropOldDeliveries(ctx, tx, now); err != nil {
 			return err
 		}
-		return dropLeftovers(ctx, tx)
+		return dropLeftovers(ctx, tx, now)
 	})
 	return comps, clubs, err
 }
@@ -909,7 +909,10 @@ func (s *Store) DeleteExpired(ctx context.Context) (comps, clubs int64, err erro
 // dropLeftovers deletes what deleting competitions, clubs or individuals
 // leaves behind: the rows that refer to them without a foreign key, and the
 // requirements of people who are gone (DeleteExpired, DeleteCopy).
-func dropLeftovers(ctx context.Context, tx *sql.Tx) error {
+func dropLeftovers(ctx context.Context, tx *sql.Tx, now time.Time) error {
+	if err := dropSubscriptions(ctx, tx, now); err != nil {
+		return err
+	}
 	if err := dropTies(ctx, tx); err != nil {
 		return err
 	}

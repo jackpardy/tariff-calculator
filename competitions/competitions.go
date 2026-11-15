@@ -135,6 +135,21 @@ func (c Competition) Day() (time.Time, error) {
 	return time.Parse(DateLayout, c.Date)
 }
 
+// MaxYearsAhead is how far ahead a competition's first day can be when it's
+// made or copied: a date far off would keep its people for as long.
+const MaxYearsAhead = 2
+
+// CheckDateAhead says whether a first day (written as DateLayout) is no more
+// than that many years (MaxYearsAhead in the app) after now. A date that doesn't read is not its
+// concern (Validate says so).
+func CheckDateAhead(date string, now time.Time, years int) error {
+	day, err := time.Parse(DateLayout, date)
+	if err == nil && day.After(now.AddDate(years, 0, 0)) {
+		return errors.New("the date is more than two years away: check the year")
+	}
+	return nil
+}
+
 // DeleteAfter is when the competition and its entries are deleted.
 func (c Competition) DeleteAfter() time.Time {
 	day, err := c.Day()

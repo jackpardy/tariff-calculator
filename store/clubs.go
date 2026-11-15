@@ -139,6 +139,9 @@ func (s *Store) DeleteClub(ctx context.Context, id, who string) error {
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM clubs WHERE id = $1`, id)); err != nil {
 			return err
 		}
+		if err := dropSubscriptions(ctx, tx, s.now()); err != nil {
+			return err
+		}
 		return dropTies(ctx, tx)
 	})
 }
@@ -289,8 +292,10 @@ func (s *Store) RemoveMember(ctx context.Context, clubID, memberID, who string) 
 		if err := affected(tx.ExecContext(ctx, `DELETE FROM members WHERE id = $1 AND club_id = $2`, memberID, clubID)); err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, memberID)
-		return err
+		if _, err = tx.ExecContext(ctx, `DELETE FROM shared_ties WHERE record_id = $1`, memberID); err != nil {
+			return err
+		}
+		return dropSubscriptions(ctx, tx, s.now())
 	})
 }
 

@@ -30,6 +30,9 @@ func TestWhatsKeptPage(t *testing.T) {
 		"Names on the timetable and the venue screen can be read by anyone at the venue",
 		"Helper links don't see messages",
 		"kept without its words for 7 days",
+		"deleted after 7 days",
+		"Backups are kept for about a week",
+		"treat a link as secret for that long after it's replaced",
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("the page should say %q", want)

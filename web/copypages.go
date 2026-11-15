@@ -115,6 +115,9 @@ func (p *competitionPages) copyCompetition(w http.ResponseWriter, r *http.Reques
 	if _, err := time.Parse(competitions.DateLayout, page.Date); err != nil {
 		page.Problems = append(page.Problems, "Give the copy's first day.")
 	}
+	if err := competitions.CheckDateAhead(page.Date, p.now(), p.yearsAhead); err != nil {
+		page.Problems = append(page.Problems, sentences(err)...)
+	}
 	if len(page.Problems) > 0 {
 		noteRefused(w)
 		w.WriteHeader(http.StatusUnprocessableEntity)

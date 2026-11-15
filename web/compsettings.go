@@ -47,6 +47,9 @@ func (p *competitionPages) create(w http.ResponseWriter, r *http.Request) {
 	} else {
 		c.LiveAt = at
 	}
+	if err := competitions.CheckDateAhead(form.Date, p.now(), p.yearsAhead); err != nil {
+		problems = append(problems, sentences(err)...)
+	}
 	c.Signoff = r.FormValue("signoff") == "1"
 	form.Signoff = c.Signoff
 	if r.FormValue("split") == competitions.SplitAll {
