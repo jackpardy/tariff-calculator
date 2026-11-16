@@ -63,7 +63,10 @@ func TestStaleTimetableForm(t *testing.T) {
 			t.Errorf("%s from the old page: %q", s.path, noticeOf(t, to))
 		}
 	}
-	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); versionIn(after) != versionIn(now) || strings.Contains(after, "Sunday") {
+	// The page is as it was, bar the time it was made, which comes from the
+	// real clock.
+	madeAt := regexp.MustCompile(`<meta name="page-time" content="[^"]*"/?>`)
+	if after := do(t, h, http.MethodGet, tt, nil).Body.String(); versionIn(after) != versionIn(now) || madeAt.ReplaceAllString(after, "") != madeAt.ReplaceAllString(now, "") {
 		t.Error("nothing was changed by the refused forms")
 	}
 	if strings.Contains(dayAll(t, h, admin+"/day"), "Ann") {
