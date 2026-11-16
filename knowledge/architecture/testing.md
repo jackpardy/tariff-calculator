@@ -138,3 +138,5 @@ has no automated tests. UI changes were checked by hand in a desktop browser,
 and some phone behaviour is still untested
 ([open questions](../open-questions.md)). More pages can be added to
 `web/browser_test.go` the same way.
+
+Never assert on text the real clock can put on a page (a weekday or month name, "today", the `page-time` meta): a test passes on most days and fails on one. Run the server on the test kit's fixed clock where the page uses it, and where it doesn't (`views.pageTime`), compare the page or its data with that text left out.

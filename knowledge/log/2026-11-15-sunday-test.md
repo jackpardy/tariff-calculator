@@ -1,0 +1,1 @@
+* **Update**: A test of the timetable's out-of-date forms looked for the word "Sunday" on the page, which every page now carries on a Sunday in its made-at time, so it failed (and so did every pull request) on Sundays; it now compares the page with that time left out, and [testing](architecture/testing.md) says not to assert on text the real clock can put on a page.
