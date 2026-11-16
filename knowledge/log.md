@@ -2,6 +2,9 @@
 
 New lines start as files in [log/](log/), one per change, and are moved here, under their dates, after they merge ([how](log/README.md)).
 
+## 2026-11-15
+* **Update**: A test of the timetable's out-of-date forms looked for the word "Sunday" on the page, which every page now carries on a Sunday in its made-at time, so it failed (and so did every pull request) on Sundays; it now compares the page with that time left out, and [testing](architecture/testing.md) says not to assert on text the real clock can put on a page.
+
 ## 2026-11-13
 * **Update**: [A lost organiser or club admin link](operations/deploy.md#a-lost-organiser-or-club-admin-link) can now be replaced by the maintainer on the server (`find "<words>"`, then `new-admin-link competition|club <id>`, which asks for the name typed back, writes a line in the History and prints the new link once; helpers', role and personal links keep working; a running server needs no restart); and the routine tools (the builder, Requirements, Compare, View and the tariff sheet) now have a quiet **Competitions and clubs** link, which reads **Your competitions and clubs** once the browser has saved links. Roadmap items 5 and 6 built.
 * **Update**: [Know when it breaks](operations/deploy.md#knowing-when-it-breaks): the maintainer is emailed (`FEEDBACK_EMAIL`) when a handler panics, a page answers 500 for an unexpected error, a background job fails or the store won't open (sent straight away then), the same problem once an hour and at most 20 a day, never with a link or a name, and the last 20 are listed on the maintainer's page under Problems lately, with a warning when emails are failing; and the app now [writes a copy of the database before migrating](operations/deploy.md#a-copy-before-migrating) (the newest two kept, deleted after 14 days, a migration refused if the copy can't be made). The outside uptime check and the restore drill are still the owner's.
