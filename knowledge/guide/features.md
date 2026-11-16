@@ -150,7 +150,9 @@ copy full of made-up clubs and gymnasts, with a link for each role.
 - **Feedback**: a tab at the edge of every page, for anyone to tell the
   people who make the app what confused them, with a picture of the screen
   and a copy of the page while it's being tried out (links and emails on the
-  page are left out). It's kept for 90 days, then deleted.
+  page are left out). It's kept for 90 days, then deleted. Every page that
+  asks for names links to **What's kept and for how long**, which says what
+  the app keeps, who sees it and when it's deleted.
 - **Score sheets**: printed for the recorders, a flight to a page, and on
   each official's phone for their own panels.
 - **Tell me about changes**: a push on your phone or an email when the

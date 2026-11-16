@@ -299,6 +299,7 @@ templ Hub() {
 			<a class="button is-primary" href="/competitions/new">New competition</a>
 			<a class="button" href="/clubs/new">New club</a>
 		</div>
+		@keptFoot()
 	}
 }
 
@@ -325,7 +326,10 @@ templ NewClub(name string, problems []string) {
 			</div>
 			<button class="button is-primary" type="submit">Create club</button>
 		</form>
-		<p class="help mt-4">We keep the club's name and its members' names, entries and routines, nothing else. A club is deleted 13 months after anyone last used it.</p>
+		<p class="help mt-4">
+			We keep the club's name and its members' names, entries, routines and skill marks, and its coaches with their certificates. The club's comp sec and coaches see them, and each competition's organiser sees the entries you send. A club is deleted 13 months after anyone last used it.
+			@keptLink()
+		</p>
 	}
 }
 
@@ -1047,7 +1051,10 @@ templ ClubSettings(c ClubPage) {
 			</div>
 		}
 		if c.KeptUntil != "" {
-			<p class="help mb-5">{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on." }</p>
+			<p class="help mb-5">
+				{ "The club is kept until " + c.KeptUntil + ": 13 months after anyone last opened its pages, or a member's or coach's. Each time someone does, that moves on. Deleting the club removes it now; entries already sent stay with each competition until it's deleted." }
+				@keptLink()
+			</p>
 		}
 		if ClubAccessOf(ctx).Admin {
 			@tiesBox(c.Base+"/ties/remove", c.Ties, "Someone who adds the club admin link to their own page (a member's or coach's, say) opens these pages from there, with a tab for each.")
@@ -1114,7 +1121,10 @@ templ ClubJoin(p JoinPage) {
 			</div>
 			<button class="button is-primary" type="submit">Join</button>
 		</form>
-		<p class="help mt-4">We keep your name, your entries, and any routines and skills you keep on your page, which your club sees, and your entries the competitions they're sent to. Nothing else, and no account.</p>
+		<p class="help mt-4">
+			We keep your name, your entries, and any routines, skills and levels you keep on your page. Your club's comp sec and coaches see them, and the organiser of each competition your entries are sent to sees the entries. No account. It's all deleted 13 months after anyone last used the club, or sooner if the comp sec removes you.
+			@keptLink()
+		</p>
 	}
 }
 

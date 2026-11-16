@@ -153,7 +153,7 @@ func (s *Store) DeleteCopy(ctx context.Context, id string) error {
 				return err
 			}
 		}
-		if err := dropLeftovers(ctx, tx); err != nil {
+		if err := dropLeftovers(ctx, tx, s.now()); err != nil {
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `DELETE FROM sandbox_copies WHERE id = $1`, id)

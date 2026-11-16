@@ -6,7 +6,10 @@
 - **Deciders:** jackpardy (solo maintainer)
 - **Amends:** ADR 0004 Decision 6 (personal data: an email can be kept, to
   notify)
-- **Amended by:** ADR 0012 (emails and pushes sent in the background)
+- **Amended by:** ADR 0012 (emails and pushes sent in the background); and a
+  2026-11-15 note: a person's subscriptions are also deleted when they're
+  removed from their club (or it's deleted), and an email nobody confirmed
+  is deleted after 7 days, not kept until the competition goes
 
 ## Context
 

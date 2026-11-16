@@ -53,6 +53,7 @@ type competitionPages struct {
 	enterLimiter                      *limiter // entries made through the individual link, per address
 	emailLimiter                      *limiter // confirmation emails asked for, per address
 	now                               func() time.Time
+	yearsAhead                        int                                    // how far ahead a competition's first day can be (competitions.MaxYearsAhead)
 	notify                            *notifier                              // nil when storage is off
 	facts                             factCache                              // what the pages work out from each competition's entries
 	fixes                             fixCache                               // changes that might make each timetable fit
@@ -79,6 +80,7 @@ func newCompetitionPages(st *store.Store) *competitionPages {
 		feedbackLinkAddrLimiter: newLimiter(maxFeedbackUnderLinkPerHour, time.Hour),
 		feedbackLinkLimiter:     newLimiter(maxFeedbackPerLinkPerDay, 24*time.Hour),
 		now:                     time.Now,
+		yearsAhead:              competitions.MaxYearsAhead,
 		feedbackTo:              os.Getenv("FEEDBACK_EMAIL"),
 		pages:                   map[string]bool{},
 	}

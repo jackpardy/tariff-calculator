@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Rule types and matchers
-description: The ten rule types a list of requirements can contain (count, linked, every, elements, difficulty, position, sequence, separate, includes, different) and the matcher that describes elements.
+description: The eleven rule types a list of requirements can contain (count, linked, every, elements, difficulty, position, sequence, separate, includes, different, track) and the matcher that describes elements.
 resource: https://github.com/jackpardy/tariff-calculator/blob/master/requirements/requirements.go
 tags: [requirements, reference, json]
 generated: { by: claude-code/cli, at: 2026-10-04T17:45:00Z }

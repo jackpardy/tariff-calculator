@@ -81,7 +81,9 @@
         backgroundColor: '#fff',
         timeout: 15000,
         style: { transform: `translate(${-scrollX}px, ${-scrollY}px)`, transformOrigin: '0 0', margin: '0' },
-        filter: (node) => !ours(node),
+        // <noscript> holds markup as text (the browser has scripts on), which
+        // the library would draw as it is: its raw tags show in the picture.
+        filter: (node) => !ours(node) && !(node.nodeType === 1 && node.tagName === 'NOSCRIPT'),
         onCloneEachNode: (node) => {
             if (node.nodeType !== 1) {
                 return;
@@ -152,7 +154,7 @@
         });
         doc.querySelectorAll('img[data-private]').forEach((el) => el.removeAttribute('src'));
         doc.querySelectorAll('[data-copy]').forEach((el) => el.removeAttribute('data-copy'));
-        doc.querySelectorAll('[data-site-feedback], script, link[href*="/feedback.css"]').forEach((el) => el.remove());
+        doc.querySelectorAll('[data-site-feedback], script, noscript, link[href*="/feedback.css"]').forEach((el) => el.remove());
         const html = '<!DOCTYPE html>\n' + doc.outerHTML;
         if (!window.CompressionStream) {
             return Promise.resolve(new Blob([html], { type: 'text/html' }));

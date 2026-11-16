@@ -200,7 +200,7 @@ func feedbackButton(f *FeedbackForm) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"site-feedback-small site-feedback-grey\">What you send is kept for 90 days, then deleted.</p><figure class=\"site-feedback-picture\" hidden data-feedback-picture><img alt=\"The picture of your screen that goes with it\"><figcaption class=\"site-feedback-small site-feedback-grey\" data-feedback-caption></figcaption></figure><div class=\"site-feedback-buttons\"><button class=\"site-feedback-send\" type=\"submit\">Send</button> <button type=\"button\" data-feedback-close>Close</button></div><p class=\"site-feedback-small\" role=\"status\" data-feedback-said></p></form></div></details></div><script defer src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"site-feedback-small site-feedback-grey\">What you send, and any name or email you leave, is kept for 90 days, then deleted. <a href=\"/privacy\" target=\"_blank\" rel=\"noopener\">What's kept and for how long</a></p><figure class=\"site-feedback-picture\" hidden data-feedback-picture><img alt=\"The picture of your screen that goes with it\"><figcaption class=\"site-feedback-small site-feedback-grey\" data-feedback-caption></figcaption></figure><div class=\"site-feedback-buttons\"><button class=\"site-feedback-send\" type=\"submit\">Send</button> <button type=\"button\" data-feedback-close>Close</button></div><p class=\"site-feedback-small\" role=\"status\" data-feedback-said></p></form></div></details></div><script defer src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

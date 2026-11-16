@@ -29,6 +29,7 @@ the competition and club routes are registered by each page file in `web/`
 | `POST /qr` | `text` | An SVG QR code ([sharing](../features/sharing.md)) |
 | `GET /compare`, `POST /compare` | `aData`, `aName`, `bData`, `bName` | The [compare page](../features/compare.md) and its comparison |
 | `GET /requirements` | — | The requirements page |
+| `GET /privacy` | — | [What's kept and for how long](../features/competition-entries.md#whats-kept-and-for-how-long): the public page that every short note on a page that takes names links to, with what's kept, who sees it and when it's deleted. Needs no link and no storage; has the Feedback tab |
 | `POST /requirements/editor` | `set` (JSON), `copy` (a built-in's reference: a copy named "Copy of …"), or the editor's form fields + `action`/`add` | The re-rendered editor with problems listed. The Requirements page duplicates a built-in with `copy`, rather than carrying every built-in set in the page |
 | `POST /requirements/level-editor` | `level` (JSON) and `custom`, or the editor's own fields and `action` | The [level](../requirements/levels.md) editor |
 | `GET /tariff-sheet`, `POST /tariff-sheet` | as `/routine` | The [tariff sheet](../features/tariff-sheet.md) page and card |

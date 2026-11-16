@@ -1234,7 +1234,9 @@ link listed has **Undo**.
 
 # What's kept
 
-Only names, clubs, levels and events, men or women where asked, synchro
+The app has a page for this, **What's kept and for how long**, linked from
+the foot of the home page and the Competitions page and from every page that
+asks for names. In short: only names, clubs, levels and events, men or women where asked, synchro
 partners, routines (with entries, and those members keep on their page),
 the skills members and coaches mark, with who marked them and when,
 the club's own skills and levels and the coach who added each,
@@ -1244,6 +1246,12 @@ history of changes, and coaches' and judges' qualifications with their
 certificates where they're added. No birthdays or contact details; an email
 address only if you ask to hear about changes by email, until you stop
 them. Videos are never uploaded: only their links.
+
+A competition's people (entries, officials, messages, check-ins, the history)
+are deleted 120 days after its first day, or sooner if the organiser deletes
+it; its set-up, with no names, stays 3 years so it can be copied. A club is
+deleted 13 months after anyone last used it. A rehearsal copy goes after 30
+days. A backup may hold something a little longer.
 
 Feedback sent with the **Feedback** tab goes to the people who make the
 app, with the page it was sent from; while the app is being tried out, a

@@ -108,7 +108,7 @@ func pageName(pattern string) string {
 
 // calculatorPages are the calculator's pages with the button, by route
 // pattern: they post to /feedback, as "Calculator".
-var calculatorPages = []string{"/", "/compare", "/view", "/tariff-sheet", "/requirements"}
+var calculatorPages = []string{"/", "/compare", "/view", "/tariff-sheet", "/requirements", "/privacy"}
 
 // feedbackRoots are the links feedback is posted under, each with the role
 // it's saved with (an admin link's is the link's own).

@@ -171,6 +171,25 @@ func (s *Store) Subscribe(ctx context.Context, sub Subscription) (Subscription, 
 	return sub, token, nil
 }
 
+// UnconfirmedKeptDays is how long an email address nobody confirmed is kept.
+const UnconfirmedKeptDays = 7
+
+// dropSubscriptions deletes the notification subscriptions whose owner is
+// gone (a member or coach removed, a club or individual deleted), so an
+// address doesn't outlive the person it was for, and the emails nobody
+// confirmed within UnconfirmedKeptDays.
+func dropSubscriptions(ctx context.Context, tx *sql.Tx, now time.Time) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM notify_subscriptions WHERE
+		(kind = $1 AND owner_id NOT IN (SELECT id FROM members))
+		OR (kind = $2 AND owner_id NOT IN (SELECT id FROM coaches))
+		OR (kind = $3 AND owner_id NOT IN (SELECT id FROM clubs))
+		OR (kind = $4 AND owner_id NOT IN (SELECT id FROM individuals))
+		OR (channel = $5 AND NOT confirmed AND created_at <= $6)`,
+		NotifyMember, NotifyCoach, NotifyClub, NotifyIndividual, ByEmail,
+		now.AddDate(0, 0, -UnconfirmedKeptDays).UTC().Format(timeLayout))
+	return err
+}
+
 // Subscriptions are how one person is told about a competition.
 func (s *Store) Subscriptions(ctx context.Context, competitionID, kind, ownerID string) ([]Subscription, error) {
 	return s.subscriptions(ctx, `competition_id = $1 AND kind = $2 AND owner_id = $3`, competitionID, kind, ownerID)

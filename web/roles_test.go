@@ -418,7 +418,9 @@ func TestOldEntryLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	h := routesWith(st)
+	pages := newCompetitionPages(st)
+	pages.yearsAhead = 100 // the test's competition is in 2030
+	h := routesWithPages(pages)
 	form := newCompetition()
 	form.Set("tumbling", "Novice")
 	created(t, h, form)

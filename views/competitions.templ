@@ -226,6 +226,10 @@ templ NewCompetition(f CompetitionForm) {
 			</div>
 			<button class="button is-primary" type="submit">Create competition</button>
 		</form>
+		<p class="help mt-4">
+			We keep the competition's set-up and what clubs and gymnasts enter for it: names, levels, routines and more. You and the helpers you give links to see it. It's deleted 120 days after the competition begins; its set-up, with no names, stays 3 years for you to copy, unless you delete it first.
+			@keptLink()
+		</p>
 		// The competitions already saved here, after the form this page is
 		// for (Competitions and clubs lists them too).
 		<div id="saved-competitions" class="mt-5" hidden>

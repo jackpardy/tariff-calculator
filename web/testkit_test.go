@@ -82,6 +82,8 @@ func newTestServer(t *testing.T, opts ...serverOption) *testServer {
 	s := &testServer{p: newCompetitionPages(st), st: st}
 	// No cap on emails a second unless a test sets one (TestSendRateCap).
 	s.p.notify.send.perSecond = 1e6
+	// The tests' competitions are in 2030: no two-year cap unless a test sets one (TestDateTooFarAhead).
+	s.p.yearsAhead = 100
 	for _, o := range opts {
 		o(s)
 	}
